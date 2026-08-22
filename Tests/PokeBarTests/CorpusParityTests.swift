@@ -69,6 +69,73 @@ final class CorpusParityTests: XCTestCase {
         XCTAssertGreaterThan(totals.cacheRead, totals.input)
     }
 
+    /// Prices the real corpus and reports the tier-weighted currency.
+    ///
+    /// Currency is raw token count (every class counted equally, matching what
+    /// the Anthropic console reports) times a per-model tier multiplier. The
+    /// dollar figure is API-equivalent, not money spent on a subscription.
+    func testReportsCostAndWeightedCurrency() throws {
+        try skipUnlessEnabled()
+
+        let pricing = ModelPricing()
+        let entries = UsageScanner().scan().entries
+        let (totals, weighted) = pricing.totals(for: entries)
+
+        print("""
+
+        ── pricing ─────────────────────────────────────────────────────
+        raw tokens        : \(totals.tokens.total)
+        weighted currency : \(String(format: "%.0f", weighted))
+        API-equiv cost    : $\(String(format: "%.2f", totals.costUSD))
+        unpriced models   : \(totals.hasUnpricedModels ? "YES — cost is a floor" : "none")
+        ────────────────────────────────────────────────────────────────
+        """)
+        let byWeight = totals.byModel.sorted { $0.value.total > $1.value.total }
+        for (model, tokens) in byWeight {
+            let tier = pricing.tierMultiplier(for: model)
+            let rate = pricing.rate(for: model)
+            print(String(
+                format: "  %-20s tokens=%-14d tier=%-5s cost=$%.2f",
+                (model as NSString).utf8String!, tokens.total,
+                ((tier.map { String(format: "%.1f", $0) } ?? "??") as NSString).utf8String!,
+                rate?.costUSD(for: tokens) ?? 0))
+        }
+
+        XCTAssertFalse(
+            totals.hasUnpricedModels,
+            "a model in this corpus is unpriced; the bundled table needs the entry")
+        XCTAssertGreaterThan(totals.costUSD, 0)
+        // Usage is ~81% fable-5 at tier 2.0, so weighting must exceed raw count.
+        XCTAssertGreaterThan(weighted, Double(totals.tokens.total))
+    }
+
+    /// The runtime snapshot must actually resolve the models in this corpus,
+    /// not just parse. Network-dependent, so a fetch failure skips rather than
+    /// fails — the bundled table is the guarantee, this is the improvement.
+    func testRuntimeSnapshotCoversThisCorpus() async throws {
+        try skipUnlessEnabled()
+
+        let catalog = PricingCatalog(
+            cacheURL: FileManager.default.temporaryDirectory
+                .appendingPathComponent("pokebar-pricing-\(UUID().uuidString).json"))
+        let refreshed = await catalog.refreshIfNeeded(force: true)
+        try XCTSkipUnless(refreshed, "pricing source unreachable")
+
+        let pricing = await catalog.current()
+        let models = Set(UsageScanner().scan().entries.map(\.model))
+        print("\n── runtime snapshot ────────────────────────────────────────────")
+        for model in models.sorted() {
+            let rate = pricing.rate(for: model)
+            print(String(
+                format: "  %-20s %@",
+                (model as NSString).utf8String!,
+                rate.map { String(format: "$%.2f/$%.2f per MTok",
+                                  $0.input * 1e6, $0.output * 1e6) } ?? "UNPRICED"))
+            XCTAssertNotNil(rate, "\(model) unpriced after a live refresh")
+        }
+        print("────────────────────────────────────────────────────────────────")
+    }
+
     /// The property that makes event-driven updates safe: scanning twice must
     /// not double count, and the second pass must read almost nothing.
     func testSecondPassIsIncrementalAndAddsNothing() throws {

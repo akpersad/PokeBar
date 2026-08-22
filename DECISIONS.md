@@ -155,7 +155,67 @@ changes no total; it only keeps a bogus row out of the per-model breakdown.
 a table and ships a commit per new model. On this machine that table has no
 `claude-opus-5` and no `claude-sonnet-5` entry, covering **342,492,125 tokens,
 18.5% of total volume, silently priced at $0.00**. Unpriced models must surface
-as unknown, never as free.
+as unknown, never as free; an unknown model still earns, at baseline tier.
+
+Source: the LiteLLM snapshot, verified 2026-08-22 to agree exactly with the
+Anthropic pricing reference on every model in use. Refreshed weekly, cached to
+disk, bundled table as the floor.
+
+**Lookup is exact-key only, never fuzzy.** The source carries ten prefixed
+variants of `claude-opus-5` alone — `au.anthropic.claude-opus-5` at a 10% markup,
+plus `azure_ai/`, `vertex_ai/`, `openrouter/`, and regional `us.` / `eu.` / `jp.`
+forms. Claude Code writes the bare id, so any key containing `.` or `/` is
+discarded rather than risking a marked-up regional rate.
+
+**The bundled `claude-sonnet-5` entry is list price ($3/$15), not the
+introductory $2/$10 that lapses 2026-08-31**, so the tier multiplier does not
+shift underneath us when the promo ends.
+
+---
+
+## Currency
+
+**The currency is raw token count, every class weighted equally.** Not
+cost-weighted across token classes. Rationale, in the user's words: the Anthropic
+console reports these tokens regardless of where they came from, so they count.
+
+Known and accepted property: **92.6% of raw volume is cache reads**, so currency
+accrues fastest during long-context sessions. Measured on this corpus:
+
+| Token class | Tokens | % of tokens | % of cost |
+|---|---|---|---|
+| input | 11,155,938 | 0.60% | 3.16% |
+| output | 12,092,882 | 0.65% | 16.06% |
+| cache write | 113,579,486 | 6.15% | 36.57% |
+| cache read | 1,711,257,073 | **92.60%** | 44.21% |
+
+A cost-weighted alternative would have given output 24.5x more influence. Chosen
+against, deliberately: the goal is to mirror reported consumption, not to model
+effort.
+
+**Models earn at different rates, by tier.** Multiplier = model input rate
+divided by `claude-opus-5`'s. Fable 2.0, Opus 1.0, Sonnet 0.6, Haiku 0.2.
+This is the reason the pricing table is load-bearing rather than cosmetic.
+
+Useful fact that makes this cheap: **within-model ratios are uniform across every
+current Claude model** — output is always 5x input, cache write 1.25x, cache read
+0.1x. Only the per-model multiplier differs. A test asserts this, and the snapshot
+parser uses it as a per-missing-field fallback only.
+
+**Scale.** 31 days of real usage = 1.86B raw tokens, 3.36B weighted, ~108M
+weighted/day. Far too large to display directly. Per-100K reads best (33,456
+lifetime, ~1,079/day). Final divisor is a Phase 4 balance decision.
+
+**Currency must be frozen at earn time, not recomputed.** Prices change: the
+runtime snapshot currently reports `claude-sonnet-5` at the introductory $2,
+while the bundled entry is list $3, so a refresh moves that tier from 0.6 to 0.4.
+Recomputing historical currency from live pricing would take coins away from the
+player. The persisted game state increments as new entries are observed, using
+the pricing in effect at that moment, and never re-derives.
+
+**The dollar readout ships as an optional stat, clearly labelled hypothetical.**
+31 days = **$3,513.84** API-equivalent. On a subscription that is not money
+spent; it is subscription value realised.
 
 **Limits use our own Keychain item.** This machine has no
 `~/.claude/.credentials.json`, so the OAuth token is Keychain-only, and upstream's
