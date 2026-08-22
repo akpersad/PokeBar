@@ -9,7 +9,8 @@ from it, marked in the source where it is.
 
 ## Status
 
-Phase 1, usage engine: **complete**. Phase 2 next.
+Phase 1 usage engine and the Phase 2 menu bar UI: **complete**. Live Claude
+limits are next, then the Pokédex.
 
 - [x] Bounded-memory JSONL streaming with resumable offsets
 - [x] Claude Code usage parser with keep-max dedup
@@ -17,7 +18,7 @@ Phase 1, usage engine: **complete**. Phase 2 next.
 - [x] Accumulating ledger (survives relaunch, credits only growth)
 - [x] FSEvents watchers replacing timer polling
 - [x] Runtime model pricing with tier-weighted currency
-- [ ] Menu bar UI
+- [x] Menu bar UI (coins in the status item, usage breakdown in the popover)
 - [ ] Live Claude limits
 - [ ] Pokédex data layer, 1,083 collectible entries
 - [ ] Game layer

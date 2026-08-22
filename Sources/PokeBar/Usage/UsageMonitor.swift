@@ -139,6 +139,16 @@ final class UsageMonitor {
 
     // MARK: Derived values
 
+    /// Re-derives the published values from the ledger without touching the disk.
+    ///
+    /// The UI calls this when the menu bar window opens. Needed because
+    /// `todayTokens` is bucketed by local day *at publish time*: if the tree stays
+    /// quiet across midnight, nothing republishes and the popover keeps labelling
+    /// yesterday's usage "Today". Free to call, and it credits nothing, so it
+    /// cannot disturb earned currency.
+    func refreshDisplayedTotals() { publish() }
+
+
     /// Recomputes displayed values from the ledger.
     ///
     /// Note the asymmetry, and it is intentional: **cost** is recomputed from

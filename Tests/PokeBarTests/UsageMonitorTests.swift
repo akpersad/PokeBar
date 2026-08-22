@@ -203,4 +203,27 @@ final class UsageMonitorTests: XCTestCase {
         XCTAssertEqual(monitor.allTimeTokens.total, 100, "usage still counts")
         XCTAssertGreaterThan(monitor.coins >= 0 ? 1 : 0, 0)
     }
+
+    /// The popover re-derives on open, so that path has to be inert: displaying
+    /// the totals again must not credit currency a second time.
+    func testRefreshDisplayedTotalsCreditsNothing() async throws {
+        let (root, stateURL) = try makeTree()
+        let file = root.appendingPathComponent("session.jsonl")
+        // 200,000 output tokens at the opus tier of 1.0 is exactly 2 coins.
+        try append(assistantLine(messageID: "m1", requestID: "r1", output: 200_000), to: file)
+
+        let monitor = makeMonitor(root: root, stateURL: stateURL)
+        monitor.start()
+        defer { monitor.stop() }
+
+        await waitFor({ monitor.coins == 2 }, label: "initial coins")
+        let tokens = monitor.allTimeTokens
+        let cost = monitor.allTimeCostUSD
+
+        for _ in 0..<5 { monitor.refreshDisplayedTotals() }
+
+        XCTAssertEqual(monitor.coins, 2, "re-publishing must not mint coins")
+        XCTAssertEqual(monitor.allTimeTokens, tokens)
+        XCTAssertEqual(monitor.allTimeCostUSD, cost, accuracy: 1e-12)
+    }
 }

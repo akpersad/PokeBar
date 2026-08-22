@@ -49,7 +49,11 @@ Sources/PokeBar/
   Pricing/
     ModelPricing.swift          bundled rate table, tier multipliers
     PricingCatalog.swift        weekly LiteLLM refresh, disk cache
-  Dex/  UI/                     empty; Phase 3 and 4
+  UI/
+    MenuBarLabel.swift          status item: icon + coin count
+    UsagePopover.swift          the menu bar window, all of it
+    UsageFormat.swift           pure display logic; where the UI tests live
+  Dex/                          empty; Phase 3
 ```
 
 Data flow: `DirectoryWatcher` tick → `UsageScanner.scan(cursors:)` → new entries →
@@ -137,24 +141,27 @@ prints live totals under `POKEBAR_CORPUS=1`.
 
 ## State
 
-**Phase 1 (usage engine): complete.** 60 tests, 0 failures.
+**Phase 1 (usage engine): complete.** **Phase 2 menu bar UI: complete.**
+79 tests, 0 failures.
 
-**Phase 2 is next.** Two tasks, either order:
+The app runs: `swift run PokeBar` puts a coin count in the menu bar and the
+popover shows coins, today's tokens with a per-model breakdown and the four token
+classes, all-time tokens, and the API-equivalent dollar figure. Verified against
+the live corpus at 33,799 coins over 1.88B tokens.
 
-- **Menu bar UI** (`Sources/PokeBar/UI/`). `UsageMonitor` already publishes
-  `todayTokens`, `todayCostUSD`, `allTimeTokens`, `coins`, `byModelToday`,
-  `state`, `lastUpdated`, `costIsIncomplete`. Nothing displays them yet — the
-  current `PokeBarApp` is a placeholder with a dotted-circle icon. Build on native
-  `MenuBarExtra` in `.window` style; no hand-rolled outside-click monitor needed on
-  macOS 26. Sprite canvases are cropped per species, so aspect ratio needs handling.
-- **Live Claude limits.** Hits `api.anthropic.com/api/oauth/usage` and `/profile`
-  with the user's own OAuth token. This machine has **no**
-  `~/.claude/.credentials.json`, so the token is Keychain-only. Plan: read
-  `Claude Code-credentials` once with a prompt, copy into our own Keychain item
-  under our own ACL, refresh silently after. This works only because we sign with
-  a stable local cert; upstream had to delete their cache because each release
-  changed the code signature. **Confirm the approach with the user before touching
-  their Keychain** — it will raise a permission prompt.
+Views hold no logic. Everything they render goes through `UsageFormat`,
+`ModelIdentity` and `ModelBreakdown`, which is where the display behaviour is
+pinned by tests. Keep it that way: a fact asserted in a view body cannot be
+tested in this toolchain.
+
+**Remaining in Phase 2: live Claude limits.** Hits
+`api.anthropic.com/api/oauth/usage` and `/profile` with the user's own OAuth
+token. This machine has **no** `~/.claude/.credentials.json`, so the token is
+Keychain-only. Plan: read `Claude Code-credentials` once with a prompt, copy into
+our own Keychain item under our own ACL, refresh silently after. This works only
+because we sign with a stable local cert; upstream had to delete their cache
+because each release changed the code signature. **Confirm the approach with the
+user before touching their Keychain** — it will raise a permission prompt.
 
 Then Phase 3 (Pokédex data layer, 1,083 entries) and Phase 4 (game layer).
 

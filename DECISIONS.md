@@ -277,6 +277,56 @@ distributed.
 
 ---
 
+## Menu bar UI
+
+**The status item shows coins, not tokens or cost.** Coins are the game currency
+and the reason the app exists. The restored ledger publishes them before the cold
+scan starts, so a relaunch shows a real figure immediately instead of a zero that
+climbs for 17 seconds. Compact three-significant-digit formatting keeps the item's
+rendered width roughly constant as the figure grows, so the menu bar does not
+shuffle on every update.
+
+**Formatting is hand-rolled, not `NumberFormatter` or
+`RelativeDateTimeFormatter`.** These strings are asserted in tests, and the system
+formatters are locale- and SDK-dependent, so the assertions would be testing the
+OS rather than this code. One machine, one locale: delegating buys nothing here.
+
+**Model display names are parsed from the identifier, not shipped in a table.**
+`claude-haiku-4-5-20251001` renders as `Haiku 4.5`, and an unrecognised
+`claude-quasar-7` still renders as `Quasar 7`, in grey. This is the display-side
+counterpart to pricing resolving to `nil` rather than `0`: a model newer than our
+tables must look unknown, never blank and never free. A hardcoded name table would
+go stale on the same launch day the pricing table does, which is the upstream
+failure this project already fixed once.
+
+**The per-model breakdown collapses everything past five rows into "Other".**
+A layout guard, not cosmetics: the popover is a fixed-width menu bar window, and a
+day that touched a dozen models would push it off screen. Ties break on model id,
+because dictionary iteration order is not stable and rows must not shuffle between
+two publishes of identical data.
+
+**The popover re-derives its totals when it opens.** `todayTokens` is bucketed by
+local day *at publish time*, so a quiet run across midnight would keep labelling
+yesterday's usage "Today". The refresh reads no files and credits nothing; a test
+pins that calling it repeatedly cannot mint coins.
+
+**The dollar figure always carries its caption.** "On a subscription it is value
+realised, not money spent" sits under the number every time rather than hiding in
+a tooltip. When a model in use has no published price, the caption switches to say
+the figure is a floor, which is the visible half of never reporting $0.00 for an
+unpriced model.
+
+**Activation policy is set at runtime, not in an `Info.plist`.** `swift run` has no
+bundle to read `LSUIElement` from, and bundling and signing stay deferred until
+this runs daily. One `setActivationPolicy(.accessory)` call in the app delegate
+gets the same menu-bar-only behaviour today.
+
+**No sprite yet.** The status item uses `smallcircle.filled.circle` as a stand-in
+Poke Ball, and the tier colours (fable purple, opus orange, sonnet blue, haiku
+green) carry the visual load. Species art arrives with the Pokedex data layer.
+
+---
+
 ## Tooling
 
 **XCTest, not swift-testing.** `Testing` is not present in this toolchain.
