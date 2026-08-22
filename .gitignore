@@ -1,0 +1,12 @@
+.DS_Store
+.build/
+.swiftpm/
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+Packages/
+*.resolved
+
+# Built app bundle and local install artifacts
+/dist/
+*.app/
