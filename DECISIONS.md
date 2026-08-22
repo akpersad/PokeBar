@@ -119,7 +119,54 @@ the data for free.
 **Event-driven, not polled.** Upstream re-scans on a 1/2/5/15 minute `Timer`.
 This machine's corpus is 481 MiB across 1,029 files. Measured here: a cold scan
 is 17s, and a second pass with warm cursors reads **0 files and 0 bytes**. So an
-idle minute costs nothing instead of re-reading half a gigabyte.
+idle minute costs nothing instead of re-reading half a gigabyte, and a finished
+turn surfaces in about a second rather than up to fifteen minutes later.
+
+**FSEvents coalescing window is 1 second, not something snappier.** A single
+assistant turn produces many writes, not one: streaming rewrites the same
+`(message.id, requestId)` as output grows, which is the same behaviour that makes
+keep-max dedup necessary. 31,228 raw rows for 13,243 turns is ~2.4 writes per
+turn. `kFSEventStreamCreateFlagNoDefer` still delivers the first event of a burst
+immediately, so responsiveness does not suffer.
+
+**Ticks carry no payload.** FSEvents coalesces and can drop detail under load, so
+an event means "rescan from your cursors", never "this file changed". The scanner
+is already a pure function of (roots, cursors), which makes that safe.
+
+**The watcher arms before the cold scan, not after.** The cold pass takes ~17s;
+if the stream were created afterwards, a turn completing during those seconds
+would write with nobody listening and would not surface until some later,
+unrelated write fired an event. Arming first buffers the change and drains it
+immediately. Draining redundant ticks is free.
+
+**An accumulating ledger is mandatory, for two independent reasons.** This was
+not in the original plan; building the monitor surfaced both.
+
+1. Cursors persist, so a scan only ever returns *newly appended* lines. Totals
+   cannot be derived from the latest scan or all-time usage resets to zero on
+   every relaunch.
+2. A turn can straddle two scans. Dedup within one pass cannot see the partial
+   copy the previous pass already counted, so naive accumulation double-counts.
+   Measured on the two-pass case: naive gives 2,705 tokens where the true figure
+   is 1,700.
+
+The ledger therefore records what was already credited per turn and applies only
+the growth, clamped at zero so a shrinking later copy can never subtract earned
+currency.
+
+**Growth tracking is retained for 2 days, then dropped.** A turn grows only while
+its response streams, so two days is generous. It keeps the in-flight table at
+~900 entries rather than ~155,000 for a year of turns. Credited tokens survive
+the prune; only growth tracking is lost. Accepted consequence, pinned by a test:
+an entry that somehow grew after aging out would be credited twice.
+
+**Per-day history exists as a side effect.** It was deprioritised as a feature,
+but per-day/per-model rollup is the natural storage shape for the ledger, so the
+data is there if it is ever wanted.
+
+**Cost is recomputed from current pricing; coins are never recomputed.** A
+deliberate asymmetry. Cost is an informational estimate and should track today's
+rates. Coins are earned, so they are read off the ledger's frozen total.
 
 **Cursors keyed on real inode, not `fileResourceIdentifierKey`.** The latter is
 documented as opaque and its `hash` is stable only within a process run, which
@@ -202,9 +249,10 @@ current Claude model** — output is always 5x input, cache write 1.25x, cache r
 0.1x. Only the per-model multiplier differs. A test asserts this, and the snapshot
 parser uses it as a per-missing-field fallback only.
 
-**Scale.** 31 days of real usage = 1.86B raw tokens, 3.36B weighted, ~108M
-weighted/day. Far too large to display directly. Per-100K reads best (33,456
-lifetime, ~1,079/day). Final divisor is a Phase 4 balance decision.
+**Scale: 1 coin per 100,000 weighted tokens.** Locked. 31 days of real usage =
+1.86B raw tokens, 3.36B weighted, ~108M weighted/day, which reads as ~33,456
+coins lifetime and ~1,079 coins/day. Raw weighted counts are far too large to
+display directly; per-1M was too coarse and 1:1 unusable.
 
 **Currency must be frozen at earn time, not recomputed.** Prices change: the
 runtime snapshot currently reports `claude-sonnet-5` at the introductory $2,

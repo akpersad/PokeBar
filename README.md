@@ -9,13 +9,14 @@ from it, marked in the source where it is.
 
 ## Status
 
-Phase 1, usage engine, in progress.
+Phase 1, usage engine: **complete**. Phase 2 next.
 
 - [x] Bounded-memory JSONL streaming with resumable offsets
 - [x] Claude Code usage parser with keep-max dedup
 - [x] Incremental scanner (cold scan 17s, warm pass 0 bytes)
-- [ ] FSEvents watchers replacing timer polling
-- [ ] Runtime model pricing
+- [x] Accumulating ledger (survives relaunch, credits only growth)
+- [x] FSEvents watchers replacing timer polling
+- [x] Runtime model pricing with tier-weighted currency
 - [ ] Menu bar UI
 - [ ] Live Claude limits
 - [ ] Pokédex data layer, 1,083 collectible entries
