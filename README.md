@@ -38,9 +38,12 @@ POKEBAR_CORPUS=1 ./scripts/check.sh   # also scan the live corpus and print tota
 directly fails with `no such module 'XCTest'` because `xcode-select -p` points at
 the Command Line Tools, which do not ship XCTest.
 
-## Design
+## Contributing / picking this up again
 
-Read [DECISIONS.md](DECISIONS.md). Every directional call is recorded there with
+Start with **[CLAUDE.md](CLAUDE.md)** — architecture map, current phase, next
+actions, and the measured invariants that are silent if broken.
+
+Then [DECISIONS.md](DECISIONS.md). Every directional call is recorded there with
 the measurement or evidence behind it, including the ones that differ from
 upstream and why.
 
