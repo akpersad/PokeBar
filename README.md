@@ -9,8 +9,9 @@ from it, marked in the source where it is.
 
 ## Status
 
-Phase 1 usage engine and the Phase 2 menu bar UI: **complete**. Live Claude
-limits are next, then the Pokédex.
+Phases 1 and 2 are **complete**: usage engine and menu bar UI. The Pokédex is
+next. Live plan limits were considered and rejected, with reasons in
+[DECISIONS.md](DECISIONS.md).
 
 - [x] Bounded-memory JSONL streaming with resumable offsets
 - [x] Claude Code usage parser with keep-max dedup
@@ -19,7 +20,6 @@ limits are next, then the Pokédex.
 - [x] FSEvents watchers replacing timer polling
 - [x] Runtime model pricing with tier-weighted currency
 - [x] Menu bar UI (coins in the status item, usage breakdown in the popover)
-- [ ] Live Claude limits
 - [ ] Pokédex data layer, 1,083 collectible entries
 - [ ] Game layer
 
@@ -61,5 +61,5 @@ Three worth knowing up front:
 ## Privacy
 
 Reads `~/.claude/projects/**/*.jsonl` locally to extract token counts. Talks to
-PokéAPI and `raw.githubusercontent.com` for sprites, and `api.anthropic.com` for
-your own plan limits using your own OAuth token. Nothing else leaves the machine.
+PokéAPI and `raw.githubusercontent.com` for sprites. It holds no credentials and
+reads no Keychain item. Nothing else leaves the machine.

@@ -265,32 +265,43 @@ the pricing in effect at that moment, and never re-derives.
 31 days = **$3,513.84** API-equivalent. On a subscription that is not money
 spent; it is subscription value realised.
 
-**Limits use our own Keychain item, populated by hand once.** This machine has no
-`~/.claude/.credentials.json`, so the OAuth token is Keychain-only, and upstream's
-automatic polling deliberately never reads the Keychain (they measured a 13s block
-and a password prompt), leaving the limits percentage stale until manually
-refreshed.
+**Live plan limits: rejected 2026-08-22.** Not deferred. No limits readout, no
+Keychain access, no `api.anthropic.com` call, and no credential handling anywhere
+in the app.
 
-**PokeBar never reads `Claude Code-credentials` itself.** Decided 2026-08-22,
-replacing the original plan of reading it once from our own process. The user runs
-one `security` command that copies the blob into `PokeBar-claude-oauth`, so the
-only Keychain dialog is raised by Apple's own signed `/usr/bin/security`.
+Two independent reasons, either sufficient:
 
-The reason is that a Keychain ACL grant is bound to the requesting binary's code
-signature, and our debug binary is unsigned and relinked by every `swift build`, so
-an "Always Allow" grant would break on every rebuild. Upstream hit the same wall
-from the other side: each public release changed their signature and invalidated
-the cached grant, which is why they deleted their cache entirely. Signing with a
-stable local certificate would fix it and stays available to us precisely because
-this is not distributed, but it is setup we have not needed yet.
+1. **The token is not there.** The plan assumed `Claude Code-credentials` held a
+   `claudeAiOauth` blob. Inspected on this machine, that item has exactly one
+   top-level key, `mcpOAuth`, holding per-server OAuth state for the user's MCP
+   servers. There is no Anthropic account token in it, so there is nothing to
+   authenticate `/api/oauth/usage` with.
+2. **This plan has no meaningful limits to display.** The user's answer when asked
+   what the feature was for: there are no real limits on this API plan. A gauge of
+   a limit that does not bind is a gauge of nothing, which also explains reason 1.
+   Consumer OAuth is not how this machine authenticates.
 
-**Our copy is created with `-A`, so reading it raises no prompt.** Any process
-running as this user can read it silently, which is a real if small downgrade from
-how Claude Code protects the original. Accepted knowingly: single-user machine, the
-ACL-restricted alternative needs the signing identity above, and a 0600 file in
-Application Support (what Claude Code itself does where `.credentials.json` exists)
-carries the same exposure with none of the Keychain benefit. Signing is the upgrade
-path if this is ever tightened.
+It was never load-bearing either way: currency is tier-weighted token count frozen
+at credit time, so the dex and the game layer are indifferent to rate limits. And
+`/usage` in Claude Code already shows this number in the terminal the user is
+already in. Against that: an undocumented internal endpoint that can change shape
+without notice, plus the only credential-handling code in the app.
+
+**Incident, kept as the lesson.** Pursuing the original plan, a one-time
+`security` handoff copied that item into `PokeBar-claude-oauth` created with `-A`,
+which put unrelated MCP client secrets and refresh tokens somewhere any process
+running as the user could read without a prompt. It existed for about four minutes
+and was deleted; the source item was never modified. The mistake was writing the
+plan around an assumed credential shape instead of inspecting the shape first.
+Inspect the data before designing around it, which is the same rule the rest of
+this document is built on.
+
+**If limits are ever wanted anyway**, the blocker to solve first is the Keychain
+ACL being bound to the requesting binary's code signature: an unsigned binary
+relinked by every `swift build` re-prompts forever, which is the same wall upstream
+hit from the other side when each release changed their signature. A stable local
+signing certificate is the fix, and it is available precisely because this is not
+distributed.
 
 ---
 

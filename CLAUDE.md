@@ -141,8 +141,8 @@ prints live totals under `POKEBAR_CORPUS=1`.
 
 ## State
 
-**Phase 1 (usage engine): complete.** **Phase 2 menu bar UI: complete.**
-79 tests, 0 failures.
+**Phase 1 (usage engine): complete. Phase 2: complete.** 79 tests, 0 failures.
+**Phase 3, the Pokédex data layer, is next.**
 
 The app runs: `swift run PokeBar` puts a coin count in the menu bar and the
 popover shows coins, today's tokens with a per-model breakdown and the four token
@@ -154,18 +154,11 @@ Views hold no logic. Everything they render goes through `UsageFormat`,
 pinned by tests. Keep it that way: a fact asserted in a view body cannot be
 tested in this toolchain.
 
-**Remaining in Phase 2: live Claude limits.** Hits
-`api.anthropic.com/api/oauth/usage` and `/profile` with the user's own OAuth
-token. This machine has **no** `~/.claude/.credentials.json`, so the token is
-Keychain-only.
-
-Approach settled with the user 2026-08-22, and it differs from the original plan:
-**PokeBar never reads `Claude Code-credentials`.** The user runs one `security`
-command that copies the blob into `PokeBar-claude-oauth`, created with `-A` so our
-reads raise no dialog. Reason: a Keychain ACL grant is bound to the requesting
-binary's code signature, and an unsigned binary relinked by every `swift build`
-would re-prompt forever. Full reasoning in DECISIONS.md. **Do not add a code path
-that reads Claude Code's own item.**
+**Live plan limits: rejected, not deferred.** Do not propose it again, and do not
+add code that reads any Keychain item. `Claude Code-credentials` on this machine
+holds only `mcpOAuth`, there is no account token in it, and the user confirmed this
+API plan has no meaningful limits to show. Full reasoning, including the incident
+that came out of the original plan, is in DECISIONS.md.
 
 Then Phase 3 (Pokédex data layer, 1,083 entries) and Phase 4 (game layer).
 
