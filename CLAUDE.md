@@ -157,11 +157,15 @@ tested in this toolchain.
 **Remaining in Phase 2: live Claude limits.** Hits
 `api.anthropic.com/api/oauth/usage` and `/profile` with the user's own OAuth
 token. This machine has **no** `~/.claude/.credentials.json`, so the token is
-Keychain-only. Plan: read `Claude Code-credentials` once with a prompt, copy into
-our own Keychain item under our own ACL, refresh silently after. This works only
-because we sign with a stable local cert; upstream had to delete their cache
-because each release changed the code signature. **Confirm the approach with the
-user before touching their Keychain** — it will raise a permission prompt.
+Keychain-only.
+
+Approach settled with the user 2026-08-22, and it differs from the original plan:
+**PokeBar never reads `Claude Code-credentials`.** The user runs one `security`
+command that copies the blob into `PokeBar-claude-oauth`, created with `-A` so our
+reads raise no dialog. Reason: a Keychain ACL grant is bound to the requesting
+binary's code signature, and an unsigned binary relinked by every `swift build`
+would re-prompt forever. Full reasoning in DECISIONS.md. **Do not add a code path
+that reads Claude Code's own item.**
 
 Then Phase 3 (Pokédex data layer, 1,083 entries) and Phase 4 (game layer).
 

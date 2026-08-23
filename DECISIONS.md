@@ -265,15 +265,32 @@ the pricing in effect at that moment, and never re-derives.
 31 days = **$3,513.84** API-equivalent. On a subscription that is not money
 spent; it is subscription value realised.
 
-**Limits use our own Keychain item.** This machine has no
+**Limits use our own Keychain item, populated by hand once.** This machine has no
 `~/.claude/.credentials.json`, so the OAuth token is Keychain-only, and upstream's
 automatic polling deliberately never reads the Keychain (they measured a 13s block
 and a password prompt), leaving the limits percentage stale until manually
-refreshed. Upstream had to delete their own Keychain cache because each public
-release changed the code signature and broke the item ACL. We sign once with a
-stable local certificate that never changes, so we can cache the credential under
-our own ACL and refresh silently. Available to us precisely because this is not
-distributed.
+refreshed.
+
+**PokeBar never reads `Claude Code-credentials` itself.** Decided 2026-08-22,
+replacing the original plan of reading it once from our own process. The user runs
+one `security` command that copies the blob into `PokeBar-claude-oauth`, so the
+only Keychain dialog is raised by Apple's own signed `/usr/bin/security`.
+
+The reason is that a Keychain ACL grant is bound to the requesting binary's code
+signature, and our debug binary is unsigned and relinked by every `swift build`, so
+an "Always Allow" grant would break on every rebuild. Upstream hit the same wall
+from the other side: each public release changed their signature and invalidated
+the cached grant, which is why they deleted their cache entirely. Signing with a
+stable local certificate would fix it and stays available to us precisely because
+this is not distributed, but it is setup we have not needed yet.
+
+**Our copy is created with `-A`, so reading it raises no prompt.** Any process
+running as this user can read it silently, which is a real if small downgrade from
+how Claude Code protects the original. Accepted knowingly: single-user machine, the
+ACL-restricted alternative needs the signing identity above, and a 0600 file in
+Application Support (what Claude Code itself does where `.credentials.json` exists)
+carries the same exposure with none of the Keychain benefit. Signing is the upgrade
+path if this is ever tightened.
 
 ---
 
