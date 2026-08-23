@@ -1,5 +1,34 @@
 import CoreGraphics
 
+/// Menu bar sprite sizing, in points.
+///
+/// These two are coupled and must move together, which is why they live next to
+/// each other with the ratio that ties them recorded. Raising `height` without
+/// raising `maxWidth` makes the cap bite sprites it used to clear, and a clamped
+/// sprite gives up height, so a naive "make it bigger" makes wide species
+/// *smaller*. A test pins the relationship.
+enum MenuBarSprite {
+
+    /// Measured on this machine: `NSStatusBar.system.thickness` is 22pt, and a
+    /// status item's button reports the same. The visual menu bar is 33pt on a
+    /// notched display, but that extra space is safe-area inset and not available
+    /// to a status item, so 22 is the real ceiling.
+    ///
+    /// 20 leaves 1pt of clearance above and below. System menu bar icons sit
+    /// closer to 18; this is deliberately a little bolder than native, because the
+    /// sprite is the point of the app rather than a control affordance.
+    static let height: CGFloat = 20
+
+    /// Width cap. See `SpriteGeometry.fit(pixelSize:height:maxWidth:)` for the
+    /// measured aspect-ratio distribution behind it.
+    static let maxWidth: CGFloat = 33
+
+    /// 95th-percentile aspect ratio (width/height) over a 155-entry sample of the
+    /// real pool. `maxWidth` must be at least `height * p95Aspect` or the cap stops
+    /// clearing 95% of the pool.
+    static let p95Aspect: CGFloat = 1.61
+}
+
 /// Pure sprite geometry. This is where the sprite display behaviour is pinned by
 /// tests, for the same reason `UsageFormat` exists: a fact asserted in a view body
 /// cannot be tested in this toolchain.
@@ -38,20 +67,20 @@ enum SpriteGeometry {
     /// This is what the menu bar uses, rather than the square `fit(pixelSize:box:)`
     /// above. A horizontal menu bar constrains height and has width to spare, so
     /// fitting to a square box shrinks every wide sprite for no reason: Glaceon's
-    /// 76x54 canvas in an 18pt square box renders 18 x 12.79 and uses 12.79pt of a
-    /// 22pt bar. Fitting to height gives 25.3 x 18.
+    /// 76x54 canvas in a 20pt square box renders 20 x 14.2, while fitting to height
+    /// gives 28.1 x 20.
     ///
     /// Measured over a 155-entry sample of the real pool, aspect ratio
-    /// width/height:
+    /// width/height, at the 20pt height in `MenuBarSprite`:
     ///
-    /// | | ratio | width at 18pt tall |
+    /// | | ratio | width at 20pt tall |
     /// |---|---|---|
-    /// | widest: Galarian Linoone 82x41 | 2.00 | 36.0pt |
-    /// | p95 | 1.61 | 29.0pt |
-    /// | median | 1.00 | 18.0pt |
-    /// | tallest: Farigiraf 62x128 | 0.48 | 8.7pt |
+    /// | widest: Galarian Linoone 82x41 | 2.00 | 40.0pt |
+    /// | p95 | 1.61 | 32.2pt |
+    /// | median | 1.00 | 20.0pt |
+    /// | tallest: Farigiraf 62x128 | 0.48 | 9.7pt |
     ///
-    /// So `maxWidth` of 30 leaves 95% of the pool at full height and bounds the
+    /// So a `maxWidth` of 33 leaves 95% of the pool at full height and bounds the
     /// status item for the handful of very wide sprites, which give up height
     /// rather than pushing the menu bar around.
     ///
@@ -85,9 +114,10 @@ enum SpriteGeometry {
     /// | Pikachu gen-V GIF | 50x46 | 39x46 | 78% | 0.92 |
     /// | Spoink gen-V GIF | 36x66 | 26x51 | 56% | 0.77 |
     ///
-    /// In an 18pt status item an uncropped static sprite gives a ~9pt subject.
-    /// The gen-V GIFs are already tight, so this matters most for the 14 entries
-    /// that fall back to HOME.
+    /// In a 20pt status item an uncropped static sprite gives a ~10pt subject.
+    /// The gen-V GIFs are already tight (Glaceon's per-frame subject fills 93-100%
+    /// of its canvas height across all 129 frames), so this matters most for the 14
+    /// entries that fall back to HOME.
     ///
     /// Takes an alpha sampler rather than an image so the rule is testable without
     /// decoding anything.

@@ -435,19 +435,38 @@ fills 12.79pt of a 22pt bar. This shipped that way and the user caught it on scr
 immediately, which is the argument for asking someone to look rather than inferring
 from a populated cache.
 
-The fix is to fit to a height of 18pt and let width run free up to a 30pt cap.
-Measured over a 155-entry sample, aspect ratio width/height:
+The fix is to fit to a height and let width run free up to a cap. Shipping values
+are 20pt and 33pt, in `MenuBarSprite`. Measured over a 155-entry sample, aspect
+ratio width/height:
 
-| | ratio | width at 18pt tall |
+| | ratio | width at 20pt tall |
 |---|---|---|
-| widest: Galarian Linoone 82x41 | 2.00 | 36.0pt |
-| p95 | 1.61 | 29.0pt |
-| median | 1.00 | 18.0pt |
-| tallest: Farigiraf 62x128 | 0.48 | 8.7pt |
+| widest: Galarian Linoone 82x41 | 2.00 | 40.0pt |
+| p95 | 1.61 | 32.2pt |
+| median | 1.00 | 20.0pt |
+| tallest: Farigiraf 62x128 | 0.48 | 9.7pt |
 
-A 30pt cap leaves 95% of the pool at full height; the few wider sprites give up
+A 33pt cap leaves 95% of the pool at full height; the few wider sprites give up
 height rather than pushing the menu bar around. The cap only ever scales down, so a
 narrow sprite is never stretched to reach it.
+
+**Height and cap are coupled, and the coupling is a trap.** A sprite wider than the
+cap gives up height, so raising the height alone makes wide species *smaller*. The
+invariant is `maxWidth >= height * p95Aspect`; a test asserts it. This is why the
+18 -> 20 bump moved the cap 30 -> 33 in the same change.
+
+**The ceiling on height is 22pt, and it is not the visible menu bar.** Measured:
+`NSStatusBar.system.thickness` is 22, and a status item button reports 22. The
+visual menu bar on this notched display is 33pt with a 32pt safe-area inset, but
+that space belongs to the system, not to status items. 20pt therefore leaves 1pt of
+clearance each side. System menu bar icons sit nearer 18; 20 is deliberately a
+little bolder than native because the sprite is the app's whole point rather than a
+control affordance.
+
+**Not cropping animation frames costs nothing here, and that was checked rather
+than assumed.** Glaceon's per-frame content height is 50-54px against a 54px canvas
+across all 129 frames, so 93-100%, mean 96%. The canvas really is the union of the
+animation, so the no-crop rule leaves no visible margin to reclaim.
 
 The cost is that the status item's width now depends on which species is shown.
 Accepted: the species changes once a day, not once per usage update, so this does

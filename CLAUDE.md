@@ -167,9 +167,18 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     Separately: a horizontal menu bar constrains height and has width to spare, so
     a square box shrinks every *wide* sprite for nothing. Glaceon shipped looking
     small for exactly that reason, and the user caught it on screen. Height is
-    18pt, width is free up to a 30pt cap. Measured over 155 entries: median aspect
-    1.00, p95 1.61, max 2.00 (Galarian Linoone 82x41). Do not put a square
-    `.frame()` back on the status item image; the decoder already sizes it.
+    **20pt**, width free up to a **33pt** cap, both in `MenuBarSprite`. Measured
+    over 155 entries: median aspect 1.00, p95 1.61, max 2.00 (Galarian Linoone
+    82x41). Do not put a square `.frame()` back on the status item image; the
+    decoder already sizes it.
+
+16. **`MenuBarSprite.height` and `.maxWidth` must move together.** A sprite wider
+    than the cap gives up *height* to respect it, so raising the height alone makes
+    wide species smaller, which is the opposite of the intent. The invariant is
+    `maxWidth >= height * p95Aspect`, and a test asserts it. Ceiling on height is
+    22pt: that is `NSStatusBar.system.thickness` here. The visual menu bar is 33pt
+    on this notched display, but the extra is safe-area inset and unavailable to a
+    status item, so do not reach for it.
 
 ---
 

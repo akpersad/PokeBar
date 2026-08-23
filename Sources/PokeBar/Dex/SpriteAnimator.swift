@@ -38,14 +38,13 @@ final class SpriteAnimator {
     /// - Parameters:
     ///   - height: display height in points. The sprite fills this; width follows
     ///     from the sprite's own aspect ratio.
-    ///   - maxWidth: width cap in points. Measured: 30 leaves 95% of the pool at
-    ///     full height and bounds the item for the few very wide sprites.
+    ///   - maxWidth: width cap in points. Coupled to `height`; see `MenuBarSprite`.
     ///   - scale: backing scale factor. 2 covers every Retina display this runs on.
     init(
         pokedex: Pokedex?,
         store: SpriteStore,
-        height: CGFloat = 18,
-        maxWidth: CGFloat = 30,
+        height: CGFloat = MenuBarSprite.height,
+        maxWidth: CGFloat = MenuBarSprite.maxWidth,
         scale: CGFloat = 2
     ) {
         self.pokedex = pokedex

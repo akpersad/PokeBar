@@ -148,6 +148,52 @@ final class SpriteGeometryTests: XCTestCase {
             .zero)
     }
 
+    // MARK: - Menu bar sizing constants
+
+    /// The coupling that makes "just make it bigger" a trap.
+    ///
+    /// A sprite wider than the cap gives up height to respect it, so raising
+    /// `height` without raising `maxWidth` makes wide species *smaller*. At 20pt
+    /// tall the p95 sprite wants 32.2pt of width, so a 30pt cap (correct for the
+    /// old 18pt height) would have clamped it.
+    func testWidthCapClearsTheNinetyFifthPercentileAtTheChosenHeight() {
+        let needed = MenuBarSprite.height * MenuBarSprite.p95Aspect
+        XCTAssertGreaterThanOrEqual(
+            MenuBarSprite.maxWidth, needed,
+            "maxWidth must clear height * p95Aspect (\(needed)pt) or the cap bites 95% of the pool")
+    }
+
+    /// The status item's usable height is 22pt, measured via
+    /// `NSStatusBar.system.thickness` on this machine. The visual menu bar is 33pt
+    /// on a notched display, but that is safe-area inset and unavailable.
+    func testHeightFitsInsideTheStatusItem() {
+        XCTAssertLessThanOrEqual(MenuBarSprite.height, 22)
+        XCTAssertGreaterThan(MenuBarSprite.height, 0)
+    }
+
+    /// The species Glaceon, at the shipping constants, as an end-to-end check that
+    /// the numbers in the docs are the numbers the code produces.
+    func testGlaceonAtShippingConstants() {
+        let fitted = SpriteGeometry.fit(
+            pixelSize: CGSize(width: 76, height: 54),
+            height: MenuBarSprite.height,
+            maxWidth: MenuBarSprite.maxWidth)
+        XCTAssertEqual(fitted.height, 20, accuracy: 0.001)
+        XCTAssertEqual(fitted.width, 28.148, accuracy: 0.01)
+    }
+
+    /// The widest sprite in the pool still clears the cap at the shipping height,
+    /// only just: 40.0pt wanted against a 33pt cap, so it does clamp, and loses
+    /// height to 16.5pt. That is the documented trade, asserted rather than assumed.
+    func testWidestSpriteAtShippingConstants() {
+        let fitted = SpriteGeometry.fit(
+            pixelSize: CGSize(width: 82, height: 41),
+            height: MenuBarSprite.height,
+            maxWidth: MenuBarSprite.maxWidth)
+        XCTAssertEqual(fitted.width, 33, accuracy: 0.001)
+        XCTAssertEqual(fitted.height, 16.5, accuracy: 0.001)
+    }
+
     // MARK: - Content box
 
     /// The measured case: a static sprite's subject occupies 14 to 19% of its
