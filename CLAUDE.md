@@ -230,8 +230,14 @@ prints live totals under `POKEBAR_CORPUS=1`.
 
 ## State
 
-**Phases 1, 2 and 3 (data layer): complete.** 133 tests, 0 failures.
-**Phase 4, the game layer, is next.**
+**Phases 1, 2 and 3 (data layer): complete.** 144 tests, 0 failures.
+
+**Next action, in one sentence: build the Phase 4 game layer (egg purchase, hatch
+roll over the 1,083-entry pool, caught state, persistence), weighting the roll on
+raw `captureRate` and replacing `Pokedex.featured(on:)` with the player's active
+Pokémon.** It is not blocked: the egg price is a user decision (see open questions)
+but can start as a placeholder constant in one place, because the roll and the
+persistence do not depend on its value.
 
 The app runs via `scripts/bundle.sh`: the status item shows an animated species
 sprite plus the coin count, and the popover shows coins, today's tokens with a
@@ -265,6 +271,12 @@ round inferred success from a populated sprite cache, which was right about the
 plumbing and blind to the sizing. Do not claim visual verification from cache
 contents alone.
 
+**Decided for Phase 4, not open: weight the hatch roll on raw `captureRate`, never
+on `Rarity`.** `capture_rate` is quantized hard (327 of 1,083 entries share the
+value 45, and 86% sit at 45 or above), so every band scheme puts a 30-45% lump in
+one band. Three were evaluated and all three did. The bands are a display label;
+the raw number behaves like a smooth weight. Measured distribution in DECISIONS.md.
+
 Views hold no logic. Everything they render goes through `UsageFormat`,
 `ModelIdentity` and `ModelBreakdown`, which is where the display behaviour is
 pinned by tests. Keep it that way: a fact asserted in a view body cannot be
@@ -276,7 +288,6 @@ holds only `mcpOAuth`, there is no account token in it, and the user confirmed t
 API plan has no meaningful limits to show. Full reasoning, including the incident
 that came out of the original plan, is in DECISIONS.md.
 
-Then Phase 4 (game layer).
 
 ## Deferred, with reasons in DECISIONS.md
 
@@ -293,11 +304,6 @@ Then Phase 4 (game layer).
   100,000 weighted tokens: ~1,079 coins/day at current usage. Note the shape of
   the problem: egg price decides whether 1,083 entries fill in a month or a
   decade.
-- **Phase 4 hatch weighting: use raw `captureRate`, not `Rarity`.** Not a question
-  so much as a finding to honour. `capture_rate` is quantized hard (327 of 1,083
-  entries share the value 45, 86% sit at 45 or above), so every band scheme puts a
-  30-45% lump in one band. The bands are a display label; the raw number is the
-  weight. Measured distribution is in DECISIONS.md.
 - Whether the dex gets a browser UI, and what "caught" means: a per-entry caught
   flag, a count, a first-caught date, shiny tracked separately? The data layer is
   deliberately silent on this.
