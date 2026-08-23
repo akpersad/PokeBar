@@ -44,7 +44,7 @@ XCTest, not swift-testing. `import Testing` does not resolve in this toolchain.
 
 ```
 Sources/PokeBar/
-  App/PokeBarApp.swift          MenuBarExtra entry point (placeholder UI)
+  App/PokeBarApp.swift          MenuBarExtra scene + AppDelegate (.accessory)
   Usage/
     JSONLStreamer.swift         chunked reads, resumable byte offsets
     ClaudeUsageParser.swift     one JSONL line -> UsageEntry, keep-max dedup
@@ -107,10 +107,20 @@ Each one is load-bearing and each was measured. Breaking any is silent.
    bogus row out of the per-model breakdown.
 
 9. **Day bucketing is local calendar, not UTC.** A naive `timestamp[:10]` is what
-   makes a "today's usage" readout wrong.
+   makes a "today's usage" readout wrong. The bucket is also chosen *at publish
+   time*, which is why the UI calls `refreshDisplayedTotals()` when the window
+   opens: without it, a quiet run across midnight keeps labelling yesterday's
+   usage "Today". A test pins that re-publishing credits nothing.
 
 10. **Claude Code is the only usage source.** Codex and Copilot were ruled out with
     reasons in DECISIONS.md. Do not propose re-adding providers unasked.
+
+11. **The UI exists only inside an app bundle.** SwiftUI registers a
+    `MenuBarExtra` status item only for a process that has a bundle identifier.
+    `swift run PokeBar` reports `CFBundleIdentifier = NULL`: the engine scans, the
+    ledger credits, `pgrep` finds a healthy process, and the menu bar stays empty.
+    Launch through `scripts/bundle.sh`. Measured, at the cost of a wasted
+    debugging round.
 
 ---
 
@@ -154,7 +164,9 @@ prints live totals under `POKEBAR_CORPUS=1`.
 The app runs: `swift run PokeBar` puts a coin count in the menu bar and the
 popover shows coins, today's tokens with a per-model breakdown and the four token
 classes, all-time tokens, and the API-equivalent dollar figure. Verified against
-the live corpus at 33,799 coins over 1.88B tokens.
+the live corpus, which had grown to 33,799 coins over 1.88B tokens by the time the
+UI landed. The reference table above is the same day, measured earlier; the corpus
+grows while you work, which is the point of the properties-not-digits note.
 
 Views hold no logic. Everything they render goes through `UsageFormat`,
 `ModelIdentity` and `ModelBreakdown`, which is where the display behaviour is

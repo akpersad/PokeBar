@@ -386,6 +386,14 @@ with `sudo xcode-select -s`.
 **No GitHub Actions.** macOS runners burn free minutes fast. Pre-push checks run
 locally through `scripts/check.sh`.
 
+**Session close-out is a skill, not a habit.** `.claude/skills/wrap-up/SKILL.md`,
+invoked as `/wrap-up`. Three fixed steps: what is pending on the user, reconcile
+the three docs against the code, verify the repo survives a `/clear`. It requires
+pasted command output rather than assurances and an explicit safe / not-safe
+verdict, because this session twice reported something as verified on weaker
+evidence than the wording implied: a menu bar item that could not have rendered,
+and a Keychain blob whose shape had never been checked.
+
 ---
 
 ## Deferred, not rejected

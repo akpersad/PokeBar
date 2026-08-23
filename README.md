@@ -65,6 +65,8 @@ Three worth knowing up front:
 
 ## Privacy
 
-Reads `~/.claude/projects/**/*.jsonl` locally to extract token counts. Talks to
-PokéAPI and `raw.githubusercontent.com` for sprites. It holds no credentials and
-reads no Keychain item. Nothing else leaves the machine.
+Reads `~/.claude/projects/**/*.jsonl` locally to extract token counts. Fetches one
+thing over the network: the LiteLLM model-pricing snapshot from
+`raw.githubusercontent.com`, weekly, cached to disk. It holds no credentials and
+reads no Keychain item. Nothing else leaves the machine. PokéAPI and sprite
+downloads arrive with the Pokédex in Phase 3, and this section gets updated then.
