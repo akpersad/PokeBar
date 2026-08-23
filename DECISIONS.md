@@ -537,6 +537,141 @@ change, and this project already declines those for the same reason it scopes
 
 ---
 
+## Game layer (Phase 4)
+
+Decided 2026-08-23 with the user, before writing any of it. Balance knobs that
+remain open are listed at the end rather than guessed at.
+
+**Completion must be reachable, so acquisition is not purely random.** This is the
+decision the measurement forced. Filling the dex by weighted random draw is the
+coupon-collector problem, and `capture_rate` weighting is brutal: the rarest
+entries are ~85x less likely than the commonest, since the rate spans 3 to 255.
+
+| Draw model | Median draws to a complete dex |
+|---|---|
+| Uniform | 7,830 |
+| Capture-rate weighted | **168,729** (21.5x worse) |
+
+At ~1,080 coins/day that is 4.3 years even at 10 coins per egg, and 43 years at
+100. So "collect all of them" is not achievable by random draws at any sane price,
+and no amount of price tuning fixes it. Three exits were considered: abandon
+completion as a goal (which is upstream's answer, see below), flatten the rarity
+weighting, or add a non-random path. **The non-random path was chosen**, because it
+keeps `capture_rate` meaningful as rarity while still letting a patient player
+finish.
+
+The mechanism: a hatch that yields a variant already owned converts into a
+currency, and that currency buys a *chosen* entry outright. Rarity scales the
+conversion, so a duplicate legendary is worth more than a duplicate Caterpie. Luck
+sets the pace early, and the guaranteed path closes out the tail that luck never
+would.
+
+**Targeted re-roll is the shiny hunt.** Any already-captured species can be
+re-rolled, paying to hatch that same species again for a chance at a variant not
+yet owned. This is what makes shiny hunting a deliberate activity rather than
+something you wait for, and it is the same mechanism as the non-random path pointed
+at one species instead of the whole pool.
+
+**Reference odds:** upstream hatches shiny at 1/64, and 1/48 holding the Shiny
+Charm, with the explicit note that the mainline 1/4096 would mean never seeing one
+in a desktop app's lifetime. That reasoning holds here and the rates are a
+reasonable starting point.
+
+### What "caught" means
+
+**An append-only log of catch events, with the per-species view derived from it.**
+Not a `Set<Int>` of ids and not a per-species record struct.
+
+The reason is local: this is exactly the shape `UsageLedger` already uses, which
+accumulates append-only and derives its views at publish time, and which got
+per-day history "as a side effect" for free. The same bet pays off twice. A boolean
+set answers one question and loses everything else; a per-species struct needs a
+migration for every question nobody thought of yet; a log can answer "what did I
+catch in July", "what is my actual shiny rate", or "how long between duplicates"
+without changing the stored shape.
+
+**Upstream's shape, for reference,** since it is the same idea and worth not
+reinventing. Their `DexEntry` carries a `UUID` per *raise* rather than per species,
+plus `baseID`, `finalID`, `chainOrder`, `rarity`, `caughtAt`, `isShiny` and
+`nature`, and a separate accumulator folds those rows by species into
+`isGraduated` / `isRaising` / `isShiny`. Their dex is a log of completed raises with
+a derived species view.
+
+**`nature` is dropped.** Upstream stores a nature per Pokemon because natures feed
+stat growth. PokeBar has no stat raising, so a nature would be recorded, displayed
+nowhere, and affect nothing. Dead data, and it is easier to add later than to
+explain now.
+
+### Variants: what counts as a distinct thing to own
+
+**A variant exists if and only if its sprite file exists.** Data-driven, no
+special-casing, which is the same rule the sprite-set resolution already follows.
+
+The user's model was up to four per species: a male/female pair and a shiny
+male/female pair. That is real, but it applies to far less of the pool than it
+sounds, and the data had to be checked before designing around it. Measured against
+the pinned sprites commit and cross-checked against PokeAPI:
+
+| Variants available | Entries | |
+|---|---|---|
+| 4 (normal, shiny, female, shiny female) | **102** | 9.4% of the pool |
+| 2 (normal, shiny) | **979** | 90.4% |
+| 1 (normal only, no shiny) | 2 | |
+| | **2,368** | total distinct ownable sprites |
+
+Two independent sources agree on the 102: the `female/` sprite directories hold
+102-104 files, and PokeAPI reports `has_gender_differences` for exactly 102 species.
+Of 1,025 species, 155 are genderless outright, 26 are male-only and 37 female-only;
+807 have both genders but only 102 of those *look* different.
+
+So for 90% of the dex there is no separate female sprite, and treating male and
+female as distinct collectible slots would show the identical image twice and
+inflate the completion target with entries that are visually indistinguishable.
+**Completion is therefore defined over the 2,368 distinct sprites, not over
+1,083 x 4.**
+
+Gender is still recorded on every catch event, because in an append-only log that
+costs nothing and it keeps "I hatched a female Bulbasaur" answerable. It simply does
+not create a slot to fill unless a distinct sprite backs it.
+
+### Scope carried over from upstream
+
+Kept: the **floating desktop pet** (`FloatingPetPanel`, a borderless always-on-top
+draggable sprite window, independent of the menu bar), **notifications** on hatch
+and other companion events, and the **shop**.
+
+Shop stock: **Rare Candy and Shiny Charm kept. Mint rejected, not deferred.** A
+Mint rerolls a Pokemon's nature, and natures play no part here because there is no
+stat min-maxing to aim at, so it would be a coin sink that buys nothing observable.
+If stats ever arrive, revisit this entry first.
+
+**A Pokedex view is in scope.** The Phase 3 close-out recorded it as deferred; that
+was a misreading of the user, who read "browser UI" as a web app and was declining
+that, not declining a way to look at the collection. There is no web anything in
+this project. The view is a screen inside the menu bar popover for browsing what has
+been collected.
+
+### Still open: balance
+
+These are coupled, so picking one in isolation is how a game economy goes wrong.
+Named here so they are decided deliberately rather than by whatever the first
+implementation happened to do.
+
+- **Egg price**, the primary sink.
+- **Duplicate conversion rate**, and the price of a targeted pick. Together with egg
+  price these set what fraction of the dex comes from luck versus grind.
+- **Re-roll price**, which sets whether shiny hunting is a casual or a committed
+  activity.
+- **Whether a raising loop exists at all.** Upstream's is hatch, raise through the
+  evolution line on token XP, graduate, repeat, with a common taking ~7 days and a
+  legendary ~56 at this machine's rate. The user has ruled out stat min-maxing, but
+  not said whether evolution-by-XP survives as the thing that occupies a hatched
+  Pokemon. If it does not, the manifest's evolution data is display-only and egg
+  price becomes the single pacing knob. **This is the next thing to settle, because
+  every other number above depends on it.**
+
+---
+
 ## Menu bar UI
 
 **The status item shows coins, not tokens or cost.** Coins are the game currency

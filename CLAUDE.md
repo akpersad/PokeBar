@@ -232,12 +232,23 @@ prints live totals under `POKEBAR_CORPUS=1`.
 
 **Phases 1, 2 and 3 (data layer): complete.** 144 tests, 0 failures.
 
-**Next action, in one sentence: build the Phase 4 game layer (egg purchase, hatch
-roll over the 1,083-entry pool, caught state, persistence), weighting the roll on
-raw `captureRate` and replacing `Pokedex.featured(on:)` with the player's active
-Pokémon.** It is not blocked: the egg price is a user decision (see open questions)
-but can start as a placeholder constant in one place, because the roll and the
-persistence do not depend on its value.
+**Next action, in one sentence: settle whether a raising loop exists (see the
+Game layer section of DECISIONS.md), then build Phase 4 as an append-only catch log
+plus the hatch roll, duplicate-to-targeted-pick conversion, and a Pokédex view.**
+The raising question genuinely gates the rest, because every balance number depends
+on whether a hatched Pokémon is finished or is something you then raise.
+
+Phase 4's shape was decided with the user 2026-08-23 and is recorded in
+DECISIONS.md. Read that section before writing any of it; the short version:
+
+- Acquisition is **not purely random**. Weighted draws need ~168,700 draws for a
+  complete dex, so duplicates convert to a currency that buys a chosen entry.
+- "Caught" is an **append-only event log** with a derived per-species view, the same
+  shape as `UsageLedger`. No `nature` field: there is no stat raising to feed it.
+- A variant is ownable **iff its sprite file exists**. That is 2,368 distinct
+  sprites, not 1,083 x 4: only 102 entries have a distinct female sprite.
+- Shop keeps Rare Candy and Shiny Charm. **Mint is rejected**, not deferred.
+- The floating desktop pet, notifications, and a Pokédex view are all in scope.
 
 The app runs via `scripts/bundle.sh`: the status item shows an animated species
 sprite plus the coin count, and the popover shows coins, today's tokens with a
@@ -292,6 +303,10 @@ that came out of the original plan, is in DECISIONS.md.
 ## Deferred, with reasons in DECISIONS.md
 
 - Trends and burn-rate UI. Per-day data already accumulates in the ledger.
+- **Not deferred, correcting the Phase 3 close-out:** a Pokédex view *is* in scope
+  for Phase 4. The close-out logged it as deferred by misreading "no browser UI" as
+  declining a collection screen; the user was declining a *web app*, which was never
+  on the table.
 - Alternate forms beyond the 58 regionals (260 more sprites exist).
 - Parallelising the cold scan. One-time cost per install.
 - Code signing with a stable identity, and a LaunchAgent. The app bundle itself
@@ -300,15 +315,17 @@ that came out of the original plan, is in DECISIONS.md.
 
 ## Open questions for the user
 
-- Coin sinks and egg pricing (Phase 4 balance). Scale is fixed at 1 coin per
-  100,000 weighted tokens: ~1,079 coins/day at current usage. Note the shape of
-  the problem: egg price decides whether 1,083 entries fill in a month or a
-  decade.
-- Whether the dex gets a browser UI, and what "caught" means: a per-entry caught
-  flag, a count, a first-caught date, shiny tracked separately? The data layer is
-  deliberately silent on this.
-- Whether the floating desktop pet, notifications, and the shop survive from
-  upstream's feature set.
+- **Does a raising loop exist?** The one genuinely blocking question. Upstream
+  hatches, then raises the Pokémon through its evolution line on token XP before it
+  graduates into the dex (a common takes ~7 days here, a legendary ~56). Stat
+  min-maxing is ruled out, but evolution-by-XP has not been decided either way. If
+  it goes, the manifest's evolution data is display-only and egg price is the single
+  pacing knob. Every other balance number depends on this one.
+- Phase 4 balance, all coupled, so decide them together rather than one at a time:
+  egg price, duplicate conversion rate and targeted-pick price, and re-roll price.
+  Scale is fixed at 1 coin per 100,000 weighted tokens, ~1,080 coins/day at current
+  usage. Reference points from upstream, converted: a fresh egg cost 10,000 coins
+  (9.3 days), a shiny charm 30,000 (28 days).
 - `_audit_poketokenbar/` still sits in the parent directory. Phase 3 has landed and
   took what it needed from it (`SpriteFit` and the content-crop idea, both
   re-measured here rather than trusted). Safe to delete now; left in place only
