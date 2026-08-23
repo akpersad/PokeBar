@@ -18,12 +18,21 @@ struct SpriteFrame: Sendable {
 /// times a minute for an identical result.
 enum SpriteDecoder {
 
-    /// Decode `data` into frames fitted into a `box`-point square at `scale`.
+    /// Decode `data` into frames fitted to `height` points, with width free up to
+    /// `maxWidth`, rendered at `scale`.
+    ///
+    /// Height-constrained rather than fitted to a square box, because the menu bar
+    /// limits height and has width to spare. See `SpriteGeometry.fit(pixelSize:height:maxWidth:)`.
     ///
     /// Returns an empty array if the bytes do not decode, which callers treat as
     /// "no sprite" rather than as an error.
-    static func decode(_ data: Data, box: CGFloat, scale: CGFloat = 2) -> [SpriteFrame] {
-        guard box > 0, scale > 0,
+    static func decode(
+        _ data: Data,
+        height: CGFloat,
+        maxWidth: CGFloat,
+        scale: CGFloat = 2
+    ) -> [SpriteFrame] {
+        guard height > 0, maxWidth > 0, scale > 0,
               let source = CGImageSourceCreateWithData(data as CFData, nil)
         else { return [] }
 
@@ -54,7 +63,8 @@ enum SpriteDecoder {
             let cropped = cropStills ? cropToContent(raw) ?? raw : raw
             let fitted = SpriteGeometry.fit(
                 pixelSize: CGSize(width: cropped.width, height: cropped.height),
-                box: box)
+                height: height,
+                maxWidth: maxWidth)
             guard let scaled = resize(cropped, to: fitted, scale: scale) else { continue }
             frames.append(SpriteFrame(image: scaled, delay: delay(source, index, count: count)))
         }

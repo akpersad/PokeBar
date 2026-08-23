@@ -10,18 +10,19 @@ struct MenuBarLabel: View {
     let monitor: UsageMonitor
     let sprite: SpriteAnimator
 
-    /// Display size of the sprite in points. The status item is 22pt tall, so 18
-    /// fills it without crowding the coin count.
-    private static let spriteBox: CGFloat = 18
-
     var body: some View {
         HStack(spacing: 3) {
             // The sprite is the icon whenever one has resolved. A symbol still
             // covers the states where showing a Pokemon would be misleading, and
             // the cold-cache case where no sprite has arrived yet.
             if let frame = sprite.frame, symbol == nil {
+                // No frame modifier on purpose. The decoder already produced this
+                // image at exactly its display size, height-constrained with width
+                // free, so the intrinsic size is the right size. Forcing a square
+                // frame here is what made wide species render short: Glaceon's
+                // 76x54 canvas in an 18pt square box only fills 12.79pt of a 22pt
+                // menu bar.
                 Image(decorative: frame, scale: 2)
-                    .frame(width: Self.spriteBox, height: Self.spriteBox)
             } else if let symbol {
                 Image(systemName: symbol)
             } else {

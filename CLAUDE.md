@@ -160,11 +160,16 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     (10 to 57 distinct boxes within one sprite). Stills are the reverse: a static
     sprite fills 14-19% of its canvas and draws at half size uncropped.
 
-15. **Sprite fit preserves aspect ratio.** Gen-V canvases are per-species and not
-    square (Spoink 36x66, Glaceon 76x54) while static sprites are uniformly 96x96.
-    Stretching to a square box is invisible on the static path and distorts only the
-    animated one, which is the path the menu bar uses. Spoink renders 1.83x too
-    wide.
+15. **Sprite fit preserves aspect ratio, and the menu bar fits to *height*, not a
+    square box.** Gen-V canvases are per-species and not square (Spoink 36x66,
+    Glaceon 76x54) while static sprites are uniformly 96x96, so stretching to a
+    square box is invisible on the static path and distorts only the animated one.
+    Separately: a horizontal menu bar constrains height and has width to spare, so
+    a square box shrinks every *wide* sprite for nothing. Glaceon shipped looking
+    small for exactly that reason, and the user caught it on screen. Height is
+    18pt, width is free up to a 30pt cap. Measured over 155 entries: median aspect
+    1.00, p95 1.61, max 2.00 (Galarian Linoone 82x41). Do not put a square
+    `.frame()` back on the status item image; the decoder already sizes it.
 
 ---
 
@@ -234,14 +239,14 @@ Phase 4 decision. The status item is the only thing rendering a sprite, and it
 shows a deterministic daily pick via `Pokedex.featured(on:)`, which is the seam
 Phase 4 replaces with the player's active or most recently hatched Pokémon.
 
-**What was verified, and what was not.** End to end on this machine: the bundled
-manifest loaded inside the app bundle, `featured(on:)` resolved to Glaceon (#471)
-matching an independently computed expectation, and `471-gen5.gif` (52 KiB, 129
-frames, 76x54) landed in `~/Library/Application Support/PokeBar/sprites/`. That
-proves the whole chain except the final draw: `screencapture` is blocked for the
-terminal here, so **nobody has actually looked at the rendered sprite in the menu
-bar.** If it is wrong, the geometry rules in invariants 14 and 15 are where to look
-first.
+**Verified end to end, including the pixels.** The bundled manifest loaded inside
+the app bundle, `featured(on:)` resolved to Glaceon (#471) matching an
+independently computed expectation, `471-gen5.gif` (52 KiB, 129 frames, 76x54)
+landed in `~/Library/Application Support/PokeBar/sprites/`, and the user confirmed
+by screenshot that it animates in the menu bar beside the coin count. Note the
+method: `screencapture` is blocked for the terminal here, so the rendered pixels
+can only be confirmed by asking the user to look. Do not claim otherwise from
+cache contents alone.
 
 Views hold no logic. Everything they render goes through `UsageFormat`,
 `ModelIdentity` and `ModelBreakdown`, which is where the display behaviour is

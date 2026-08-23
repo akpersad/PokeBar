@@ -409,10 +409,13 @@ single still frame.
 
 **Sprite geometry is two rules, both measured, both silent if broken.**
 
-*Aspect-preserving fit is mandatory.* Gen-V animated GIFs have a per-species canvas
-that is not square, while every static sprite is a uniform 96x96. So stretching to
-fill a square box is invisible on the static path and distorts only the animated
-one, which is the path the menu bar uses:
+*Aspect-preserving fit is mandatory, and the menu bar fits to height rather than to
+a square box.* Two separate points.
+
+First, aspect ratio must be preserved at all: gen-V animated GIFs have a
+per-species canvas that is not square, while every static sprite is a uniform
+96x96. So stretching to fill a square box is invisible on the static path and
+distorts only the animated one, which is the path the menu bar uses:
 
 | Entry | gen-V GIF | static PNG |
 |---|---|---|
@@ -424,6 +427,33 @@ one, which is the path the menu bar uses:
 | Glaceon #471 | 76x54 | 96x96 |
 
 Spoink stretched to square renders 1.83x too wide.
+
+Second, the *box* was the wrong constraint. A square box preserves aspect ratio but
+still shrinks every wide sprite, because a horizontal menu bar limits height and has
+width to spare. Glaceon's 76x54 canvas in an 18pt square box renders 18 x 12.79 and
+fills 12.79pt of a 22pt bar. This shipped that way and the user caught it on screen
+immediately, which is the argument for asking someone to look rather than inferring
+from a populated cache.
+
+The fix is to fit to a height of 18pt and let width run free up to a 30pt cap.
+Measured over a 155-entry sample, aspect ratio width/height:
+
+| | ratio | width at 18pt tall |
+|---|---|---|
+| widest: Galarian Linoone 82x41 | 2.00 | 36.0pt |
+| p95 | 1.61 | 29.0pt |
+| median | 1.00 | 18.0pt |
+| tallest: Farigiraf 62x128 | 0.48 | 8.7pt |
+
+A 30pt cap leaves 95% of the pool at full height; the few wider sprites give up
+height rather than pushing the menu bar around. The cap only ever scales down, so a
+narrow sprite is never stretched to reach it.
+
+The cost is that the status item's width now depends on which species is shown.
+Accepted: the species changes once a day, not once per usage update, so this does
+not reintroduce the per-update width shuffle that compact coin formatting exists to
+prevent. The square-box fit is kept in `SpriteGeometry` because a dex grid, if one
+is ever built, genuinely does tile squares.
 
 *Cropping applies to stills only.* On every gen-V sprite measured, the union of the
 per-frame content boxes is exactly the full canvas, so cropping an animation buys

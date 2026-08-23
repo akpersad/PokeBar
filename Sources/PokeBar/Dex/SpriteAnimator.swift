@@ -27,7 +27,8 @@ final class SpriteAnimator {
 
     private let pokedex: Pokedex?
     private let store: SpriteStore
-    private let box: CGFloat
+    private let height: CGFloat
+    private let maxWidth: CGFloat
     private let scale: CGFloat
 
     private var frames: [SpriteFrame] = []
@@ -35,12 +36,22 @@ final class SpriteAnimator {
     private var loaded: Int?
 
     /// - Parameters:
-    ///   - box: display size in points, the square the sprite fits inside.
+    ///   - height: display height in points. The sprite fills this; width follows
+    ///     from the sprite's own aspect ratio.
+    ///   - maxWidth: width cap in points. Measured: 30 leaves 95% of the pool at
+    ///     full height and bounds the item for the few very wide sprites.
     ///   - scale: backing scale factor. 2 covers every Retina display this runs on.
-    init(pokedex: Pokedex?, store: SpriteStore, box: CGFloat = 18, scale: CGFloat = 2) {
+    init(
+        pokedex: Pokedex?,
+        store: SpriteStore,
+        height: CGFloat = 18,
+        maxWidth: CGFloat = 30,
+        scale: CGFloat = 2
+    ) {
         self.pokedex = pokedex
         self.store = store
-        self.box = box
+        self.height = height
+        self.maxWidth = maxWidth
         self.scale = scale
     }
 
@@ -62,8 +73,10 @@ final class SpriteAnimator {
             return
         }
 
-        let box = self.box, scale = self.scale
-        let decoded = await Task.detached { SpriteDecoder.decode(data, box: box, scale: scale) }.value
+        let height = self.height, maxWidth = self.maxWidth, scale = self.scale
+        let decoded = await Task.detached {
+            SpriteDecoder.decode(data, height: height, maxWidth: maxWidth, scale: scale)
+        }.value
         guard !decoded.isEmpty else { return }
 
         frames = decoded

@@ -33,6 +33,44 @@ enum SpriteGeometry {
         return CGSize(width: pixelSize.width * scale, height: pixelSize.height * scale)
     }
 
+    /// Aspect-preserving fit to a target *height*, with width free up to a cap.
+    ///
+    /// This is what the menu bar uses, rather than the square `fit(pixelSize:box:)`
+    /// above. A horizontal menu bar constrains height and has width to spare, so
+    /// fitting to a square box shrinks every wide sprite for no reason: Glaceon's
+    /// 76x54 canvas in an 18pt square box renders 18 x 12.79 and uses 12.79pt of a
+    /// 22pt bar. Fitting to height gives 25.3 x 18.
+    ///
+    /// Measured over a 155-entry sample of the real pool, aspect ratio
+    /// width/height:
+    ///
+    /// | | ratio | width at 18pt tall |
+    /// |---|---|---|
+    /// | widest: Galarian Linoone 82x41 | 2.00 | 36.0pt |
+    /// | p95 | 1.61 | 29.0pt |
+    /// | median | 1.00 | 18.0pt |
+    /// | tallest: Farigiraf 62x128 | 0.48 | 8.7pt |
+    ///
+    /// So `maxWidth` of 30 leaves 95% of the pool at full height and bounds the
+    /// status item for the handful of very wide sprites, which give up height
+    /// rather than pushing the menu bar around.
+    ///
+    /// The cost of this over a square box is that the item's width now depends on
+    /// which species is shown. That is acceptable because the species changes once
+    /// a day, not once per usage update, so it does not reintroduce the per-update
+    /// width shuffle that compact coin formatting exists to prevent.
+    static func fit(pixelSize: CGSize, height: CGFloat, maxWidth: CGFloat) -> CGSize {
+        guard pixelSize.width > 0, pixelSize.height > 0, height > 0, maxWidth > 0 else {
+            return .zero
+        }
+        var scale = height / pixelSize.height
+        // Only ever scales down: a sprite wider than the cap gives up height.
+        if pixelSize.width * scale > maxWidth {
+            scale = maxWidth / pixelSize.width
+        }
+        return CGSize(width: pixelSize.width * scale, height: pixelSize.height * scale)
+    }
+
     /// Tight bounding box of non-transparent pixels, or nil if fully transparent.
     ///
     /// Needed because the static sets waste most of their canvas on transparent

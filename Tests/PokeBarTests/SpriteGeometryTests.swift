@@ -58,6 +58,96 @@ final class SpriteGeometryTests: XCTestCase {
                        .zero)
     }
 
+    // MARK: - Height-constrained fit (what the menu bar uses)
+
+    /// The bug this fixes, with the case that exposed it on screen.
+    ///
+    /// A horizontal menu bar constrains height and has width to spare, so fitting
+    /// to a square box shrinks every wide sprite for nothing. Glaceon shipped
+    /// looking small for exactly this reason.
+    func testWideSpriteFillsTheHeightInsteadOfBeingShrunk() {
+        let glaceon = CGSize(width: 76, height: 54)
+
+        // What a square box did: 18 wide, only 12.79 tall in a 22pt menu bar.
+        let squared = SpriteGeometry.fit(pixelSize: glaceon, box: 18)
+        XCTAssertEqual(squared.width, 18, accuracy: 0.001)
+        XCTAssertEqual(squared.height, 18 * 54 / 76, accuracy: 0.001)
+        XCTAssertLessThan(squared.height, 13)
+
+        // Height-constrained: full 18pt tall, width follows.
+        let fitted = SpriteGeometry.fit(pixelSize: glaceon, height: 18, maxWidth: 30)
+        XCTAssertEqual(fitted.height, 18, accuracy: 0.001)
+        XCTAssertEqual(fitted.width, 18 * 76 / 54, accuracy: 0.001)
+        XCTAssertEqual(fitted.width / fitted.height, 76.0 / 54.0, accuracy: 0.001)
+    }
+
+    /// A tall sprite is unaffected: it already filled the height under either rule.
+    func testTallSpriteIsUnchangedByHeightFitting()  {
+        let spoink = CGSize(width: 36, height: 66)
+        let squared = SpriteGeometry.fit(pixelSize: spoink, box: 18)
+        let fitted = SpriteGeometry.fit(pixelSize: spoink, height: 18, maxWidth: 30)
+        XCTAssertEqual(fitted.width, squared.width, accuracy: 0.001)
+        XCTAssertEqual(fitted.height, squared.height, accuracy: 0.001)
+        XCTAssertEqual(fitted.height, 18, accuracy: 0.001)
+    }
+
+    /// The widest sprite in the pool. It gives up height rather than pushing the
+    /// menu bar around, and it is the only reason the cap exists.
+    func testWidestSpriteInThePoolIsClampedByTheCap() {
+        // Galarian Linoone, 82x41, aspect 2.00: 36pt wide at 18pt tall.
+        let linoone = CGSize(width: 82, height: 41)
+        let uncapped = SpriteGeometry.fit(pixelSize: linoone, height: 18, maxWidth: 100)
+        XCTAssertEqual(uncapped.width, 36, accuracy: 0.001)
+
+        let capped = SpriteGeometry.fit(pixelSize: linoone, height: 18, maxWidth: 30)
+        XCTAssertEqual(capped.width, 30, accuracy: 0.001)
+        XCTAssertEqual(capped.height, 15, accuracy: 0.001, "height given up, not aspect")
+        XCTAssertEqual(capped.width / capped.height, 82.0 / 41.0, accuracy: 0.001)
+    }
+
+    /// The cap only ever scales down. A narrow sprite must not be stretched out to
+    /// reach it.
+    func testCapNeverScalesUp() {
+        // Farigiraf, 62x128, the tallest sampled: 8.7pt wide at 18pt tall.
+        let fitted = SpriteGeometry.fit(pixelSize: CGSize(width: 62, height: 128),
+                                        height: 18, maxWidth: 30)
+        XCTAssertEqual(fitted.height, 18, accuracy: 0.001)
+        XCTAssertEqual(fitted.width, 18 * 62 / 128, accuracy: 0.001)
+        XCTAssertLessThan(fitted.width, 9)
+    }
+
+    /// Every canvas measured against the live set reaches full height under the
+    /// 30pt cap, except the widest, which is the documented trade.
+    func testMeasuredCanvasesReachFullHeightUnderTheCap() {
+        let canvases = [
+            (37, 38), (50, 46), (74, 75), (36, 66), (46, 47), (47, 63),  // gen-V samples
+            (76, 54),   // Glaceon
+            (94, 57),   // Heatmor, aspect 1.65
+            (62, 128),  // Farigiraf, tallest
+        ]
+        for (width, height) in canvases {
+            let fitted = SpriteGeometry.fit(
+                pixelSize: CGSize(width: width, height: height), height: 18, maxWidth: 30)
+            XCTAssertEqual(fitted.height, 18, accuracy: 0.001, "\(width)x\(height)")
+            XCTAssertLessThanOrEqual(fitted.width, 30.001, "\(width)x\(height)")
+            XCTAssertEqual(
+                fitted.width / fitted.height,
+                CGFloat(width) / CGFloat(height),
+                accuracy: 0.001,
+                "\(width)x\(height)")
+        }
+    }
+
+    func testHeightFitRejectsDegenerateInput() {
+        XCTAssertEqual(SpriteGeometry.fit(pixelSize: .zero, height: 18, maxWidth: 30), .zero)
+        XCTAssertEqual(
+            SpriteGeometry.fit(pixelSize: CGSize(width: 10, height: 10), height: 0, maxWidth: 30),
+            .zero)
+        XCTAssertEqual(
+            SpriteGeometry.fit(pixelSize: CGSize(width: 10, height: 10), height: 18, maxWidth: 0),
+            .zero)
+    }
+
     // MARK: - Content box
 
     /// The measured case: a static sprite's subject occupies 14 to 19% of its

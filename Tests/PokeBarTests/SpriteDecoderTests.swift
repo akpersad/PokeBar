@@ -62,11 +62,12 @@ final class SpriteDecoderTests: XCTestCase {
         let frames = try (0..<8).map { i in
             try image(canvas: canvas, subject: CGRect(x: 0, y: i, width: 36, height: 60))
         }
-        let decoded = SpriteDecoder.decode(try gif(frames: frames, delay: 0.1), box: 18, scale: 2)
+        let decoded = SpriteDecoder.decode(
+            try gif(frames: frames, delay: 0.1), height: 18, maxWidth: 30, scale: 2)
 
         XCTAssertEqual(decoded.count, 8)
-        // 36x66 fitted into 18 => 9.818 x 18, at scale 2 => 20 x 36.
-        let expected = SpriteGeometry.fit(pixelSize: canvas, box: 18)
+        // 36x66 at 18pt tall => 9.818 x 18, at scale 2 => 20 x 36.
+        let expected = SpriteGeometry.fit(pixelSize: canvas, height: 18, maxWidth: 30)
         for frame in decoded {
             XCTAssertEqual(frame.image.width, Int((expected.width * 2).rounded()))
             XCTAssertEqual(frame.image.height, Int((expected.height * 2).rounded()))
@@ -88,12 +89,13 @@ final class SpriteDecoderTests: XCTestCase {
             image(canvas: canvas, subject: CGRect(x: 20, y: 20, width: 20, height: 20)),
             image(canvas: canvas, subject: CGRect(x: 5, y: 30, width: 30, height: 5)),
         ]
-        let decoded = SpriteDecoder.decode(try gif(frames: frames, delay: 0.1), box: 20, scale: 1)
+        let decoded = SpriteDecoder.decode(
+            try gif(frames: frames, delay: 0.1), height: 20, maxWidth: 30, scale: 1)
 
         XCTAssertEqual(decoded.count, 3)
         let sizes = Set(decoded.map { "\($0.image.width)x\($0.image.height)" })
         XCTAssertEqual(sizes.count, 1, "every frame must keep the same bounds, or the sprite jitters")
-        XCTAssertEqual(decoded[0].image.width, 20, "square canvas fills the box")
+        XCTAssertEqual(decoded[0].image.width, 20, "square canvas is as wide as it is tall")
     }
 
     /// A near-zero delay means "as fast as possible". Honouring it literally would
@@ -103,7 +105,8 @@ final class SpriteDecoderTests: XCTestCase {
             try image(canvas: CGSize(width: 20, height: 20),
                       subject: CGRect(x: 0, y: 0, width: 20, height: 20))
         }
-        let decoded = SpriteDecoder.decode(try gif(frames: frames, delay: 0.001), box: 18)
+        let decoded = SpriteDecoder.decode(
+            try gif(frames: frames, delay: 0.001), height: 18, maxWidth: 30)
         XCTAssertFalse(decoded.isEmpty)
         for frame in decoded {
             XCTAssertEqual(frame.delay, 0.1, accuracy: 0.001)
@@ -120,15 +123,15 @@ final class SpriteDecoderTests: XCTestCase {
         let source = try image(
             canvas: CGSize(width: 96, height: 96),
             subject: CGRect(x: 28, y: 25, width: 39, height: 46))
-        let decoded = SpriteDecoder.decode(try png(source), box: 18, scale: 1)
+        let decoded = SpriteDecoder.decode(try png(source), height: 18, maxWidth: 30, scale: 1)
 
         XCTAssertEqual(decoded.count, 1)
         let frame = try XCTUnwrap(decoded.first)
-        // Cropped to 39x46, then fitted into 18: the tall edge touches the box.
+        // Cropped to 39x46, then fitted to 18pt tall.
         XCTAssertEqual(frame.image.height, 18)
         XCTAssertEqual(frame.image.width, Int((18.0 * 39 / 46).rounded()))
-        // Uncropped it would have been a square 18x18, so the subject would have
-        // occupied roughly half the box.
+        // Uncropped, the 96x96 canvas is square, so it would have been 18x18 and
+        // the subject would have occupied roughly half of it.
         XCTAssertNotEqual(frame.image.width, 18)
     }
 
@@ -138,7 +141,7 @@ final class SpriteDecoderTests: XCTestCase {
         let source = try image(
             canvas: CGSize(width: 32, height: 32),
             subject: CGRect(x: 8, y: 8, width: 16, height: 16))
-        let decoded = SpriteDecoder.decode(try png(source), box: 18)
+        let decoded = SpriteDecoder.decode(try png(source), height: 18, maxWidth: 30)
         XCTAssertEqual(decoded.count, 1)
         XCTAssertEqual(decoded[0].delay, 0)
     }
@@ -152,7 +155,7 @@ final class SpriteDecoderTests: XCTestCase {
             space: CGColorSpaceCreateDeviceRGB(),
             bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
         let blank = try XCTUnwrap(context.makeImage())
-        let decoded = SpriteDecoder.decode(try png(blank), box: 18, scale: 1)
+        let decoded = SpriteDecoder.decode(try png(blank), height: 18, maxWidth: 30, scale: 1)
         XCTAssertEqual(decoded.count, 1)
         XCTAssertEqual(decoded[0].image.width, 18)
     }
@@ -162,15 +165,32 @@ final class SpriteDecoderTests: XCTestCase {
     /// A missing or corrupt sprite is cosmetic. It must decode to nothing rather
     /// than throwing or trapping, so the status item falls back to its symbol.
     func testGarbageDecodesToNoFrames() {
-        XCTAssertTrue(SpriteDecoder.decode(Data("not an image".utf8), box: 18).isEmpty)
-        XCTAssertTrue(SpriteDecoder.decode(Data(), box: 18).isEmpty)
+        XCTAssertTrue(
+            SpriteDecoder.decode(Data("not an image".utf8), height: 18, maxWidth: 30).isEmpty)
+        XCTAssertTrue(SpriteDecoder.decode(Data(), height: 18, maxWidth: 30).isEmpty)
     }
 
-    func testNonPositiveBoxDecodesToNoFrames() throws {
+    func testNonPositiveDimensionsDecodeToNoFrames() throws {
         let source = try image(canvas: CGSize(width: 32, height: 32),
                                subject: CGRect(x: 0, y: 0, width: 32, height: 32))
         let data = try png(source)
-        XCTAssertTrue(SpriteDecoder.decode(data, box: 0).isEmpty)
-        XCTAssertTrue(SpriteDecoder.decode(data, box: 18, scale: 0).isEmpty)
+        XCTAssertTrue(SpriteDecoder.decode(data, height: 0, maxWidth: 30).isEmpty)
+        XCTAssertTrue(SpriteDecoder.decode(data, height: 18, maxWidth: 0).isEmpty)
+        XCTAssertTrue(SpriteDecoder.decode(data, height: 18, maxWidth: 30, scale: 0).isEmpty)
+    }
+
+    /// A very wide sprite gives up height rather than pushing the menu bar around.
+    /// Galarian Linoone at 82x41 is the widest in the pool.
+    func testVeryWideSpriteIsClampedByMaxWidth() throws {
+        let frames = try (0..<3).map { _ in
+            try image(canvas: CGSize(width: 82, height: 41),
+                      subject: CGRect(x: 0, y: 0, width: 82, height: 41))
+        }
+        let decoded = SpriteDecoder.decode(
+            try gif(frames: frames, delay: 0.1), height: 18, maxWidth: 30, scale: 1)
+        XCTAssertFalse(decoded.isEmpty)
+        let frame = try XCTUnwrap(decoded.first)
+        XCTAssertEqual(frame.image.width, 30, "clamped to the cap")
+        XCTAssertEqual(frame.image.height, 15, "height given up to respect the cap")
     }
 }
