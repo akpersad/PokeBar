@@ -15,7 +15,14 @@ looks wrong, change it there first, then the code.
 ./scripts/check.sh                     # build + tests. Use this, not `swift test`.
 POKEBAR_CORPUS=1 ./scripts/check.sh    # also scans the live ~/.claude tree
 swift build                            # build only
+./scripts/bundle.sh && open dist/PokeBar.app   # the only way to see the UI
 ```
+
+`swift run PokeBar` **cannot show the menu bar item.** SwiftUI registers a
+`MenuBarExtra` status item only for a process with a bundle identifier, and a bare
+SwiftPM executable reports `CFBundleIdentifier = NULL`. It fails silently: the
+engine scans, coins accrue, the process looks healthy, and nothing is drawn. Use
+`scripts/bundle.sh`.
 
 `swift test` on its own **fails** with `no such module 'XCTest'`: `xcode-select -p`
 points at CommandLineTools, which ships no test framework. `scripts/check.sh` sets
@@ -167,7 +174,9 @@ Then Phase 3 (Pokédex data layer, 1,083 entries) and Phase 4 (game layer).
 - Trends and burn-rate UI. Per-day data already accumulates in the ledger.
 - Alternate forms beyond the 58 regionals (260 more sprites exist).
 - Parallelising the cold scan. One-time cost per install.
-- App bundle, code signing, LaunchAgent. Not needed until it actually runs daily.
+- Code signing with a stable identity, and a LaunchAgent. The app bundle itself
+  is no longer deferred: `scripts/bundle.sh` builds it, because the UI is
+  invisible without one. Ad-hoc signing is enough for a local launch.
 
 ## Open questions for the user
 

@@ -353,6 +353,25 @@ gets the same menu-bar-only behaviour today.
 Poke Ball, and the tier colours (fable purple, opus orange, sonnet blue, haiku
 green) carry the visual load. Species art arrives with the Pokedex data layer.
 
+**An app bundle is mandatory to see the UI at all, so bundling is no longer
+deferred.** `scripts/bundle.sh` assembles `dist/PokeBar.app`. Measured: SwiftUI
+registers a `MenuBarExtra` status item only for a process that has a bundle
+identifier, and `swift run PokeBar` produces a bare executable reporting
+`CFBundleIdentifier = NULL`. The failure is silent and misleading in the worst
+way: the app launches, the engine scans, the ledger credits coins, `pgrep` finds
+a healthy process, and nothing is ever drawn in the menu bar. Diagnosed only
+after asking the user to look at a menu bar that could not have shown anything.
+
+`Info.plist` carries `LSUIElement`, which makes the runtime
+`setActivationPolicy(.accessory)` call redundant for the bundled path. Both are
+kept: the runtime call still covers running the binary directly, which is what
+the tests and any headless check do.
+
+**Code signing with a stable identity and a LaunchAgent stay deferred.** The
+bundle takes an ad-hoc signature, which is all a local launch needs. The stable
+identity mattered only for caching credentials under our own Keychain ACL, and
+the app now deliberately holds no credentials at all.
+
 ---
 
 ## Tooling

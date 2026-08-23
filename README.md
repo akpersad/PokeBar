@@ -33,7 +33,12 @@ macOS 26+, Swift 6.3+, and an Xcode.app containing XCTest (see below).
 swift build
 ./scripts/check.sh              # build + tests
 POKEBAR_CORPUS=1 ./scripts/check.sh   # also scan the live corpus and print totals
+./scripts/bundle.sh && open dist/PokeBar.app   # run it and see the UI
 ```
+
+`swift run PokeBar` starts the engine but shows no menu bar item: SwiftUI needs a
+bundle identifier to register one, and a bare SwiftPM executable has none. Always
+launch through `scripts/bundle.sh`.
 
 `scripts/check.sh` sets `DEVELOPER_DIR` to Xcode.app. Running `swift test`
 directly fails with `no such module 'XCTest'` because `xcode-select -p` points at
