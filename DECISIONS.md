@@ -634,6 +634,120 @@ Gender is still recorded on every catch event, because in an append-only log tha
 costs nothing and it keeps "I hatched a female Bulbasaur" answerable. It simply does
 not create a slot to fill unless a distinct sprite backs it.
 
+### Levels, XP and graduation
+
+Decided 2026-08-23. Evolution-by-XP is **in**; stats are out.
+
+**Graduation is level 100, for everyone.** This answers the awkward case directly:
+a Pokemon that never evolves is not a special case, because evolution is an *event
+along the climb*, not the goal of it. Lapras and Mewtwo climb the same ladder as
+Bulbasaur; they simply pass no evolution thresholds on the way. Dex entries unlock
+as thresholds are crossed, and the hatched species unlocks the moment it hatches.
+
+**One shared curve: `totalXP(level) = 100 x level^2`, so level 100 is 1,000,000 XP.**
+Same numbers for every species, as requested. Cubic (the mainline "Medium Fast"
+n^3) was tried first and rejected: it front-loads so hard that every evolution is
+done in the first 5 hours of a 4.6-day climb, leaving four days of nothing. Squared
+keeps per-level cost strictly increasing while spreading the interesting part out.
+
+**Rate: 1 XP per 500 weighted tokens.** At this machine's measured ~108M weighted
+tokens/day that puts a full 1 to 100 climb at **4.63 days**, inside the 4-5 day
+target.
+
+| Level | Total XP | Time from level 1 | XP for next level |
+|---|---|---|---|
+| 10 | 10,000 | 1.1 h | 2,100 |
+| 16 | 25,600 | 2.8 h | 3,300 |
+| 20 | 40,000 | 4.4 h | 4,100 |
+| 30 | 90,000 | 10.0 h | 6,100 |
+| 36 | 129,600 | 14.4 h | 7,300 |
+| 50 | 250,000 | 27.8 h | 10,100 |
+| 64 | 409,600 | 45.5 h | 12,900 |
+| 100 | 1,000,000 | 4.6 d | - |
+
+Per-level cost runs 300 XP for 1->2 up to 19,900 for 99->100, a 66x spread. Cubic
+would have been 4,243x.
+
+This lines up with the measured evolution levels (365 edges carry a `min_level`;
+earliest 7, median 30, latest 64): first evolution inside a working session, the
+median evolution overnight, every evolution in the game done by day two, then
+2.7 days of optional climbing for a favourite.
+
+**XP and coins are parallel derivations of the same tokens, never a shared pool.**
+This is the structural answer to "don't make me train for a week and then save for
+another week." Every weighted token simultaneously grants XP to the active Pokemon
+*and* mints coins. They do not compete, there is no allocation choice, and a full
+climb passively earns ~5,000 coins while it happens. Mechanically this is the same
+move `UsageLedger` already makes for coins, so XP is a second credit on the existing
+event rather than a new subsystem.
+
+**The binding constraint is raising time, not coins.** Worth stating plainly because
+it corrects an earlier assumption in this document that egg price is the pacing
+knob. It is not. Only one Pokemon is active at a time, so throughput caps at roughly
+1.7 raises/day if swapping at level 36, no matter how many coins are banked. Coins
+therefore accumulate faster than eggs can consume them, and the useful sinks are the
+ones that buy *time* (Rare Candy) or *certainty* (targeted pick), not the ones that
+buy more eggs.
+
+**Switching Pokemon is free and unrestricted, with no level gate.** A gate at level
+20 was considered and rejected. With 571 hatchable species drawn at random, hatching
+something you do not care about is the common case, not the exception, and a gate
+punishes the player for the game's own randomness. The real cost is already built
+in and needs no rule: swapping abandons that individual's levels, and the next
+hatch starts at 1. Whatever was reached stays in the log, so switching is never
+destructive to the collection, only to the individual. Shiny re-rolling is governed
+by the re-roll price, which is a separate knob from swapping.
+
+### Evolution triggers: two thirds are levels, one third needs a rule
+
+Measured over the 546 evolution edges that land in the collectible pool. 512 pool
+entries, **47% of the dex, are reachable only by evolving something**, so these
+rules are load-bearing rather than edge-case tidying.
+
+| Trigger | Edges | Distinct entries gated | Rule |
+|---|---|---|---|
+| level-up with `min_level` | 364 | 363 | Use `min_level` directly |
+| use-item (stones) | 71 | 69 | Requires the item. **25 distinct items**, so the shop has real stock |
+| level-up, no `min_level` | 71 | 50 | Friendship, time of day, location. **Substitute: evolves at level 30**, the measured median |
+| trade | 27 | 27 | No trading in a single-player menu bar app. **Requires a Linking Cord**, which is canonical since Gen 9 |
+| exotic one-offs | 13 | 12 | spin, tower-of-darkness, three-critical-hits, gimmighoul-coins, recoil-damage, take-damage, use-move, shed, agile/strong-style-move, three-defeated-bisharp. **Substitute: level 30** |
+
+The two level-30 substitutions cover 62 entries between them. They are substitutions
+and are labelled as such: there is no honest way to model friendship or
+tower-of-darkness in a token counter, and silently dropping 62 entries from a dex
+that advertises 1,083 would be worse.
+
+**This requires regenerating the manifest.** `pokedex.json` currently stores
+`evolvesTo` as bare target ids and carries neither the trigger, the `min_level`, nor
+the evolution item. Phase 4 cannot start without adding those three fields to
+`scripts/generate-dex.py`, with the substitution rules applied at generation time so
+the app reads a level for every edge and never has to know what a tower of darkness
+is.
+
+### Prices, v1
+
+Starting values, not final. The XP curve above is derived from a stated constraint
+and should hold; these are a coherent first pass and want revisiting once the loop
+is actually playable.
+
+| Thing | Price | Reasoning |
+|---|---|---|
+| Egg | **300 coins** | ~6.7 h of usage. Cheap on purpose: eggs must never be the bottleneck, since raising time already is. Leaves ~580 coins/day for everything else at level-36 swapping |
+| Rare Candy | **250 coins** for 10,000 XP | The most important sink, because it buys the scarce resource. 1 coin of accrual equals 200 XP, so 10,000 XP is "worth" 50 coins; the 5x markup is upstream's, and makes candy a luxury. Naturally strong early (+4.1 levels at L10) and weak late (+0.6 at L90), like the games |
+| Evolution stones | **400 coins** | 25 items, gating 69 entries |
+| Linking Cord | **400 coins** | Gates 27 entries |
+| Shiny Charm | **30,000 coins** | Upstream's price, ~28 days. Passive, permanent, so it should be a genuine commitment |
+| Targeted pick | **200 x (255 / captureRate)** | 200 coins for a Caterpie-tier entry, ~1,100 at the median, ~17,000 for a capture-rate-3 legendary. **This is the number most likely to be wrong** and should be tuned first |
+
+The targeted pick is what makes the dex completable at all, so its price sets the
+endgame. Random hatching alone needs a median **109,812 hatches** to see every base
+species once (29x worse than uniform, because the rarest entries are largely
+non-evolving legendaries that stay in the hatchable pool). Restricting draws to base
+species only improved that by a mere 1.5x over drawing from the full 1,083. Luck
+handles the bulk; only the targeted path closes the tail.
+
+---
+
 ### Scope carried over from upstream
 
 Kept: the **floating desktop pet** (`FloatingPetPanel`, a borderless always-on-top
@@ -651,24 +765,19 @@ that, not declining a way to look at the collection. There is no web anything in
 this project. The view is a screen inside the menu bar popover for browsing what has
 been collected.
 
-### Still open: balance
+### Still open
 
-These are coupled, so picking one in isolation is how a game economy goes wrong.
-Named here so they are decided deliberately rather than by whatever the first
-implementation happened to do.
+The raising question is settled (evolution-by-XP stays, stats do not), and the XP
+curve is derived rather than guessed. What remains is genuinely playtest-shaped:
 
-- **Egg price**, the primary sink.
-- **Duplicate conversion rate**, and the price of a targeted pick. Together with egg
-  price these set what fraction of the dex comes from luck versus grind.
-- **Re-roll price**, which sets whether shiny hunting is a casual or a committed
-  activity.
-- **Whether a raising loop exists at all.** Upstream's is hatch, raise through the
-  evolution line on token XP, graduate, repeat, with a common taking ~7 days and a
-  legendary ~56 at this machine's rate. The user has ruled out stat min-maxing, but
-  not said whether evolution-by-XP survives as the thing that occupies a hatched
-  Pokemon. If it does not, the manifest's evolution data is display-only and egg
-  price becomes the single pacing knob. **This is the next thing to settle, because
-  every other number above depends on it.**
+- **The targeted-pick price.** Named again here because it is the one number that
+  decides whether the dex ever completes, and the one most likely to be wrong.
+- **Duplicate handling.** A duplicate should refund something, but whether that is
+  coins or a second currency is undecided. Coins are already abundant, which argues
+  for a separate scarce currency; one currency argues for fewer concepts. Not worth
+  resolving before the loop runs.
+- **Whether level 100 needs a reward.** Right now graduation is its own trophy. If
+  the last 2.7 days of a climb feel empty in practice, that is where to look.
 
 ---
 

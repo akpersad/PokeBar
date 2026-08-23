@@ -232,17 +232,28 @@ prints live totals under `POKEBAR_CORPUS=1`.
 
 **Phases 1, 2 and 3 (data layer): complete.** 144 tests, 0 failures.
 
-**Next action, in one sentence: settle whether a raising loop exists (see the
-Game layer section of DECISIONS.md), then build Phase 4 as an append-only catch log
-plus the hatch roll, duplicate-to-targeted-pick conversion, and a Pokédex view.**
-The raising question genuinely gates the rest, because every balance number depends
-on whether a hatched Pokémon is finished or is something you then raise.
+**Next action, in one sentence: add `trigger`, `minLevel` and `evolutionItem` to the
+manifest via `scripts/generate-dex.py` (applying the level-30 substitutions), then
+build Phase 4 as an append-only catch log plus levels, the hatch roll, and a Pokédex
+view.** The manifest change comes first because 47% of the dex is evolution-gated
+and `pokedex.json` currently stores `evolvesTo` as bare target ids with no trigger,
+level, or item, so nothing in the game layer can resolve when a Pokémon evolves.
 
 Phase 4's shape was decided with the user 2026-08-23 and is recorded in
 DECISIONS.md. Read that section before writing any of it; the short version:
 
-- Acquisition is **not purely random**. Weighted draws need ~168,700 draws for a
-  complete dex, so duplicates convert to a currency that buys a chosen entry.
+- Acquisition is **not purely random**. Weighted draws need ~109,800 hatches just to
+  see every base species, so duplicates convert into a targeted pick.
+- **Evolution-by-XP is in, stats are out.** One shared curve,
+  `totalXP(level) = 100 * level^2`, at 1 XP per 500 weighted tokens: level 100 is
+  1,000,000 XP and ~4.6 days. Graduation is level 100 for every species, so a
+  non-evolving Pokémon is not a special case.
+- **XP and coins are parallel derivations of the same tokens, never a shared pool.**
+  Training and saving happen at once; there is no allocation choice to make.
+- **Raising time is the bottleneck, not coins.** One active Pokémon caps throughput
+  at ~1.7 raises/day, so useful sinks buy time or certainty, not more eggs.
+- Switching Pokémon is **free, with no level gate**. The cost is losing that
+  individual's levels; the collection log keeps everything already earned.
 - "Caught" is an **append-only event log** with a derived per-species view, the same
   shape as `UsageLedger`. No `nature` field: there is no stat raising to feed it.
 - A variant is ownable **iff its sprite file exists**. That is 2,368 distinct
@@ -315,17 +326,10 @@ that came out of the original plan, is in DECISIONS.md.
 
 ## Open questions for the user
 
-- **Does a raising loop exist?** The one genuinely blocking question. Upstream
-  hatches, then raises the Pokémon through its evolution line on token XP before it
-  graduates into the dex (a common takes ~7 days here, a legendary ~56). Stat
-  min-maxing is ruled out, but evolution-by-XP has not been decided either way. If
-  it goes, the manifest's evolution data is display-only and egg price is the single
-  pacing knob. Every other balance number depends on this one.
-- Phase 4 balance, all coupled, so decide them together rather than one at a time:
-  egg price, duplicate conversion rate and targeted-pick price, and re-roll price.
-  Scale is fixed at 1 coin per 100,000 weighted tokens, ~1,080 coins/day at current
-  usage. Reference points from upstream, converted: a fresh egg cost 10,000 coins
-  (9.3 days), a shiny charm 30,000 (28 days).
+- **The targeted-pick price**, which decides whether the dex ever completes, and
+  whether duplicates refund coins or a separate scarce currency. Everything else in
+  the Phase 4 economy has a v1 value recorded in DECISIONS.md; these two are the
+  ones flagged as most likely wrong. Not worth settling before the loop runs.
 - `_audit_poketokenbar/` still sits in the parent directory. Phase 3 has landed and
   took what it needed from it (`SpriteFit` and the content-crop idea, both
   re-measured here rather than trusted). Safe to delete now; left in place only
