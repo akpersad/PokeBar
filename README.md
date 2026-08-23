@@ -9,9 +9,9 @@ from it, marked in the source where it is.
 
 ## Status
 
-Phases 1 and 2 are **complete**: usage engine and menu bar UI. The Pokédex is
-next. Live plan limits were considered and rejected, with reasons in
-[DECISIONS.md](DECISIONS.md).
+Phases 1, 2 and 3 are **complete**: usage engine, menu bar UI, and the Pokédex
+data layer. The game layer is next. Live plan limits were considered and rejected,
+with reasons in [DECISIONS.md](DECISIONS.md).
 
 - [x] Bounded-memory JSONL streaming with resumable offsets
 - [x] Claude Code usage parser with keep-max dedup
@@ -20,8 +20,11 @@ next. Live plan limits were considered and rejected, with reasons in
 - [x] FSEvents watchers replacing timer polling
 - [x] Runtime model pricing with tier-weighted currency
 - [x] Menu bar UI (coins in the status item, usage breakdown in the popover)
-- [ ] Pokédex data layer, 1,083 collectible entries
-- [ ] Game layer
+- [x] Pokédex data layer, 1,083 collectible entries (98.7% animated)
+- [x] Permanent on-disk sprite cache, pinned to an immutable sprites commit
+- [x] An animated species sprite in the status item
+- [ ] Pokédex browser UI
+- [ ] Game layer (eggs, hatching, coin sinks)
 
 ## Requirements
 
@@ -34,6 +37,7 @@ swift build
 ./scripts/check.sh              # build + tests
 POKEBAR_CORPUS=1 ./scripts/check.sh   # also scan the live corpus and print totals
 ./scripts/bundle.sh && open dist/PokeBar.app   # run it and see the UI
+./scripts/generate-dex.py       # regenerate the Pokédex manifest (rarely; not part of the build)
 ```
 
 `swift run PokeBar` starts the engine but shows no menu bar item: SwiftUI needs a
@@ -61,12 +65,26 @@ Three worth knowing up front:
 - **Nothing polls.** Upstream re-scanned on a timer. Here a warm pass over 481 MiB
   reads zero bytes, so idle costs nothing.
 - **All nine generations.** Upstream caps at dex #649. Layering three sprite sets
-  gets 100% of the National Dex, 98.6% of it animated.
+  gets 100% of the National Dex, 98.7% of it animated.
+- **The dex is a build-time manifest, and its sprite URLs are pinned to a commit.**
+  Sprites are served with `cache-control: max-age=300`, so the disk cache is only
+  correct because a pinned URL's bytes cannot change.
 
 ## Privacy
 
-Reads `~/.claude/projects/**/*.jsonl` locally to extract token counts. Fetches one
-thing over the network: the LiteLLM model-pricing snapshot from
-`raw.githubusercontent.com`, weekly, cached to disk. It holds no credentials and
-reads no Keychain item. Nothing else leaves the machine. PokéAPI and sprite
-downloads arrive with the Pokédex in Phase 3, and this section gets updated then.
+Reads `~/.claude/projects/**/*.jsonl` locally to extract token counts. It holds no
+credentials and reads no Keychain item.
+
+Two things are fetched over the network, both unauthenticated GETs of public
+static files, and nothing is ever uploaded:
+
+- The LiteLLM model-pricing snapshot from `raw.githubusercontent.com`, weekly,
+  cached to disk.
+- Pokémon sprites from the PokéAPI sprites repo on `raw.githubusercontent.com`,
+  on first display, cached to disk permanently.
+
+The Pokédex catalog itself is **not** fetched at runtime: it is a manifest
+generated at build time by `scripts/generate-dex.py` and checked in, so a cold
+first launch talks to PokéAPI not at all. Sprites are fetched rather than
+redistributed, which is what keeps this a personal build with no asset
+redistribution. Nothing else leaves the machine.

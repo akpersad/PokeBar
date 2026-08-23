@@ -8,33 +8,53 @@ import SwiftUI
 /// Compact formatting keeps the item's width stable as the figure grows.
 struct MenuBarLabel: View {
     let monitor: UsageMonitor
+    let sprite: SpriteAnimator
+
+    /// Display size of the sprite in points. The status item is 22pt tall, so 18
+    /// fills it without crowding the coin count.
+    private static let spriteBox: CGFloat = 18
 
     var body: some View {
         HStack(spacing: 3) {
-            Image(systemName: symbol)
+            // The sprite is the icon whenever one has resolved. A symbol still
+            // covers the states where showing a Pokemon would be misleading, and
+            // the cold-cache case where no sprite has arrived yet.
+            if let frame = sprite.frame, symbol == nil {
+                Image(decorative: frame, scale: 2)
+                    .frame(width: Self.spriteBox, height: Self.spriteBox)
+            } else if let symbol {
+                Image(systemName: symbol)
+            } else {
+                // Offline on a cold cache: hold the space so the coin count does
+                // not shift sideways when the sprite lands.
+                Image(systemName: "smallcircle.filled.circle")
+            }
             Text(UsageFormat.compactTokens(monitor.coins))
         }
         .accessibilityLabel(accessibilityText)
+        .task(id: monitor.state) { await sprite.showFeatured() }
     }
 
-    /// A species sprite replaces this once the Pokedex data layer lands. Until
-    /// then `smallcircle.filled.circle` is the closest thing SF Symbols has to a
-    /// Poke Ball, and the dotted circle is the original placeholder icon, reused
-    /// to mean "still reading".
-    private var symbol: String {
+    /// A symbol instead of a sprite, or nil to show the sprite.
+    ///
+    /// Scanning and failure keep their glyphs: a Pokemon sitting in the menu bar
+    /// while the engine is broken reads as everything being fine.
+    private var symbol: String? {
         switch monitor.state {
         case .failed: "exclamationmark.triangle.fill"
         case .scanning: "circle.dotted"
-        case .idle, .watching: "smallcircle.filled.circle"
+        case .idle, .watching: nil
         }
     }
 
     private var accessibilityText: String {
-        let coins = "PokeBar, \(UsageFormat.groupedInt(monitor.coins)) coins"
+        var coins = "PokeBar, \(UsageFormat.groupedInt(monitor.coins)) coins"
         switch monitor.state {
         case .scanning: return coins + ", reading usage history"
         case .failed: return coins + ", usage reading failed"
-        case .idle, .watching: return coins
+        case .idle, .watching:
+            if let name = sprite.entry?.name { coins += ", showing \(name)" }
+            return coins
         }
     }
 }

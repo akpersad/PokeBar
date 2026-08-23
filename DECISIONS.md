@@ -305,6 +305,175 @@ distributed.
 
 ---
 
+## Pokedex data layer
+
+Both open questions from the Phase 2 close-out are settled here. The user
+delegated them explicitly, so they were decided on measurement.
+
+**The catalog is a build-time manifest, not a runtime fetch.**
+`scripts/generate-dex.py` produces `Sources/PokeBar/Dex/Resources/pokedex.json`,
+325 KiB, checked in. Four reasons, in descending weight:
+
+1. **A cold first launch needs no network and nothing third-party to be up.**
+   A runtime fetch makes the dex, and therefore the whole game layer, depend on
+   PokeAPI *and* the GitHub trees API answering. Upstream needed a GraphQL path, a
+   REST fallback, a session-scoped rebuild flag, a partial-index guard and a
+   self-healing disk cache to paper over exactly this. A manifest deletes all of
+   it.
+2. **The generator can assert what a fetch could only hope for.** It verifies
+   1,083 entries, 58 regional forms, 14 static-only species and the per-set sprite
+   coverage before it writes anything. This already paid for itself: the
+   regional-form assertion caught `pikachu-alola-cap`, a costumed Pikachu that a
+   regional-suffix match happily accepts as an Alolan form.
+3. **The sprite manifest is not fetchable cheaply at runtime anyway.** Which
+   sprite files exist per set comes from the GitHub trees API, which is 60
+   requests/hour unauthenticated, and whose recursive whole-repo tree is 62,142
+   blobs returned with `truncated: true`. Truncation is silent, and would report
+   real sprites as missing. Build time fetches six path-addressed subtrees
+   instead, each complete, and fails loudly if any comes back truncated.
+4. **The data is static.** A new generation is a years-scale event. When one
+   lands, raise `MAX_SPECIES`, re-run the generator, and update the expectations
+   deliberately.
+
+Metadata is bundled; **sprites are still fetched at runtime and never
+redistributed**, which is what kept the IP question closed in the first place.
+
+**Sprites get an explicit permanent disk cache, not `URLCache`.** Measured: every
+sprite in all three sets is served by `raw.githubusercontent.com` with
+`cache-control: max-age=300`. Five minutes. A URL-cache-backed dex would
+re-download the entire wall of sprites every five minutes of browsing and would
+show nothing at all offline.
+
+What makes a *permanent* cache safe is that sprite URLs are pinned to a sprites-repo
+commit SHA (`c10459b9b0129eaca5c5d9b1cac65336debb1d08`), so a given URL's bytes can
+never change: no revalidation, no ETag round-trip, no expiry. Upstream cached to
+disk too, but against `master`, so its cached files could silently drift from the
+branch they were named after. Cache keys carry the sprite set (`471-gen5.gif`), so
+regenerating the manifest and moving an entry between sets cannot serve stale art
+under a reused name. Writes are atomic, because a torn write is the one corruption
+a never-expiring cache would otherwise never repair.
+
+Nothing is prefetched. At 1,083 entries x 2 variants a full prefetch is ~2,166
+files, so sprites load on first display instead.
+
+**Every figure in this document's content section reproduced exactly**, which is
+why the manifest is trusted: 1,025 species, 58 regional forms, pool 1,083, gen-v
+780 base sprites (76.1%), showdown 1,011 (98.6%), home 1,025 (100%), and the 14
+with no animated sprite in any set at `990-995, 1006, 1008, 1010, 1017, 1022-1025`.
+Resolution lands 816 entries on gen5, 253 on showdown, 14 on home: **98.7%
+animated**. Two entries in the pool have no shiny sprite.
+
+Three data-model traps found while verifying, each of which silently produces a
+wrong dex rather than an error:
+
+- **`pokemonform.id` is a different id space from `pokemon.id`.** Alolan Vulpix is
+  pokemon 10103 and form 10205. The evolution table's `base_form_id` and
+  `evolved_form_id` are in the *pokemon* space, so joining on form id returns zero
+  rows for every regional form. The first attempt here did exactly that and
+  reported no regional evolutions at all.
+- **A regional form need not carry a regional suffix.** Hisuian Basculin is
+  `basculin-white-striped`. A suffix match finds 57 of the 58.
+- **Names carry typography.** `Farfetch’d` uses U+2019, and `Nidoran♀` a gender
+  sign. Display names are taken from PokeAPI rather than title-cased off the slug,
+  which gets `farfetchd`, `mr-mime` and `nidoran-f` all wrong.
+
+`evolved_form_id ?? evolved_species_id` was re-verified row by row and holds:
+Alolan Vulpix and Hisuian Growlithe resolve through a form target, Galarian Meowth,
+Hisuian Qwilfish and Hisuian Sneasel through a species target, `qwilfish-hisui`
+returns three rows that dedupe to one, and Pikachu returns two genuinely distinct
+targets (Raichu and Alolan Raichu).
+
+**Rarity bands are a display label, not the hatch weighting.** Bands come from the
+species' `capture_rate` with legendary and mythical as a floor rather than a band,
+because some legendaries are catchable enough to land in a common band on capture
+rate alone, and a legendary labelled "Common" reads as a bug. The measured
+distribution: common 238, uncommon 187, rare 493, epic 68, legendary 74, mythical
+23.
+
+That `rare` bucket being the largest is a property of the source, not a mistake.
+`capture_rate` is quantized hard: 327 of 1,083 entries share the value 45, and 86%
+sit at 45 or above, so *any* set of bands puts a 30-45% lump in whichever band
+contains 45. Three schemes were evaluated and all three did. **Phase 4 should
+therefore weight the hatch pool on the raw `captureRate`, where the number behaves
+like a smooth weight, and use the band only for the word shown to the player.**
+
+**The status item animates, which is a deliberate exception to the no-polling
+rule.** Measured: a gen-V sprite is 51 to 129 frames with 60 to 200 ms delays, so
+animating redraws the status item at 5 to 16 fps for as long as the app runs. In a
+project whose usage engine reads 0 bytes on an idle minute, that deserves naming
+rather than hiding. It is accepted because the moving sprite is the point of the
+app, and an 18pt bitmap blit is cheap in a way that re-reading 481 MiB of JSONL is
+not. Two concessions: frames are cropped and scaled once at decode time so each
+tick is a pointer swap rather than an image resize, and Low Power Mode drops to a
+single still frame.
+
+**Sprite geometry is two rules, both measured, both silent if broken.**
+
+*Aspect-preserving fit is mandatory.* Gen-V animated GIFs have a per-species canvas
+that is not square, while every static sprite is a uniform 96x96. So stretching to
+fill a square box is invisible on the static path and distorts only the animated
+one, which is the path the menu bar uses:
+
+| Entry | gen-V GIF | static PNG |
+|---|---|---|
+| Bulbasaur #1 | 37x38 | 96x96 |
+| Pikachu #25 | 50x46 | 96x96 |
+| Gengar #143 | 74x75 | 96x96 |
+| Spoink #325 | **36x66** | 96x96 |
+| Lucario #448 | 47x63 | 96x96 |
+| Glaceon #471 | 76x54 | 96x96 |
+
+Spoink stretched to square renders 1.83x too wide.
+
+*Cropping applies to stills only.* On every gen-V sprite measured, the union of the
+per-frame content boxes is exactly the full canvas, so cropping an animation buys
+nothing, and cropping each frame to *its own* box would be actively wrong: the
+per-frame boxes differ (10 to 57 distinct boxes within one sprite) and the sprite
+would visibly jitter as its bounds moved under it. Stills are the opposite case:
+
+| Sprite | canvas | content | fill |
+|---|---|---|---|
+| Pikachu static PNG | 96x96 | 39x46 | **19%** |
+| Spoink static PNG | 96x96 | 26x51 | **14%** |
+| Pecharunt HOME PNG | 512x512 | 392x300 | 45% |
+| Pikachu gen-V GIF | 50x46 | 39x46 | 78% |
+| Spoink gen-V GIF | 36x66 | 26x51 | 56% |
+
+An uncropped static sprite in an 18pt status item draws a ~9pt subject.
+
+Scaling uses nearest-neighbour. These are pixel-art sprites and smoothing them
+turns crisp pixels to mush, most visibly at menu bar sizes.
+
+**Frame extraction is index-by-index, which is safe here and would not be in
+general.** Every gen-V sprite measured stores full-canvas frames with no disposal
+metadata. An optimised GIF storing partial frames would need compositing, and
+these do not.
+
+**The featured pick is a placeholder with a deliberate seam.** Until the game layer
+exists there is no "active" Pokemon, so the status item shows a species chosen
+deterministically from the local day: stable across relaunches within a day,
+different tomorrow. Phase 4 replaces `Pokedex.featured(on:)` with the player's
+active or most recently hatched Pokemon and nothing else has to change. The day
+ordinal is multiplied by a large constant, which overflows into negatives, so the
+index uses a non-negative modulo; a test walks 450 days including pre-epoch dates
+because `%` in Swift keeps the dividend's sign.
+
+**The dex is loaded through `Bundle.module`, and a test asserts it loads.** SwiftPM
+emits resources as `PokeBar_PokeBar.bundle` beside the binary, and `scripts/bundle.sh`
+copies it into `Contents/Resources`. Miss that step and `Bundle.module` finds
+nothing: the app launches, scans, credits coins, and shows no Pokemon at all. That
+is the same silent shape as the missing-bundle-identifier bug this project already
+paid a debugging round for, so it is pinned by a test rather than trusted.
+
+**Generator HTTP goes through `curl`, not `urllib`.** The python.org framework build
+on this machine has no CA bundle installed, so every `urllib` HTTPS handshake fails
+with `CERTIFICATE_VERIFY_FAILED`. `curl` uses the system trust store. The
+alternative was running Python's `Install Certificates.command`, a global machine
+change, and this project already declines those for the same reason it scopes
+`DEVELOPER_DIR` per invocation instead of running `sudo xcode-select -s`.
+
+---
+
 ## Menu bar UI
 
 **The status item shows coins, not tokens or cost.** Coins are the game currency

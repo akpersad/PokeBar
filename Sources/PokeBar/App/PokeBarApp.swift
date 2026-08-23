@@ -5,6 +5,13 @@ import SwiftUI
 struct PokeBarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var monitor = UsageMonitor()
+    @State private var sprite = SpriteAnimator(
+        // A dex that fails to load must not take the usage engine down with it,
+        // so this degrades to a symbol in the status item. A test asserts the
+        // bundled manifest actually loads, which is where that failure surfaces
+        // rather than as a silently Pokemon-less menu bar.
+        pokedex: try? Pokedex.loadBundled(),
+        store: SpriteStore())
 
     var body: some Scene {
         // Native MenuBarExtra in .window style. The upstream project could not
@@ -17,7 +24,7 @@ struct PokeBarApp: App {
             // The label is the one view that exists for the whole run, so it is
             // where the engine is started. `start()` is idempotent, so a rebuild
             // of the status item cannot launch a second scan loop.
-            MenuBarLabel(monitor: monitor)
+            MenuBarLabel(monitor: monitor, sprite: sprite)
                 .task { monitor.start() }
         }
         .menuBarExtraStyle(.window)

@@ -17,8 +17,20 @@ BIN="$(swift build --package-path "$ROOT" -c "$CONFIG" --show-bin-path)/PokeBar"
 APP="$ROOT/dist/PokeBar.app"
 
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/PokeBar"
+
+# The Pokedex manifest, which SwiftPM emits as PokeBar_PokeBar.bundle next to the
+# binary. It has to land in Contents/Resources because that is the first place
+# Bundle.module looks (Bundle.main.resourceURL). Miss this and the app launches,
+# scans, credits coins, and shows no Pokemon at all, which is the same silent
+# shape as the missing-bundle-identifier bug above. PokedexTests catches it.
+BUNDLE="$(dirname "$BIN")/PokeBar_PokeBar.bundle"
+if [ ! -d "$BUNDLE" ]; then
+    echo "✗ $BUNDLE not found. Did the resources declaration leave Package.swift?" >&2
+    exit 1
+fi
+cp -R "$BUNDLE" "$APP/Contents/Resources/"
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
