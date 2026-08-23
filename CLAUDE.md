@@ -192,8 +192,16 @@ Then Phase 3 (Pokédex data layer, 1,083 entries) and Phase 4 (game layer).
 
 ## Open questions for the user
 
+- **Phase 3, decide before writing the dex:** is the catalog fetched from PokéAPI
+  once at runtime and cached to disk, or generated into a bundled manifest at
+  build time? And do sprite files get an on-disk cache, or is the URL cache
+  enough? Raised with the user 2026-08-22; they had not answered by session end
+  and said either way is fine to decide unilaterally. Blocks nothing: pick one,
+  record it here, and go.
 - Coin sinks and egg pricing (Phase 4 balance). Scale is fixed at 1 coin per
-  100,000 weighted tokens: ~1,079 coins/day at current usage.
+  100,000 weighted tokens: ~1,079 coins/day at current usage. Note the shape of
+  the problem: egg price decides whether 1,083 entries fill in a month or a
+  decade.
 - Whether the floating desktop pet, notifications, and the shop survive from
   upstream's feature set.
 - `_audit_poketokenbar/` still sits in the parent directory as reference for the
