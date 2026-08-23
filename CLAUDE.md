@@ -233,7 +233,7 @@ prints live totals under `POKEBAR_CORPUS=1`.
 **Phases 1, 2 and 3 (data layer): complete.** 144 tests, 0 failures.
 
 **Next action, in one sentence: add `trigger`, `minLevel` and `evolutionItem` to the
-manifest via `scripts/generate-dex.py` (applying the level-30 substitutions), then
+manifest via `scripts/generate-dex.py` (applying the level-36 substitutions), then
 build Phase 4 as an append-only catch log plus levels, the hatch roll, and a Pokédex
 view.** The manifest change comes first because 47% of the dex is evolution-gated
 and `pokedex.json` currently stores `evolvesTo` as bare target ids with no trigger,

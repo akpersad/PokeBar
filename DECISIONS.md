@@ -708,14 +708,26 @@ rules are load-bearing rather than edge-case tidying.
 |---|---|---|---|
 | level-up with `min_level` | 364 | 363 | Use `min_level` directly |
 | use-item (stones) | 71 | 69 | Requires the item. **25 distinct items**, so the shop has real stock |
-| level-up, no `min_level` | 71 | 50 | Friendship, time of day, location. **Substitute: evolves at level 30**, the measured median |
+| level-up, no `min_level` | 71 | 50 | Friendship, time of day, location. **Substitute: evolves at level 36** |
 | trade | 27 | 27 | No trading in a single-player menu bar app. **Requires a Linking Cord**, which is canonical since Gen 9 |
-| exotic one-offs | 13 | 12 | spin, tower-of-darkness, three-critical-hits, gimmighoul-coins, recoil-damage, take-damage, use-move, shed, agile/strong-style-move, three-defeated-bisharp. **Substitute: level 30** |
+| exotic one-offs | 13 | 12 | spin, tower-of-darkness, three-critical-hits, gimmighoul-coins, recoil-damage, take-damage, use-move, shed, agile/strong-style-move, three-defeated-bisharp. **Substitute: level 36** |
 
-The two level-30 substitutions cover 62 entries between them. They are substitutions
-and are labelled as such: there is no honest way to model friendship or
-tower-of-darkness in a token counter, and silently dropping 62 entries from a dex
-that advertises 1,083 would be worse.
+**The substitution level is 36.** The user's call, and a defensible one: 36 is the
+second most common real evolution level in the data (27 edges, behind 30's 31) and is
+the canonical second-stage level, so it lands on a number the games already use
+rather than an invented one. It also sits at 14.4 h into the climb, which puts these
+evolutions after the ordinary first-stage crowd at 16 to 30 rather than mixed in with
+them. That ordering is the right one: friendship, trade and tower-of-darkness
+evolutions are late or deliberate acts in the games, not things that happen to you on
+the way past level 16.
+
+30 was the first proposal, on the grounds that it is the measured median. Rejected in
+favour of 36 for the reasons above.
+
+The two substitutions cover 62 entries between them, and are labelled as
+substitutions: there is no honest way to model friendship or a tower of darkness in a
+token counter, and silently dropping 62 entries from a dex that advertises 1,083
+would be worse.
 
 **This requires regenerating the manifest.** `pokedex.json` currently stores
 `evolvesTo` as bare target ids and carries neither the trigger, the `min_level`, nor
