@@ -248,14 +248,22 @@ Phase 4 decision. The status item is the only thing rendering a sprite, and it
 shows a deterministic daily pick via `Pokedex.featured(on:)`, which is the seam
 Phase 4 replaces with the player's active or most recently hatched Pokémon.
 
-**Verified end to end, including the pixels.** The bundled manifest loaded inside
-the app bundle, `featured(on:)` resolved to Glaceon (#471) matching an
-independently computed expectation, `471-gen5.gif` (52 KiB, 129 frames, 76x54)
-landed in `~/Library/Application Support/PokeBar/sprites/`, and the user confirmed
-by screenshot that it animates in the menu bar beside the coin count. Note the
-method: `screencapture` is blocked for the terminal here, so the rendered pixels
-can only be confirmed by asking the user to look. Do not claim otherwise from
-cache contents alone.
+**Verified end to end, and signed off by the user 2026-08-22.** The bundled
+manifest loaded inside the app bundle, `featured(on:)` resolved to Glaceon (#471)
+matching an independently computed expectation, `471-gen5.gif` (52 KiB, 129 frames,
+76x54) landed in `~/Library/Application Support/PokeBar/sprites/`, and the user
+confirmed by screenshot that it animates in the menu bar beside the coin count.
+
+**The menu bar sprite is approved as shipped: 20pt tall, 33pt cap.** Reviewed on
+screen across two rounds (the 18pt square-box version, then the 20pt
+height-fitted one) and explicitly approved. Treat the sizing as settled. Do not
+re-open it, re-tune the constants, or "improve" the fit without being asked.
+
+Note the method that got there: `screencapture` is blocked for the terminal here,
+so rendered pixels can only be confirmed by asking the user to look. The first
+round inferred success from a populated sprite cache, which was right about the
+plumbing and blind to the sizing. Do not claim visual verification from cache
+contents alone.
 
 Views hold no logic. Everything they render goes through `UsageFormat`,
 `ModelIdentity` and `ModelBreakdown`, which is where the display behaviour is

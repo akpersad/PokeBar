@@ -468,6 +468,20 @@ than assumed.** Glaceon's per-frame content height is 50-54px against a 54px can
 across all 129 frames, so 93-100%, mean 96%. The canvas really is the union of the
 animation, so the no-crop rule leaves no visible margin to reclaim.
 
+**Approved by the user on screen, 2026-08-22, and therefore closed.** Two rounds
+were reviewed: the original 18pt square-box fit, which the user correctly read as
+too small, and the 20pt height-fitted version, which was approved as shipped. The
+sizing constants are settled. Reopen them only on request.
+
+The process point worth keeping: the first round was reported as working on the
+strength of a populated sprite cache, which proved the plumbing and said nothing
+about how it looked. `screencapture` is blocked for the terminal on this machine,
+so the only way to verify rendered pixels is to ask the user to look, and the
+first round did not. That is the third instance in this project of something being
+called verified on weaker evidence than the wording implied, after the invisible
+menu bar item and the unexamined Keychain blob. Same lesson each time: name what
+was actually checked.
+
 The cost is that the status item's width now depends on which species is shown.
 Accepted: the species changes once a day, not once per usage update, so this does
 not reintroduce the per-update width shuffle that compact coin formatting exists to
