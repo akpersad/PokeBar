@@ -10,7 +10,7 @@ from it, marked in the source where it is.
 ## Status
 
 Phases 1, 2 and 3 are **complete**: usage engine, menu bar UI, and the Pokédex
-data layer. The game layer is next. Live plan limits were considered and rejected,
+data layer. The game layer is designed and next to build. Live plan limits were considered and rejected,
 with reasons in [DECISIONS.md](DECISIONS.md).
 
 - [x] Bounded-memory JSONL streaming with resumable offsets
@@ -23,8 +23,13 @@ with reasons in [DECISIONS.md](DECISIONS.md).
 - [x] Pokédex data layer, 1,083 collectible entries (98.7% animated)
 - [x] Permanent on-disk sprite cache, pinned to an immutable sprites commit
 - [x] An animated species sprite in the status item
-- [ ] Pokédex browser UI
-- [ ] Game layer (eggs, hatching, coin sinks)
+- [ ] Pokédex view (browse the collection in the popover)
+- [ ] Game layer: eggs, hatching, levels 1-100, evolution-by-XP, shop
+
+Phase 4 is **fully designed but not built**. The whole economy, the XP curve, and
+the evolution rules are recorded in [DECISIONS.md](DECISIONS.md) under "Game layer";
+read that before writing any of it. Two numbers are deliberately left open there as
+playtest-shaped.
 
 ## Requirements
 

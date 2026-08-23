@@ -22,6 +22,34 @@ get wrong:
     returns zero rows for every regional form.
   * A regional form does not have to carry a regional suffix. Hisuian Basculin is
     `basculin-white-striped`, so a suffix regex finds 57 of the 58 regionals.
+
+NEXT CHANGE THIS FILE NEEDS (Phase 4, see DECISIONS.md "Game layer"):
+
+`evolvesTo` currently stores bare target ids, which is not enough for the game
+layer: 47% of the pool is evolution-gated and it has to know *when* each evolution
+fires. Three fields per edge are needed, resolved here so the app reads a plain
+level and never has to know what a tower of darkness is.
+
+  * `trigger`        - level-up / use-item / trade / substituted
+  * `minLevel`       - from `pokemonevolution.min_level`
+  * `evolutionItem`  - from `pokemonevolution.evolution_item_id`
+
+Measured over the 546 edges landing in the pool: 364 carry a real `min_level`
+(earliest 7, median 30, latest 64). The other 182 need the agreed rules, which are
+**substitutions and must be labelled as such in the output**, not silently folded in:
+
+  * 71 edges / 69 entries are `use-item`. 25 distinct item ids are referenced;
+    resolving them to names still needs a working PokeAPI item query, since
+    `item(where: {itemevolutions: {}})` returned no usable names.
+  * 27 edges are `trade` -> require a Linking Cord, canonical since Gen 9.
+  * 71 edges / 50 entries are `level-up` with no level (friendship, time of day,
+    location) -> substitute **level 36**.
+  * 13 edges / 12 entries are exotic one-offs (spin, tower-of-darkness,
+    three-critical-hits, gimmighoul-coins, recoil-damage, take-damage, use-move,
+    shed, agile/strong-style-move, three-defeated-bisharp) -> substitute **level 36**.
+
+Add expectations for all of these to the assertion block below, the same way the
+regional-form count is asserted. That count is what caught `pikachu-alola-cap`.
 """
 
 from __future__ import annotations

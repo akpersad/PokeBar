@@ -547,13 +547,16 @@ decision the measurement forced. Filling the dex by weighted random draw is the
 coupon-collector problem, and `capture_rate` weighting is brutal: the rarest
 entries are ~85x less likely than the commonest, since the rate spans 3 to 255.
 
-| Draw model | Median draws to a complete dex |
+| Draw model | Median draws to see all 1,083 |
 |---|---|
 | Uniform | 7,830 |
 | Capture-rate weighted | **168,729** (21.5x worse) |
 
 At ~1,080 coins/day that is 4.3 years even at 10 coins per egg, and 43 years at
-100. So "collect all of them" is not achievable by random draws at any sane price,
+100. (Hatching actually draws only from the 571 base species, since 512 entries are
+evolution-gated. That is measured further down and it barely helps: 109,812 hatches,
+a mere 1.5x improvement, because the rarest entries are largely non-evolving
+legendaries that stay in the hatchable pool. The conclusion is the same either way.) So "collect all of them" is not achievable by random draws at any sane price,
 and no amount of price tuning fixes it. Three exits were considered: abandon
 completion as a goal (which is upstream's answer, see below), flatten the rarity
 weighting, or add a non-random path. **The non-random path was chosen**, because it
