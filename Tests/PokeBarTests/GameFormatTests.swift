@@ -210,7 +210,7 @@ final class GameFormatTests: XCTestCase {
         XCTAssertNil(GameFormat.wastedSlotNote(graduated: 0))
         XCTAssertEqual(
             GameFormat.wastedSlotNote(graduated: 1),
-            "1 graduated Pokemon is taking a team slot and earning nothing. Bench to free the share.")
+            "1 graduated Pokemon is taking a team slot and earning nothing. Send it to your PC to free the share.")
         XCTAssertTrue(
             try XCTUnwrap(GameFormat.wastedSlotNote(graduated: 3)).hasPrefix("3 graduated Pokemon are"))
     }
@@ -223,24 +223,24 @@ final class GameFormatTests: XCTestCase {
         XCTAssertNil(GameFormat.addToTeamTitle(options), "nothing benched, no button")
 
         options.resumable = [Trainer.Candidate(id: UUID(), level: 47, variant: .normal)]
-        options.benchedTotal = 1
+        options.boxedTotal = 1
         XCTAssertEqual(GameFormat.addToTeamTitle(options), "Add to team")
         XCTAssertNil(GameFormat.addToTeamRefusal(options))
 
         options.resumable.append(
             Trainer.Candidate(id: UUID(), level: 12, variant: .shiny))
-        options.benchedTotal = 2
-        XCTAssertEqual(GameFormat.addToTeamTitle(options), "Add to team (2 benched)")
+        options.boxedTotal = 2
+        XCTAssertEqual(GameFormat.addToTeamTitle(options), "Add to team (2 in your PC)")
 
         // The menu is capped but the count is not: it says how many are really
         // there, and shows the six worth choosing between.
-        options.benchedTotal = 20
-        XCTAssertEqual(GameFormat.addToTeamTitle(options), "Add to team (20 benched)")
+        options.boxedTotal = 20
+        XCTAssertEqual(GameFormat.addToTeamTitle(options), "Add to team (20 in your PC)")
 
         options.teamHasRoom = false
         XCTAssertEqual(
             GameFormat.addToTeamRefusal(options),
-            "Your team is full at 6. Bench one first.")
+            "Your team is full at 6. Send one to your PC first.")
     }
 
     /// The swap menu is the drag's twin, and a menu bar window is an awkward
@@ -304,7 +304,7 @@ final class GameFormatTests: XCTestCase {
         XCTAssertEqual(GameFormat.celebrationTitle(benched, name: "Caterpie"), "Another Caterpie")
         XCTAssertTrue(
             GameFormat.celebrationSubtitle(benched).hasSuffix(
-                "Your team is full, so it is waiting on the bench."))
+                "Your team is full, so it is waiting in your PC."))
     }
 
     /// The one place this app raises its voice, and it has to be earned.
@@ -327,10 +327,10 @@ final class GameFormatTests: XCTestCase {
     /// The bench grows without limit because nothing is ever deleted, so the pane
     /// summarises past one screen. A count under exactly as many rows is noise.
     func testBenchOverflowNoteOnlyAppearsWhenSomethingIsHidden() {
-        XCTAssertNil(GameFormat.benchOverflowNote(total: 1))
-        XCTAssertNil(GameFormat.benchOverflowNote(total: GameFormat.benchRowLimit))
+        XCTAssertNil(GameFormat.pcOverflowNote(total: 1))
+        XCTAssertNil(GameFormat.pcOverflowNote(total: GameFormat.pcRowLimit))
         XCTAssertEqual(
-            GameFormat.benchOverflowNote(total: 23), "Showing the 6 furthest along of 23.")
+            GameFormat.pcOverflowNote(total: 23), "Showing the 6 furthest along of 23.")
     }
 
     func testRareCandyAlwaysNamesItsTarget() {
@@ -345,7 +345,7 @@ final class GameFormatTests: XCTestCase {
     func testExpShareCopyIsDerivedFromTheCurve() {
         XCTAssertEqual(
             GameFormat.expShareDetail(enabled: nil),
-            "Every Pokemon on the bench earns at the lead's rate. A full team goes from 5x XP to 6x XP, forever.")
+            "Every other Pokemon on your team earns at the lead's rate. A full team goes from 5x XP to 6x XP, forever.")
         XCTAssertEqual(
             GameFormat.expShareDetail(enabled: true),
             "On. Every slot earns the lead's rate, so a full team is 6x XP.")
@@ -399,7 +399,7 @@ final class GameFormatTests: XCTestCase {
                     entryID: 25, variant: .shiny, source: .hatch, isNew: false, dust: 2,
                     slot: nil)),
             GameFormat.describe(Trainer.GameError.notABaseForm(5)),
-            GameFormat.benchOverflowNote(total: 40) ?? "",
+            GameFormat.pcOverflowNote(total: 40) ?? "",
             GameFormat.rareCandyTarget("Lapras"),
             GameFormat.rareCandyTarget(nil),
             GameFormat.expShareDetail(enabled: nil),

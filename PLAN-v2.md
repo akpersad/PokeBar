@@ -24,7 +24,7 @@ Two things the user asked for, in one phase:
 
 ### The throughput arithmetic, stated before it is built
 
-Today one individual absorbs 1.0x of the XP a credit is worth. With five bench
+Today one individual absorbs 1.0x of the XP a credit is worth. With five party
 slots at 0.8, a full team absorbs **5.0x**; with Exp Share, **6.0x**. That
 directly contradicts "raising time is the bottleneck, not coins", which
 DECISIONS.md treats as load-bearing.
@@ -56,9 +56,9 @@ Two real consequences to accept knowingly:
   the team is what ends that. Cosmetic, and reversible by changing what the Dex
   draws rather than by changing the economy.
 
-The bench ratio is the dial. It lives in exactly one place so it can be turned:
+The party ratio is the dial. It lives in exactly one place so it can be turned:
 
-| Bench share | Full team | With Exp Share |
+| Party share | Full team | With Exp Share |
 |---|---|---|
 | 0.8 (the user's example: 10 and 8) | 5.0x | 6.0x |
 | 0.5 | 3.5x | 6.0x |
@@ -69,7 +69,7 @@ Shipping 0.8 as specified.
 ### Exp Share: settled 2026-08-24
 
 **Boost, not share.** If slot 1 gets 100 XP then slots 2 to 6 each get 100 XP.
-The credit is not divided across the team. Bench rises from 0.8 to 1.0 and the
+The credit is not divided across the team. The party share rises from 0.8 to 1.0 and the
 full-team multiplier goes from 5.0x to 6.0x.
 
 The divide-by-six reading was raised and rejected by the user. It would have made
@@ -141,7 +141,7 @@ express either safely:
 - `addToTeam(raiseID:)` resumes an existing individual at its stored level.
 - `startRaising(entryID:shiny:gender:)` creates a new `Raise` at level 1 and
   adds it. Still free and ungated.
-- `removeFromTeam(raiseID:)` benches without deleting. Nothing deletes a
+- `removeFromTeam(raiseID:)` sends one to the PC without deleting it. Nothing deletes a
   `Raise`; the roster is append-only like the two logs.
 
 **Migration, per invariant 23.** This is the risky part.
@@ -155,7 +155,7 @@ express either safely:
   slot 1; a save with both keys prefers `roster`; a save with neither yields an
   empty roster rather than throwing.
 
-**Tests for the behaviour itself:** raise to level 40, bench it, raise something
+**Tests for the behaviour itself:** raise to level 40, store it, raise something
 else, bring the first one back, assert it is still level 40. That is the whole
 feature in one assertion and it should be written first.
 
@@ -194,12 +194,12 @@ fixture. It migrates: Charizard, level 47, 224,081 XP, into slot 1.
 
 ```
 XPCurve.leadShare:  Double = 1.0
-XPCurve.benchShare: Double = 0.8
+XPCurve.partyShare: Double = 0.8
 ```
 
 **`Trainer.credit` distributes** instead of crediting one individual. Slot 1
 gets `weightedTokens * leadShare`, slots 2 to 6 get `weightedTokens *
-benchShare` each. Per occupied slot, so a team of two is 1.8x and the ramp is
+partyShare` each. Per occupied slot, so a team of two is 1.8x and the ramp is
 smooth. Every member then runs the existing per-individual pipeline:
 level-up detection, `resolveEvolutions` (which already loops), milestone
 recording against its own `raiseID`.
@@ -225,7 +225,7 @@ recording against its own `raiseID`.
 - **Everstone stays per individual.** It already is, and it now works the way
   the doc comment describes without qualification.
 
-**Tests:** total XP granted equals `lead + 5 * bench` for a full team; a team of
+**Tests:** total XP granted equals `lead + 5 * party` for a full team; a team of
 one behaves exactly as today (regression guard on the whole v1 economy); a
 graduated member absorbs nothing and does not push others over the ceiling; two
 members can hold distinct pending evolution choices simultaneously; milestones
@@ -285,7 +285,7 @@ identical figure with it on, both flags round trip through a save, and off means
 - **Buying turns it on.** A 10,000 coin purchase that visibly does nothing until a
   second control is found reads as a bug. The toggle is for turning it off, which
   nothing sensible will do.
-- **It is not listed in `ShopView` yet**, on purpose. It only affects bench slots
+- **It is not listed in `ShopView` yet**, on purpose. It only affects party slots
   and nothing in the popover can build a team, so the row would sell an item that
   does nothing observable. That row is part of this step's UI, which is step 4.
 
@@ -299,7 +299,7 @@ there, not in view bodies.
 - **`CompanionView` becomes a team view.** Six slots, ordered, with the lead
   slot distinguished. Drag or explicit controls to reorder, since slot 1 is now
   a meaningful choice.
-- **Bench roster picker.** Every individual ever raised, with its stored level,
+- **PC list.** Every individual ever raised, with its stored level,
   so "bring Charizard back" is one click. This is the screen step 1 exists for.
 - **`MenuBarLabel` follows slot 1.** One-line change to what it reads. Do not
   touch the sizing: 20pt height and the 33pt cap are settled and approved.
@@ -324,11 +324,11 @@ on screen":
 - **The Dex button labels itself** through `Trainer.raiseAction`: "Resume at level
   47" or "Raise a new one". Two very different outcomes behind one unlabelled click
   is how a stray press leaves a junk level 1 duplicate in the roster.
-- **The bench is best first and capped at six rows**, with a count of what is
+- **The PC list is best first and capped at six rows**, with a count of what is
   hidden. It grows without limit because nothing is ever deleted.
 - **The scroll area is measured and clamped** (140 to 250) rather than pinned like
   the Dex and Shop panes, because this one is a single card on a fresh install and
-  six slots plus a bench of twenty later.
+  six slots plus a PC of twenty later.
 
 Deleted, as promised: `Trainer.switchTo`, `evolveActive`, `Trainer.active`, and the
 lead-only `useRareCandy` and `setEverstone` overloads. Every verb names its

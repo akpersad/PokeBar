@@ -110,7 +110,7 @@ Sources/PokeBar/
     MenuBarLabel.swift          status item: sprite + coin count
     PokeBarPopover.swift        the menu bar window: chrome, currency, tabs
     SegmentedTabs.swift         NSSegmentedControl bridge; the tabs that fill
-    CompanionView.swift         the team grid, the bench, and what changes them
+    CompanionView.swift         the team grid, the PC, and what changes them
     CelebrationCard.swift       the moment after a hatch, over the whole popover
     DexView.swift               1,083 tiles plus a detail pane
     ShopView.swift              what coins buy
@@ -349,7 +349,7 @@ Each one is load-bearing and each was measured. Breaking any is silent.
 
 30. **An individual's identity is `Raise.id`, and the roster is append-only.**
     `Trainer.roster` holds every individual ever raised with its levels intact and
-    `Trainer.team` is an ordered list of up to 6 ids into it, so benching is a
+    `Trainer.team` is an ordered list of up to 6 ids into it, so storing one is a
     change to `team` and **nothing ever deletes a `Raise`**. A `VariantSlot` cannot
     be the key, because a `Raise` mutates its own `entryID` as it evolves and a
     slot-keyed store would have to be rekeyed on every evolution: the "two copies
@@ -369,13 +369,13 @@ Each one is load-bearing and each was measured. Breaking any is silent.
 
 32. **A credit multiplies across the team, it never splits, and a capped member's
     share is not redistributed.** Slot 1 takes `XPCurve.leadShare` of a credit and
-    each of slots 2 to 6 takes `XPCurve.benchShare` **of the same credit**, so a
+    each of slots 2 to 6 takes `XPCurve.partyShare` **of the same credit**, so a
     full team absorbs 5.0x and a team of two 1.8x. Splitting one credit six ways
     would make filling the team a downgrade, which is incoherent for the thing the
     player is working towards. XP that would go to a graduated individual is simply
     not granted: redistributing it would quietly change what the lead slot means
     the moment it hits 100. The waste is *surfaced* instead, by
-    `GameFormat.wastedSlotNote` in the team header. The bench figure is the dial
+    `GameFormat.wastedSlotNote` in the team header. The party figure is the dial
     and lives in `XPCurve` alone. The 5x is affordable only because what it accelerates is *graduation*,
     and graduation deliberately pays out nothing.
 
@@ -394,7 +394,7 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     joins the team only when there is room. The v1 rule was "start a raise only
     when nothing is training", which was right with one active Pokemon and became
     wrong with six: hatching into five empty slots did nothing visible, and the
-    user hit exactly that. With the team full the individual lands on the bench,
+    user hit exactly that. With the team full the individual lands in the PC,
     because **an egg that was paid for must never produce nothing**. The
     shiny-hunt protection is unchanged: it still never disturbs an *occupied* slot.
 
@@ -479,10 +479,10 @@ Game layer, decided or derived:
 |---|---|
 | XP curve | `totalXP(level) = 100 * level^2`. Level 100 = 1,000,000 XP |
 | XP rate | 1 XP per 500 weighted tokens. A full climb is **4.63 days** here |
-| Team shares | lead 1.0, bench 0.8 each. Full team **5.0x**, so 0.93 days a climb |
+| Team shares | lead 1.0, party 0.8 each. Full team **5.0x**, so 0.93 days a climb |
 | With Exp Share | every slot 1.0. Full team **6.0x** |
 | Egg / Rare Candy / stone / cord / charm | 300 / 250 / 400 / 400 / 30,000 coins |
-| Exp Share | 10,000 coins, one-time. Every bench slot earns at the lead's rate |
+| Exp Share | 10,000 coins, one-time. Every party slot earns at the lead's rate |
 | Hatch another | 3,000 coins flat, or half a targeted pick in Dust. Base forms only |
 | Dust per duplicate | `255 / captureRate`. Expected **1.97**, so ~7 Dust/day |
 | Targeted pick | 10 / 20 / 50 / 100 / 250 / 300 Dust by band. Re-roll is a tenth |
@@ -521,7 +521,7 @@ decisions.
 game layer cold. `Trainer.switchTo`, `evolveActive`, the lead-only `useRareCandy`
 and `setEverstone`, and `Trainer.active` were all deleted in step 4: every verb now
 names the individual it acts on, and `lead` is the only word for team slot 1. The
-Dex button goes through `raiseAction` / `raiseOrResume`, which resume a benched
+Dex button goes through `raiseAction` / `raiseOrResume`, which resume a stored
 individual rather than starting a new one.
 
 **Now reachable and still unverified: the Dex silver ring.** The live Charizard is
@@ -544,11 +544,11 @@ What the game does now:
   bringing a level 47 Charizard back resumes it rather than starting a new one.
   Every weighted token grants XP here *and* mints a coin in the ledger, in
   parallel, never from a shared pool. **Every member gains from the same credit**,
-  slot 1 at the full rate and each bench slot at 0.8, so a full team absorbs 5.0x,
+  slot 1 at the full rate and each party slot at 0.8, so a full team absorbs 5.0x,
   or 6.0x with an **Exp Share**. The credit is never divided. Level 100 is 4.63
   days at this machine's throughput for one Pokemon, 0.93 for a full team. The
-  Raise pane shows the team, the bench and the multiplier; the Dex button resumes a
-  benched individual rather than starting a new one, and says which it will do
+  Raise pane shows the team, the PC and the multiplier; the Dex button resumes a
+  stored individual rather than starting a new one, and says which it will do
   before it is pressed.
 - **Evolve.** Item-free edges fire on their own and chain; item edges wait for the
   stone; branching waits for the player. Shininess carries through. An **Everstone**
@@ -583,7 +583,7 @@ The economy in one line each, all recorded in DECISIONS.md with the measurement:
 - Switching Pokémon is **free, with no level gate, and now costs nothing at all**.
   Levels persist per individual, permanently, in an append-only roster keyed on
   `Raise.id`. The v1 rule that a switch abandoned that individual's levels is
-  reversed and gone. The bench list in the Raise pane is where they wait. See
+  reversed and gone. The PC list in the Raise pane is where they wait. See
   invariants 30 and 31.
 - "Caught" is an **append-only event log** with the views derived, the same shape as
   `UsageLedger`. No `nature` field: there is no stat raising to feed it.
@@ -640,17 +640,27 @@ caught on screen. `.fillEqually` is the only knob that works. Do not "simplify"
 this back to a `Picker`; the bug it fixes is invisible in code and only shows up
 in rendered pixels. **Approved on screen by the user 2026-08-24.**
 
-**A team slot card is not a `Button`, and that is load-bearing.** A button's press
-gesture wins against `.draggable`, so the first version selected fine and could not
-be dragged at all: the drag never started. It is a plain view with `.onTapGesture`
-plus `.draggable`, which coexist because a drag has a movement threshold and a tap
-does not. A drop target highlights while a card is over it, and the same jobs are
-on a right-click menu too, because a menu bar window is an awkward place to drag
-inside and drag-only is no route for anyone who cannot drag.
+**Reordering the team uses a plain `DragGesture`, never `.draggable` or `.onDrag`.**
+Both of those hang a real drag session off the window, and a `MenuBarExtra` window
+is a panel that never becomes key, so the drag silently never starts. Two attempts
+failed identically and invisibly before this was understood: first with a `Button`
+wrapping the card (whose press gesture also beats a drag), then without it. A
+`DragGesture` is mouse-down, translation, mouse-up, entirely inside SwiftUI, so the
+window cannot refuse it. The price is that the drop target is resolved by hand:
+each card reports its rect through `onGeometryChange` into a named coordinate
+space, and the drop is whichever rect held the cursor on mouse-up. Do not
+"modernise" this back to `.draggable`. Every card also carries a right-click menu
+with the same actions, because drag-only is no route for anyone who cannot drag.
+
+**The stored Pokemon are "your PC", never "the bench".** The games' word, and the
+user's correction. `Trainer.boxed`, `GameMonitor.sendToPC(raiseID:)`, "Send to PC"
+in the UI. `XPCurve.partyShare` is a different thing entirely (team slots 2 to 6)
+and was renamed from `benchShare` at the same time, because one word meaning two
+things is how the confusion started.
 
 **The Raise pane's scroll area is measured and clamped, not pinned.** The Dex and
 Shop panes are always full so a fixed 280pt frame is honest for them; the Raise
-pane is one card on a fresh install and six slots plus a bench of twenty later.
+pane is one card on a fresh install and six slots plus a PC of twenty later.
 `PopoverMetrics.RaisePane` holds the bounds (140 to 250) and `onGeometryChange`
 feeds it the measured content height. A fixed frame here means dead space at one
 end or a 900pt popover at the other.

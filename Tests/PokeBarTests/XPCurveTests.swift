@@ -85,11 +85,11 @@ final class XPCurveTests: XCTestCase {
     /// affordable only because what it accelerates is graduation and graduation
     /// pays out nothing.
     func testAFullTeamMultipliesACreditByFive() {
-        let full = XPCurve.leadShare + 5 * XPCurve.benchShare
+        let full = XPCurve.leadShare + 5 * XPCurve.partyShare
         XCTAssertEqual(full, 5.0, accuracy: 0.000_1)
         XCTAssertEqual(XPCurve.share(forSlot: 0), XPCurve.leadShare)
         for slot in 1...5 {
-            XCTAssertEqual(XPCurve.share(forSlot: slot), XPCurve.benchShare, "slot \(slot)")
+            XCTAssertEqual(XPCurve.share(forSlot: slot), XPCurve.partyShare, "slot \(slot)")
         }
     }
 
@@ -110,8 +110,8 @@ final class XPCurveTests: XCTestCase {
     /// reading the user rejected.
     func testABenchSlotNeverCostsTheLeadAnything() {
         XCTAssertEqual(XPCurve.leadShare, 1.0, "the lead always takes the whole credit")
-        XCTAssertGreaterThan(XPCurve.benchShare, 0)
-        XCTAssertLessThanOrEqual(XPCurve.benchShare, XPCurve.leadShare, "and never more")
+        XCTAssertGreaterThan(XPCurve.partyShare, 0)
+        XCTAssertLessThanOrEqual(XPCurve.partyShare, XPCurve.leadShare, "and never more")
     }
 
     /// Graduation gets 5x faster, and that is the cost being accepted. 4.63 days
@@ -119,7 +119,7 @@ final class XPCurveTests: XCTestCase {
     func testTheTeamCompressesAFullClimbToUnderADay() {
         let perDay = 108_000_000.0 / XPCurve.weightedTokensPerXP
         let solo = Double(XPCurve.totalXP(forLevel: 100)) / perDay
-        let team = solo / (XPCurve.leadShare + 5 * XPCurve.benchShare)
+        let team = solo / (XPCurve.leadShare + 5 * XPCurve.partyShare)
         XCTAssertEqual(solo, 4.63, accuracy: 0.01)
         XCTAssertEqual(team, 0.93, accuracy: 0.01)
     }

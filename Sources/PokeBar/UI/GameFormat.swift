@@ -84,7 +84,7 @@ enum GameFormat {
         "\(slotLabel(slot)), \(name)"
     }
 
-    /// What one bench slot is currently earning, for the caption under a row.
+    /// What one party slot is currently earning, for the caption under a row.
     static func shareLine(slot: Int, expShare: Bool) -> String {
         let share = XPCurve.share(forSlot: slot, expShare: expShare)
         return share >= XPCurve.leadShare
@@ -98,7 +98,7 @@ enum GameFormat {
         guard graduated > 0 else { return nil }
         let subject = graduated == 1
             ? "1 graduated Pokemon is" : "\(graduated) graduated Pokemon are"
-        return "\(subject) taking a team slot and earning nothing. Bench to free the share."
+        return "\(subject) taking a team slot and earning nothing. Send it to your PC to free the share."
     }
 
     // MARK: The Dex offers
@@ -108,17 +108,17 @@ enum GameFormat {
     /// dead: a disabled control with no explanation is worse than no control.
     static func addToTeamTitle(_ options: Trainer.DexOptions) -> String? {
         guard !options.resumable.isEmpty else { return nil }
-        return options.benchedTotal == 1
-            ? "Add to team" : "Add to team (\(options.benchedTotal) benched)"
+        return options.boxedTotal == 1
+            ? "Add to team" : "Add to team (\(options.boxedTotal) in your PC)"
     }
 
     /// Why "Add to team" is disabled, or nil when it is not.
     static func addToTeamRefusal(_ options: Trainer.DexOptions) -> String? {
         guard !options.resumable.isEmpty, !options.teamHasRoom else { return nil }
-        return "Your team is full at \(Trainer.teamCapacity). Bench one first."
+        return "Your team is full at \(Trainer.teamCapacity). Send one to your PC first."
     }
 
-    /// One benched individual, as a menu row: "Shiny, level 47".
+    /// One stored individual, as a menu row: "Shiny, level 47".
     static func candidateRow(_ candidate: Trainer.Candidate) -> String {
         "\(variantLabel(candidate.variant)), level \(candidate.level)"
     }
@@ -157,17 +157,17 @@ enum GameFormat {
         "Only \(baseFormName) can be hatched. This one is reached by raising it."
     }
 
-    /// How many bench rows the Raise pane draws before it summarises.
+    /// How many PC rows the Raise pane draws before it summarises.
     ///
-    /// The bench grows without limit, because nothing is ever deleted and every
+    /// The PC grows without limit, because nothing is ever deleted and every
     /// switch adds to it. Six is one screen's worth and matches the team it feeds.
-    static let benchRowLimit = 6
+    static let pcRowLimit = 6
 
     /// "Showing the 6 furthest along of 23." Nil when everything is on screen: a
     /// count that says "of 4" under exactly 4 rows is noise.
-    static func benchOverflowNote(total: Int) -> String? {
-        guard total > benchRowLimit else { return nil }
-        return "Showing the \(benchRowLimit) furthest along of \(total)."
+    static func pcOverflowNote(total: Int) -> String? {
+        guard total > pcRowLimit else { return nil }
+        return "Showing the \(pcRowLimit) furthest along of \(total)."
     }
 
     /// The Rare Candy is always aimed, so the button says at whom.
@@ -179,7 +179,7 @@ enum GameFormat {
     /// The Exp Share, in the shop. Nil `enabled` means it is not owned yet, so
     /// the line has to sell it rather than describe a switch.
     ///
-    /// The figures are derived, never typed in, so turning the bench dial in
+    /// The figures are derived, never typed in, so turning the party dial in
     /// `XPCurve` cannot leave the shop advertising the old rate.
     static func expShareDetail(enabled: Bool?) -> String {
         let full = multiplier(XPCurve.teamMultiplier(occupiedSlots: Trainer.teamCapacity))
@@ -187,11 +187,11 @@ enum GameFormat {
             XPCurve.teamMultiplier(occupiedSlots: Trainer.teamCapacity, expShare: true))
         switch enabled {
         case nil:
-            return "Every Pokemon on the bench earns at the lead's rate. A full team goes from \(full) XP to \(boosted) XP, forever."
+            return "Every other Pokemon on your team earns at the lead's rate. A full team goes from \(full) XP to \(boosted) XP, forever."
         case true:
             return "On. Every slot earns the lead's rate, so a full team is \(boosted) XP."
         case false:
-            return "Off. Bench slots are back to \(multiplier(XPCurve.benchShare)) each, so a full team is \(full) XP."
+            return "Off. Bench slots are back to \(multiplier(XPCurve.partyShare)) each, so a full team is \(full) XP."
         }
     }
 
@@ -225,7 +225,7 @@ enum GameFormat {
                 ? "It is your lead now."
                 : "It joins your team in \(slotLabel(slot).lowercased()).")
         } else {
-            parts.append("Your team is full, so it is waiting on the bench.")
+            parts.append("Your team is full, so it is waiting in your PC.")
         }
         return parts.joined(separator: " ")
     }
@@ -356,7 +356,7 @@ enum GameFormat {
         case .evolutionNotAvailable: return "That evolution is not available yet."
         case .emptyPool: return "There is nothing left to hatch."
         case .teamFull:
-            return "Your team is full at \(Trainer.teamCapacity). Bench one first."
+            return "Your team is full at \(Trainer.teamCapacity). Send one to your PC first."
         case .alreadyOnTeam: return "That one is already on your team."
         case .unknownIndividual: return "That one is no longer in your roster."
         case .notABaseForm: return "Only the first form of a line can be hatched."

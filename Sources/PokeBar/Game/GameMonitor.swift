@@ -63,9 +63,9 @@ final class GameMonitor {
     var lead: Raise? { trainer.lead }
 
     /// Every individual ever raised, and the ones not currently training. Nothing
-    /// here is ever deleted, which is what makes the bench picker possible.
+    /// here is ever deleted, which is what makes the PC list possible.
     var roster: [Raise] { trainer.roster }
-    var benched: [Raise] { trainer.benched }
+    var boxed: [Raise] { trainer.boxed }
 
     /// The team in slot order, each resolved to what it is right now.
     var teamMembers: [(slot: Int, raise: Raise, entry: DexEntry)] {
@@ -76,11 +76,11 @@ final class GameMonitor {
         }
     }
 
-    /// The bench, resolved, **best first**. "Bring back my strongest" is the
+    /// The PC, resolved, **best first**. "Bring back my strongest" is the
     /// question this list exists to answer.
-    var benchMembers: [(raise: Raise, entry: DexEntry)] {
+    var boxMembers: [(raise: Raise, entry: DexEntry)] {
         guard let dex else { return [] }
-        return trainer.benched
+        return trainer.boxed
             .sorted { $0.totalXP > $1.totalXP }
             .compactMap { raise in
                 guard let entry = dex.entry(id: raise.entryID) else { return nil }
@@ -143,7 +143,7 @@ final class GameMonitor {
     }
 
     /// What the Dex detail pane can offer for one entry: who can come back off the
-    /// bench, and whether another can be bought.
+    /// PC, and whether another can be bought.
     func dexOptions(entryID: Int) -> Trainer.DexOptions {
         guard let dex else { return Trainer.DexOptions() }
         return trainer.dexOptions(entryID: entryID, dex: dex)
@@ -255,14 +255,14 @@ final class GameMonitor {
         persist()
     }
 
-    /// Brings a benched individual back at its stored level.
+    /// Brings an individual back out of the PC, at its stored level.
     func resume(raiseID: UUID) throws {
         try trainer.addToTeam(raiseID: raiseID)
         persist()
     }
 
-    /// Stops training an individual without losing anything it earned.
-    func bench(raiseID: UUID) {
+    /// Sends an individual to the PC. Nothing it earned is lost.
+    func sendToPC(raiseID: UUID) {
         guard trainer.removeFromTeam(raiseID: raiseID) else { return }
         persist()
     }
@@ -283,7 +283,7 @@ final class GameMonitor {
     /// Read *after* the trainer has been mutated, because "which slot did it go
     /// into" is a question about the team as it now stands. `roster.last` is the
     /// individual this acquisition created: every path appends one, and it lands
-    /// on the bench rather than the team only when all six slots were taken.
+    /// in the PC rather than on the team only when all six slots were taken.
     private func celebrate(_ events: [GameEvent]) {
         guard let caught = events.compactMap({ event -> CatchEvent? in
             if case .caught(let catchEvent) = event { catchEvent } else { nil }

@@ -87,12 +87,12 @@ enum PopoverMetrics {
     static var contentWidth: CGFloat { width - 2 * padding }
 
     /// The scrolling part of the Raise pane: the card, the other slots and the
-    /// bench.
+    /// PC.
     ///
     /// **Sized to its content and then clamped**, rather than pinned at one
     /// height like the Dex and Shop panes. Those two are always full, so a fixed
     /// frame is honest for them. This one is a card and nothing else on a fresh
-    /// install and six slots plus a bench of twenty later, so a fixed frame would
+    /// install and six slots plus a PC of twenty later, so a fixed frame would
     /// mean either dead space at the start or a popover 900pt tall at the end.
     enum RaisePane {
         /// Enough for the card, so the pane does not flash short on first layout

@@ -1084,7 +1084,7 @@ otherwise: the point of a shiny hunt is to keep fishing while the current one
 climbs, and a re-roll of the species being raised is the case a careless
 implementation would overwrite. Switching used to be the one thing that cost
 levels; since the roster landed it costs nothing, and every individual keeps what
-it earned whether it is training or benched.
+it earned whether it is training or in the PC.
 
 **Notifications are quiet by default.** What earns an alert is an event that
 happens on its own while the window is closed, which is the set token accrual
@@ -1180,7 +1180,7 @@ whose whole purpose is attachment.
 
 **It is held by the individual, not set by the player.** A newly started Pokemon
 begins without one, which is what "held item" means and also the behaviour that
-needs no explaining. Since the roster landed, a benched individual keeps the stone
+needs no explaining. Since the roster landed, a stored individual keeps the stone
 it was holding along with its levels: it is that Pokemon's item, not the trainer's.
 
 **A hold queues, it does not cancel, so there is no point of no return.** Taking
@@ -1362,7 +1362,7 @@ individuals, so this is the shape the log was written for.
 difference between "bring Charizard back" and "start a second Charmander", and
 once levels persist that difference is the whole feature. So `addToTeam(raiseID:)`
 resumes an existing individual at its stored level, `startRaising(entryID:...)`
-creates a new one at level 1, and `removeFromTeam(raiseID:)` benches without
+creates a new one at level 1, and `removeFromTeam(raiseID:)` stores without
 deleting. Starting is still free and ungated.
 
 **`active` survives as the name for team slot 1**, and only until the team gets a
@@ -1395,8 +1395,8 @@ Step 2 of the plan, implemented 2026-08-24. **A team of up to 6 gains XP
 simultaneously.** Slot 1 at 1.0, slots 2 to 6 at 0.8 each, per occupied slot, so
 a team of two is 1.8x and the ramp is smooth.
 
-The shares live in `XPCurve.leadShare` and `XPCurve.benchShare` and nowhere else,
-because the bench figure is the dial: 0.8 gives 5.0x, 0.5 gives 3.5x, 0.25 gives
+The shares live in `XPCurve.leadShare` and `XPCurve.partyShare` and nowhere else,
+because the party figure is the dial: 0.8 gives 5.0x, 0.5 gives 3.5x, 0.25 gives
 2.25x.
 
 **A capped member's share is not redistributed.** XP that would go to a graduated
@@ -1478,7 +1478,7 @@ display-only by deliberate decision while the reward question stays open. So 6x
 graduation throughput inflates ring colours and nothing else: no coins, no Dust,
 no unlock. Two real costs accepted knowingly: Rare Candy gets relatively weaker,
 and the silver and gold rings get common. Both are watch-and-see, and both are
-cosmetic to fix. The bench share is the dial if it needs turning, and it lives in
+cosmetic to fix. The party share is the dial if it needs turning, and it lives in
 one constant for that reason.
 
 **Per-project attribution records always, displays optionally.** The user wants
@@ -1491,7 +1491,7 @@ belongs in the one file that cannot be re-derived.
 ### The team on screen
 
 Step 4 of the plan, implemented 2026-08-24. Every rule was already in `Trainer`;
-what this decided is how 6 slots, a bench and three aimed items fit in 312pt.
+what this decided is how 6 slots, a PC and three aimed items fit in 312pt.
 
 **The card is the selected member, and the rows are the rest.** One detail view
 plus a list, not six cards: six of anything with a progress bar does not fit. The
@@ -1503,7 +1503,7 @@ before any of this existed. The pane a returning v1 player sees is unchanged.
 which Pokemon gets the Rare Candy, which one the Everstone is for, and which one
 is being promoted. Aiming each separately would be three controls per row, on a
 row 300pt wide. Selection is resolved on read and falls back to the lead, so
-benching or promoting cannot leave a stale target behind.
+storing or promoting cannot leave a stale target behind.
 
 **Promote, not drag-to-reorder.** Slots 2 to 6 all take the same share, so their
 order is *cosmetic*; slot 1 is the only slot that means anything. One "Make lead"
@@ -1519,9 +1519,9 @@ a second level 1 Charizard in the roster. Not owned beats a full team beats
 resume, because a button offering to resume a Pokemon it cannot add is the worse
 lie.
 
-**The bench is sorted best first and capped at six rows.** "Bring back my
+**The PC list is sorted best first and capped at six rows.** "Bring back my
 strongest" is the question that list exists to answer. It is capped because
-nothing is ever deleted, so the bench grows without limit, and the pane says how
+nothing is ever deleted, so the PC grows without limit, and the pane says how
 many it is hiding rather than pretending that is all of them.
 
 **The Exp Share toggle lives in the Shop, next to the item.** What it *does* shows
@@ -1536,7 +1536,7 @@ able to see the waste.
 
 **The scroll area is measured and then clamped**, unlike the Dex and Shop panes
 which are pinned. Those two are always full so a fixed frame is honest for them.
-This one is one card on a fresh install and six slots plus a bench of twenty
+This one is one card on a fresh install and six slots plus a PC of twenty
 later: a fixed frame means dead space at one end or a 900pt popover at the other.
 `PopoverMetrics.RaisePane` holds the two bounds and a test pins the clamp.
 
@@ -1563,7 +1563,7 @@ an offer to invent one, and worse, it appeared on Charmander and Charmeleon, who
 individuals had *become* the player's Charizard. Two rules replace it:
 
 - **"Add to team" only ever offers individuals that already exist**, by name, with
-  their variant and level, so two benched Pikachu are two rows. No button at all
+  their variant and level, so two stored Pikachu are two rows. No button at all
   when there is nobody to bring back, rather than a disabled one: a dead control
   with no explanation is worse than no control.
 - **A brand new individual has to be hatched, at a price, and only at the bottom
@@ -1596,12 +1596,12 @@ handful, ever. The sink is self-limiting by construction rather than by rule.
 is one.** The old rule was "start a raise only when nothing is training", which was
 correct when there was one active Pokemon and became wrong the moment there were
 six: hatching into a team with five empty slots did nothing visible. With no room
-the individual lands on the bench, because an egg that was paid for must never
+the individual lands in the PC, because an egg that was paid for must never
 produce nothing. The shiny-hunt protection is unchanged: it still never disturbs an
 *occupied* slot.
 
-The consequence, accepted: the bench now accumulates duplicates, since every hatch
-leaves an individual. That is the right model (the bench is the box) and both lists
+The consequence, accepted: the PC now accumulates duplicates, since every hatch
+leaves an individual. That is the right model (the PC is the box) and both lists
 that show it are capped at six with a count of what is hidden.
 
 **Six uniform cards in a 2 x 3 grid, and drag to swap.** The first version had the
@@ -1614,18 +1614,37 @@ a card, which truncates "Charizard" beside a level. Dropping one card on another
 promotes exactly one Pokemon and demotes exactly one. "Make lead" survives beside
 it as the reliable way.
 
-**The drag was dead on arrival, and the reason is worth keeping.** The slot card
-was a `Button` with `.draggable` on it, and a button's press gesture wins: the
-drag never started, so selection worked and dragging did nothing at all. It is a
-plain view with `.onTapGesture` now, which coexists with a drag because the drag
-has a movement threshold and the tap does not. A drop target also highlights while
-a card is over it, since a drag with no feedback until it lands is indistinguishable
-from a drag that is not working.
+**The drag took three attempts, and the third abandons the system drag and drop
+entirely.** Worth recording all three, because the failures were silent and
+identical from the outside.
+
+1. `.draggable` on a `Button`. A button's press gesture wins, so the drag never
+   started at all. Selection worked; dragging did nothing.
+2. `.draggable` on a plain view with `.onTapGesture`. Fixed the gesture conflict
+   and still did nothing, which ruled the conflict out as the whole story.
+3. **A plain `DragGesture`.** `.draggable` and `.onDrag` both hang a real drag
+   session off the window, and this window is a `MenuBarExtra` panel that never
+   becomes key. A `DragGesture` needs none of that machinery: mouse down, a
+   translation, mouse up, all inside SwiftUI, so the window cannot refuse it.
+
+The cost is that the drop target has to be worked out by hand instead of by
+AppKit. Each card reports its rectangle in a named coordinate space
+(`onGeometryChange`), and the drop is whichever rectangle the cursor was inside on
+mouse-up. The dragged card offsets and lifts while it moves, and the target
+highlights, because a drag with no feedback until it lands is indistinguishable
+from a drag that is not working, which is exactly how the first two failed.
+
+**"Bench" was the wrong word and is gone.** The games call it the PC, so the
+button is "Send to PC", the list is "YOUR PC", and the code follows: `Trainer.boxed`,
+`GameMonitor.sendToPC(raiseID:)`. The rename went further than the copy on purpose,
+because "bench" had quietly come to mean two different things: the Pokemon that are
+stored, and team slots 2 to 6. `XPCurve.benchShare` is now `partyShare`, which is
+what those slots actually are.
 
 **And there is a right-click menu doing the same jobs**, added at the same time
 rather than after the next round of feedback. A menu bar window is an awkward place
 to drag inside, and a feature that only works by dragging has no route at all for
-anyone who cannot. It carries "Make lead", "Swap with" and "Bench", which is
+anyone who cannot. It carries "Make lead", "Swap with" and "Send to PC", which is
 everything the drag and the detail panel can do.
 
 **The milestone mark is a halo, not a border.** Caught on screen: a crisp 1.5pt

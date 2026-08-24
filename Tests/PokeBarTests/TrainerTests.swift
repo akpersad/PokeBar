@@ -883,7 +883,7 @@ final class TrainerTests: XCTestCase {
         // Nothing was deleted, and the levels are on the individual rather than
         // on the slot it happens to occupy.
         XCTAssertEqual(trainer.roster.count, 2)
-        XCTAssertEqual(trainer.benched.map(\.id), [grown.id])
+        XCTAssertEqual(trainer.boxed.map(\.id), [grown.id])
         XCTAssertEqual(trainer.raise(id: grown.id)?.totalXP, grown.totalXP)
 
         // Through the Dex path the player would actually use: the tile offers the
@@ -1055,7 +1055,7 @@ final class TrainerTests: XCTestCase {
 
         _ = try trainer.hatch(coinsEarned: 100_000, dex: dex, using: &rng)
         XCTAssertEqual(trainer.team.count, Trainer.teamCapacity, "and then they stop")
-        XCTAssertEqual(trainer.benched.count, 1, "the seventh waits on the bench")
+        XCTAssertEqual(trainer.boxed.count, 1, "the seventh waits on the bench")
         XCTAssertEqual(trainer.roster.count, Trainer.teamCapacity + 1)
     }
 
@@ -1115,14 +1115,14 @@ final class TrainerTests: XCTestCase {
         XCTAssertTrue(trainer.removeFromTeam(raiseID: raise.id))
         XCTAssertNil(trainer.lead, "nothing is training")
         XCTAssertEqual(trainer.roster.count, 1, "and nothing was deleted")
-        XCTAssertEqual(trainer.benched.first?.totalXP, raise.totalXP)
+        XCTAssertEqual(trainer.boxed.first?.totalXP, raise.totalXP)
         XCTAssertFalse(
             trainer.removeFromTeam(raiseID: raise.id), "benching twice is not an error")
 
         // Crediting with an empty team is a no-op, not a crash: coins still
         // accrue, which is correct for a busy machine with nothing to raise.
         XCTAssertTrue(trainer.credit(weightedTokens: 1e9, dex: dex).isEmpty)
-        XCTAssertEqual(trainer.benched.first?.totalXP, raise.totalXP, "the bench earns nothing")
+        XCTAssertEqual(trainer.boxed.first?.totalXP, raise.totalXP, "the bench earns nothing")
 
         try trainer.addToTeam(raiseID: raise.id)
         XCTAssertEqual(trainer.lead?.id, raise.id)
@@ -1142,7 +1142,7 @@ final class TrainerTests: XCTestCase {
         let seventh = addMember(to: &trainer, entryID: pikachu.id)
         XCTAssertEqual(trainer.team.count, Trainer.teamCapacity, "still six training")
         XCTAssertEqual(trainer.roster.count, Trainer.teamCapacity + 1)
-        XCTAssertEqual(trainer.benched.map(\.id), [seventh])
+        XCTAssertEqual(trainer.boxed.map(\.id), [seventh])
 
         XCTAssertThrowsError(try trainer.addToTeam(raiseID: seventh)) { error in
             XCTAssertEqual(error as? Trainer.GameError, .teamFull)
@@ -1174,7 +1174,7 @@ final class TrainerTests: XCTestCase {
     // MARK: - The team gains XP together
 
     /// A full team of six, and a credit that is **multiplied rather than
-    /// divided**: the lead takes all of it and each of the five bench slots takes
+    /// divided**: the lead takes all of it and each of the five party slots takes
     /// 0.8 of the same credit. 5.0x in total.
     ///
     /// Lapras throughout, because it never evolves, so the XP arithmetic is the
@@ -1193,11 +1193,11 @@ final class TrainerTests: XCTestCase {
         let gained = trainer.teamRaises.map { $0.totalXP - baseline }
         XCTAssertEqual(gained.first, credit * XPCurve.leadShare, "slot 1 takes all of it")
         for bench in gained.dropFirst() {
-            XCTAssertEqual(bench, credit * XPCurve.benchShare, "and so does every bench slot")
+            XCTAssertEqual(bench, credit * XPCurve.partyShare, "and so does every party slot")
         }
         XCTAssertEqual(
             gained.reduce(0, +),
-            credit * (XPCurve.leadShare + 5 * XPCurve.benchShare), accuracy: 0.000_1)
+            credit * (XPCurve.leadShare + 5 * XPCurve.partyShare), accuracy: 0.000_1)
         XCTAssertEqual(gained.reduce(0, +) / credit, 5.0, accuracy: 0.000_1)
     }
 
@@ -1214,7 +1214,7 @@ final class TrainerTests: XCTestCase {
             trainer.credit(weightedTokens: credit * XPCurve.weightedTokensPerXP, dex: dex)
 
             let total = trainer.teamRaises.map { $0.totalXP - baseline }.reduce(0, +)
-            let expected = credit * (XPCurve.leadShare + Double(size - 1) * XPCurve.benchShare)
+            let expected = credit * (XPCurve.leadShare + Double(size - 1) * XPCurve.partyShare)
             XCTAssertEqual(total, expected, accuracy: 0.000_1, "team of \(size)")
             XCTAssertEqual(
                 trainer.lead?.totalXP, baseline + credit, "the lead's rate never moves")
@@ -1254,8 +1254,8 @@ final class TrainerTests: XCTestCase {
         XCTAssertEqual(
             trainer.raise(id: graduate.id)?.totalXP, ceiling, "capped, and clamped there")
         XCTAssertEqual(
-            trainer.raise(id: climber)?.totalXP, baseline + credit * XPCurve.benchShare,
-            "the bench slot got its own share and not a share of the waste")
+            trainer.raise(id: climber)?.totalXP, baseline + credit * XPCurve.partyShare,
+            "the party slot got its own share and not a share of the waste")
     }
 
     /// Six members can each be waiting on their own decision after one credit,
@@ -1307,7 +1307,7 @@ final class TrainerTests: XCTestCase {
 
     // MARK: - The Exp Share
 
-    /// **It boosts, it never splits.** With the item on, every bench slot earns at
+    /// **It boosts, it never splits.** With the item on, every party slot earns at
     /// the lead's rate, so a full team goes from 5.0x to 6.0x. The rejected
     /// reading, one credit divided six ways, would have made a 10,000 coin
     /// purchase a *downgrade* from the free default.
@@ -1390,7 +1390,7 @@ final class TrainerTests: XCTestCase {
         let baseline = Double(XPCurve.totalXP(forLevel: 1))
         trainer.credit(weightedTokens: 1_000 * XPCurve.weightedTokensPerXP, dex: dex)
         XCTAssertEqual(
-            trainer.raise(id: bench)?.totalXP, baseline + 1_000 * XPCurve.benchShare)
+            trainer.raise(id: bench)?.totalXP, baseline + 1_000 * XPCurve.partyShare)
     }
 
     /// **Rare Candy feeds one Pokemon, not six.** Routing it through `credit`

@@ -24,15 +24,33 @@ struct CompanionView: View {
     let onError: (any Error) -> Void
 
     /// Nil means "the lead", resolved on read rather than written on appear, so a
-    /// member that gets benched or promoted cannot leave a stale selection behind.
+    /// member that gets stored or promoted cannot leave a stale selection behind.
     @State private var selectedID: UUID?
 
     /// Measured, so the scroll area is as tall as it needs to be and no taller.
     @State private var contentHeight: CGFloat = 0
 
-    /// The slot a drag is currently hovering, so the card being dropped onto says
-    /// so. Without it a drag gives no feedback at all until it lands.
-    @State private var dropTarget: UUID?
+    /// Where each slot card sits, in the grid's own coordinate space. Measured
+    /// rather than computed, because an occupied card sizes itself to its content.
+    @State private var slotFrames: [UUID: CGRect] = [:]
+
+    /// The drag in progress: who is moving, how far, and where the cursor is.
+    @State private var drag: SlotDrag?
+
+    struct SlotDrag: Equatable {
+        let id: UUID
+        var translation: CGSize
+        var location: CGPoint
+    }
+
+    /// The slot a drag is currently over, so the card being dropped onto says so.
+    /// Without it a drag gives no feedback at all until it lands.
+    private var dropTarget: UUID? {
+        guard let drag else { return nil }
+        return slotFrames
+            .first { $0.key != drag.id && $0.value.contains(drag.location) }?
+            .key
+    }
 
     private var selected: (slot: Int, raise: Raise, entry: DexEntry)? {
         let members = game.teamMembers
@@ -62,7 +80,7 @@ struct CompanionView: View {
                             emptyState
                         }
                         evolutionActions
-                        bench
+                        pcBox
                     }
                     .padding(.trailing, 4)
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
@@ -128,6 +146,40 @@ struct CompanionView: View {
                 }
             }
         }
+        .coordinateSpace(.named(Self.gridSpace))
+    }
+
+    /// `nonisolated` because the geometry closure that reads it is `Sendable`, and
+    /// a constant string has no business being actor-isolated anyway.
+    nonisolated static let gridSpace = "pokebar.teamGrid"
+
+    /// Reordering by hand, **without the system drag and drop**.
+    ///
+    /// `.draggable` and `.onDrag` both hang a real drag session off the window,
+    /// and this window is a `MenuBarExtra` panel that never becomes key. Two
+    /// attempts produced a card that selected fine and could not be dragged at
+    /// all, with no error to say why. A plain `DragGesture` needs none of that
+    /// machinery: it is a mouse-down, a translation and a mouse-up, all inside
+    /// SwiftUI, so it cannot be refused by the window.
+    ///
+    /// The cost is that the drop target has to be worked out here rather than by
+    /// AppKit, which is what `slotFrames` is for: each card reports its rectangle
+    /// in the grid's coordinate space, and the drop is whichever rectangle the
+    /// cursor was inside when the mouse came up.
+    private func dragGesture(for raiseID: UUID) -> some Gesture {
+        DragGesture(minimumDistance: 5, coordinateSpace: .named(Self.gridSpace))
+            .onChanged { value in
+                drag = SlotDrag(
+                    id: raiseID, translation: value.translation, location: value.location)
+            }
+            .onEnded { value in
+                let target = slotFrames
+                    .first { $0.key != raiseID && $0.value.contains(value.location) }?
+                    .key
+                drag = nil
+                guard let target else { return }
+                run { try game.swapSlots(raiseID, target) }
+            }
     }
 
     /// One slot.
@@ -139,6 +191,7 @@ struct CompanionView: View {
     private func slotCard(_ member: (slot: Int, raise: Raise, entry: DexEntry)) -> some View {
         let isSelected = selected?.raise.id == member.raise.id
         let isDropTarget = dropTarget == member.raise.id
+        let isDragging = drag?.id == member.raise.id
         return Group {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 3) {
@@ -198,35 +251,24 @@ struct CompanionView: View {
         // Hit-testable across the whole card including its gaps, or a tap between
         // the sprite and the name would land on nothing.
         .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.gridSpace)) } action: {
+            slotFrames[member.raise.id] = $0
+        }
+        // The card follows the cursor, and rides above its neighbours while it
+        // does. Without the lift it slides under the next card in the grid.
+        .offset(isDragging ? drag?.translation ?? .zero : .zero)
+        .scaleEffect(isDragging ? 1.04 : 1)
+        .zIndex(isDragging ? 1 : 0)
         .onTapGesture { selectedID = member.raise.id }
         // Drag one card onto another to exchange their slots. Swap rather than
         // insert-and-shift, so dropping onto the lead promotes exactly one
         // Pokemon and demotes exactly one.
-        .draggable(member.raise.id.uuidString) {
-            // The thing that follows the cursor. Without an explicit preview
-            // macOS drags a snapshot of the whole card, which at 150pt wide
-            // covers the slot being dropped on.
-            HStack(spacing: 4) {
-                Image(systemName: "arrow.left.arrow.right")
-                Text(member.entry.name)
-            }
-            .font(.caption)
-            .padding(4)
-        }
-        .dropDestination(for: String.self) { items, _ in
-            guard let dragged = items.first.flatMap(UUID.init(uuidString:)),
-                  dragged != member.raise.id
-            else { return false }
-            do { try game.swapSlots(dragged, member.raise.id) } catch { onError(error) }
-            return true
-        } isTargeted: { targeted in
-            dropTarget = targeted ? member.raise.id : nil
-        }
+        .gesture(dragGesture(for: member.raise.id))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "\(member.entry.name), \(GameFormat.slotLabel(member.slot)), "
                 + GameFormat.level(member.raise.level))
-        .accessibilityHint("Select to candy, hold or bench. Drag onto another slot to swap.")
+        .accessibilityHint("Select to candy, hold or send to your PC. Drag onto another slot to swap.")
         .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
         // Everything the drag can do, reachable without dragging. A menu bar
         // window is an awkward place to drag inside, and this is also the only
@@ -246,7 +288,7 @@ struct CompanionView: View {
                 }
             }
             Divider()
-            Button("Bench") { game.bench(raiseID: member.raise.id) }
+            Button("Send to PC") { game.sendToPC(raiseID: member.raise.id) }
         }
     }
 
@@ -314,7 +356,7 @@ struct CompanionView: View {
                         run { try game.promoteToLead(raiseID: raise.id) }
                     }
                 }
-                Button("Bench") { game.bench(raiseID: raise.id) }
+                Button("Send to PC") { game.sendToPC(raiseID: raise.id) }
                 Spacer()
             }
             .font(.caption)
@@ -393,26 +435,26 @@ struct CompanionView: View {
         }
     }
 
-    /// Everyone not currently training, best first. **The screen the roster
-    /// exists for**: nothing is ever deleted, so bringing a level 47 Charizard
-    /// back is one click and it resumes exactly where it stopped.
+    /// Everyone not currently training, best first: **the PC**, and the screen
+    /// the roster exists for. Nothing is ever deleted, so bringing a level 47
+    /// Charizard back is one click and it resumes exactly where it stopped.
     @ViewBuilder
-    private var bench: some View {
-        let members = game.benchMembers
+    private var pcBox: some View {
+        let members = game.boxMembers
         if !members.isEmpty {
             VStack(alignment: .leading, spacing: 3) {
-                Text("BENCH")
+                Text("YOUR PC")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.tertiary)
                     .tracking(0.6)
-                Text("Levels are kept forever. Bring one back and it carries on from where it stopped.")
+                Text("Everything you have ever raised waits here, levels kept forever. Bring one back and it carries on from where it stopped.")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)
-                ForEach(members.prefix(GameFormat.benchRowLimit), id: \.raise.id) { member in
-                    benchRow(raise: member.raise, entry: member.entry)
+                ForEach(members.prefix(GameFormat.pcRowLimit), id: \.raise.id) { member in
+                    pcRow(raise: member.raise, entry: member.entry)
                 }
-                if let note = GameFormat.benchOverflowNote(total: members.count) {
+                if let note = GameFormat.pcOverflowNote(total: members.count) {
                     Text(note)
                         .font(.system(size: 9))
                         .foregroundStyle(.tertiary)
@@ -421,7 +463,7 @@ struct CompanionView: View {
         }
     }
 
-    private func benchRow(raise: Raise, entry: DexEntry) -> some View {
+    private func pcRow(raise: Raise, entry: DexEntry) -> some View {
         HStack(spacing: 8) {
             if let dex = game.dex {
                 SpriteTile(
@@ -450,13 +492,13 @@ struct CompanionView: View {
     }
 
     /// Nothing being raised, but the collection is not empty: everything was
-    /// benched, or graduated and set aside. Distinct from the first-run state,
+    /// stored, or graduated and set aside. Distinct from the first-run state,
     /// which gets the starter picker instead.
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Nothing being raised")
                 .font(.subheadline.weight(.medium))
-            Text("Bring one back from the bench, hatch an egg, or pick something from the Dex tab.")
+            Text("Bring one back from your PC, hatch an egg, or pick something from the Dex tab.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

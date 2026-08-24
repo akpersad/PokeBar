@@ -351,7 +351,7 @@ struct DexDetailView: View {
         }
     }
 
-    /// Bringing one back off the bench, and buying another.
+    /// Bringing one back out of the PC, and buying another.
     ///
     /// **Nothing here conjures a Pokemon out of nothing**, which is the rule this
     /// pane was rebuilt around. "Add to team" only ever offers individuals that

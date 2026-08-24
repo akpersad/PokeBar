@@ -127,7 +127,7 @@ struct MilestoneEvent: Codable, Sendable, Hashable, Identifiable {
     var isGraduation: Bool { level >= XPCurve.maxLevel }
 }
 
-/// One individual being raised, whether it is training or benched.
+/// One individual being raised, whether it is on the team or in the PC.
 ///
 /// **Levels belong to the individual and are never lost.** It lives in
 /// `Trainer.roster`, which is append-only, and `Trainer.team` decides who is
@@ -257,7 +257,7 @@ struct Celebration: Equatable, Identifiable, Sendable {
     /// Dust paid for a duplicate. Only ever non-zero for an egg.
     let dust: Int
     /// Which team slot it went into, or nil when the team was full and it went
-    /// to the bench instead.
+    /// the PC instead.
     let slot: Int?
 
     init(
@@ -304,7 +304,7 @@ enum Prices {
     /// ~28 days of accrual. Passive and permanent, so it should be a genuine
     /// commitment rather than an early purchase.
     static let shinyCharm = 30_000
-    /// Every bench slot earns at the lead's rate: a full team goes from 5.0x to
+    /// Every party slot earns at the lead's rate: a full team goes from 5.0x to
     /// 6.0x. ~9 days of accrual.
     ///
     /// **10,000 rather than 5,000.** It is passive and permanent, which is the
@@ -325,7 +325,7 @@ enum Prices {
     /// 3,000 is ~2.8 days of accrual at this machine's ~1,080 coins/day, or 10
     /// eggs. An egg already fills a team slot for 300, so this is the price of
     /// *choosing which species*, and it has to sit well above an egg or the random
-    /// draw stops being the way the game is played. Filling five bench slots this
+    /// draw stops being the way the game is played. Filling five party slots this
     /// way is ~14 days, the same order as the Exp Share.
     ///
     /// It cannot be farmed: the team caps at 6, so there is no reason to buy more

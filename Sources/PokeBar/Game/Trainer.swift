@@ -18,7 +18,7 @@ struct Trainer: Codable, Sendable, Equatable {
     /// Every individual ever raised, oldest first, levels intact.
     ///
     /// **Append-only.** Nothing here is ever deleted, the same rule the two logs
-    /// follow: benching changes `team`, not this. That is the point of the type
+    /// follow: sending one to the PC changes `team`, not this. That is the point of the type
     /// existing at all. v1 held a single `active: Raise?` and threw it away on a
     /// switch, and losing a week of Charizard for trying a Pikachu is the thing
     /// the user asked to have back (DECISIONS.md).
@@ -116,8 +116,8 @@ struct Trainer: Codable, Sendable, Equatable {
     var teamRaises: [Raise] { team.compactMap(raise(id:)) }
 
     /// Everyone in the roster who is not currently training. Nothing has been
-    /// lost: this is where a benched Charizard waits, at the level it reached.
-    var benched: [Raise] { roster.filter { !team.contains($0.id) } }
+    /// lost: this is where a stored Charizard waits, at the level it reached.
+    var boxed: [Raise] { roster.filter { !team.contains($0.id) } }
 
     private func index(of raiseID: UUID) -> Int? {
         roster.firstIndex { $0.id == raiseID }
@@ -134,7 +134,7 @@ struct Trainer: Codable, Sendable, Equatable {
         dust -= amount
     }
 
-    /// Whether bench slots are currently earning at the lead's rate.
+    /// Whether party slots are currently earning at the lead's rate.
     ///
     /// Both halves, because owning it and using it are separate facts: a save can
     /// hold the item with the toggle off, and a save from before either existed
@@ -175,13 +175,13 @@ struct Trainer: Codable, Sendable, Equatable {
     /// its last Pokemon was already graduated.
     ///
     /// **The whole team earns, and the credit is never divided.** Slot 1 takes
-    /// `leadShare` of it and each of slots 2 to 6 takes `benchShare` *of the same
+    /// `leadShare` of it and each of slots 2 to 6 takes `partyShare` *of the same
     /// credit*, so a team of two absorbs 1.8x and a full team 5.0x. Splitting one
     /// credit six ways was considered and rejected: it would make filling the team
     /// a downgrade, which is incoherent for the thing the player is being asked to
     /// work towards.
     ///
-    /// An **Exp Share** raises every bench slot to the lead's rate, taking a full
+    /// An **Exp Share** raises every party slot to the lead's rate, taking a full
     /// team from 5.0x to 6.0x. It boosts, it never splits.
     ///
     /// **A capped member's share is not redistributed.** XP that would go to a
@@ -357,7 +357,7 @@ struct Trainer: Codable, Sendable, Equatable {
     /// **queues** evolutions rather than cancelling them. A Caterpie held past 7
     /// and 10 becomes a Butterfree the moment the stone comes off, in order, so
     /// nothing is ever lost by waiting and there is no point of no return.
-    /// Held by one individual, named. A benched Pokemon keeps the stone it was
+    /// Held by one individual, named. A stored Pokemon keeps the stone it was
     /// holding, because it is that Pokemon's item and not the trainer's.
     @discardableResult
     mutating func setEverstone(
@@ -472,7 +472,7 @@ struct Trainer: Codable, Sendable, Equatable {
         // which is what keeps a shiny hunt usable, but "in progress" means an
         // occupied slot and not the whole team: hatching an egg into a team with
         // room and watching nothing happen is the confusion this fixes. With no
-        // room it lands on the bench, because an egg that was paid for must not
+        // room it lands in the PC, because an egg that was paid for must not
         // produce nothing.
         beginRaising(entryID: entry.id, shiny: shiny, gender: gender, now: now)
         return events
@@ -586,7 +586,7 @@ struct Trainer: Codable, Sendable, Equatable {
     /// Adds a new individual to the roster, **and to the team if there is room**.
     ///
     /// One rule in one place: every way of acquiring a Pokemon comes through here,
-    /// so "an acquisition fills an empty slot, and joins the bench when the team is
+    /// so "an acquisition fills an empty slot, and goes to the PC when the team is
     /// full" is stated once and cannot drift between the acquisition paths.
     ///
     /// Takes no view on ownership, because each caller knows something different
@@ -615,7 +615,7 @@ struct Trainer: Codable, Sendable, Equatable {
         team.append(raiseID)
     }
 
-    /// Benches an individual without deleting it. It keeps its level, its XP and
+    /// Sends an individual to the PC without deleting it. It keeps its level, its XP and
     /// the stone it was holding, and can be brought back by `addToTeam`.
     @discardableResult
     mutating func removeFromTeam(raiseID: UUID) -> Bool {
@@ -660,17 +660,17 @@ struct Trainer: Codable, Sendable, Equatable {
     /// Computed here rather than assembled in a view body, for the usual reason: a
     /// fact asserted in a view cannot be tested. It is a struct rather than an enum
     /// because the offers are **not** mutually exclusive: a species can have two
-    /// benched individuals to bring back *and* be worth buying a third of.
+    /// stored individuals to bring back *and* be worth buying a third of.
     struct DexOptions: Equatable, Sendable {
-        /// Benched individuals of this entry, best first, capped at `maxOffered`.
+        /// Stored individuals of this entry, best first, capped at `maxOffered`.
         ///
         /// Capped because every duplicate hatch now leaves an individual on the
-        /// bench, so a common species accumulates them: twenty identical "Normal,
+        /// PC, so a common species accumulates them: twenty identical "Normal,
         /// level 1" rows in a menu is not a choice, it is a wall.
         var resumable: [Candidate] = []
-        /// How many are benched in total, which is what the button counts. The
+        /// How many are in the PC in total, which is what the button counts. The
         /// menu shows `resumable`; this is the honest number beside it.
-        var benchedTotal = 0
+        var boxedTotal = 0
         static let maxOffered = 6
         /// How many individuals of this entry are already training.
         var onTeam = 0
@@ -695,11 +695,11 @@ struct Trainer: Codable, Sendable, Equatable {
 
         let mine = roster.filter { $0.entryID == entryID }
         options.onTeam = mine.filter { team.contains($0.id) }.count
-        let benched = mine
+        let stored = mine
             .filter { !team.contains($0.id) }
             .sorted { $0.totalXP > $1.totalXP }
-        options.benchedTotal = benched.count
-        options.resumable = benched
+        options.boxedTotal = stored.count
+        options.resumable = stored
             .prefix(DexOptions.maxOffered)
             .map { Candidate(id: $0.id, level: $0.level, variant: $0.variant(in: dex)) }
 

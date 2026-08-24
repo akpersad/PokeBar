@@ -39,21 +39,21 @@ enum XPCurve {
     /// A "share" **multiplies, it never splits**: the whole credit is handed to
     /// slot 1 and the whole credit is handed again, discounted, to each of slots 2
     /// to 6. A full team therefore absorbs 5.0x what one Pokemon does, and nothing
-    /// is taken from the lead to pay for the bench.
+    /// is taken from the lead to pay for the rest of the party.
     static let leadShare: Double = 1.0
 
     /// What each of slots 2 to 6 gets, as a fraction of a credit.
     ///
     /// **This is the dial**, and it lives here alone so it can be turned: 0.8
     /// gives a full team 5.0x, 0.5 gives 3.5x, 0.25 gives 2.25x. 0.8 is the user's
-    /// number, from the example that set it (10 XP for the lead, 8 for the bench).
+    /// number, from the example that set it (10 XP for the lead, 8 for the others).
     ///
     /// The 5x inflation is deliberate and is affordable for one reason: what it
     /// speeds up is *graduation*, and graduation pays out nothing. Evolution was
     /// already fast (level 36, the deepest common edge, is 0.6 days here) so the
     /// team buys six evolution lines progressing at once, which is the point, and
     /// inflates ring colours, which is cosmetic. See DECISIONS.md.
-    static let benchShare: Double = 0.8
+    static let partyShare: Double = 0.8
 
     /// A given team slot's share. Slot 0 is the lead.
     ///
@@ -62,12 +62,12 @@ enum XPCurve {
     /// dividing one credit six ways would make a 10,000 coin purchase a downgrade
     /// from the free default, which is incoherent. See DECISIONS.md.
     static func share(forSlot slot: Int, expShare: Bool = false) -> Double {
-        slot == 0 || expShare ? leadShare : benchShare
+        slot == 0 || expShare ? leadShare : partyShare
     }
 
     /// What a team of `occupied` slots absorbs, as a multiple of one credit.
     ///
-    /// 1.0 alone, 1.8 with one on the bench, up to 5.0 full, or 6.0 with an Exp
+    /// 1.0 alone, 1.8 with one alongside, up to 5.0 full, or 6.0 with an Exp
     /// Share. This is the figure the Raise pane shows, because "why is my team
     /// worth having" deserves a number rather than a paragraph.
     static func teamMultiplier(occupiedSlots: Int, expShare: Bool = false) -> Double {

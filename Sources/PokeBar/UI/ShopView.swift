@@ -59,10 +59,10 @@ struct ShopView: View {
         .frame(height: 280)
     }
 
-    /// Every bench slot on the lead's rate.
+    /// Every party slot on the lead's rate.
     ///
     /// **A boost, never a split.** The whole credit still goes to slot 1 and the
-    /// whole credit goes to each bench slot too, so this takes a full team from
+    /// whole credit goes to each party slot too, so this takes a full team from
     /// 5x to 6x. An item that divided one credit six ways would have made a paid
     /// purchase slower than the free default.
     ///
