@@ -129,6 +129,24 @@ enum GameFormat {
 
     // MARK: Currency
 
+    /// The Dex tile's screen-reader label. Graduation is drawn as a ring, and a
+    /// ring is exactly the kind of thing a screen reader cannot see, so it has
+    /// to be said out loud instead.
+    static func dexTileLabel(name: String, id: Int, seen: Bool, graduated: Bool) -> String {
+        guard seen else { return "Number \(id), not caught" }
+        return graduated ? "\(name), reached level 100" : name
+    }
+
+    /// The detail pane's graduation line. Counted rather than flattened to a
+    /// boolean: raising a second one the whole way is a real thing to have done.
+    static func graduationLine(count: Int) -> String {
+        switch count {
+        case ..<2: "Reached level 100"
+        case 2: "Reached level 100 twice"
+        default: "Reached level 100, \(UsageFormat.groupedInt(count)) times"
+        }
+    }
+
     static func coins(_ amount: Int) -> String {
         "\(UsageFormat.groupedInt(amount)) \(amount == 1 ? "coin" : "coins")"
     }

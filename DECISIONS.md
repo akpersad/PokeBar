@@ -1132,6 +1132,41 @@ A test decodes a real save written before the field existed, taken verbatim from
 the live app, and asserts the collection, the charm, the coins spent and the
 rebuilt slot index all survive.
 
+**Graduation is a written event, not a derived one. Decided 2026-08-24** after
+the user asked for a level 100 mark in the Dex.
+
+There was nothing to derive it from. `Trainer.credit` already detected the
+crossing and emitted a transient `.graduated` event for the notifier, but nothing
+persisted it, and `Raise` carries the level of the *active* Pokemon alone. Switch
+Pokemon and the fact that the last one finished the climb was gone. So the Dex
+could not have shown a ring however it was drawn; the data did not exist.
+
+Three calls inside that, each with an alternative that looks reasonable:
+
+- **A second append-only list on `CatchLog`, not a field on `CatchEvent`.** A
+  catch is a sprite arriving; a graduation is an individual finishing. Folding
+  them together would mean going back and rewriting a `CatchEvent` in place,
+  which is the one thing this log does not do. Same reasoning as `UsageLedger`:
+  append the fact, derive the view.
+- **Credited to the form it was at 100, not to its origin.** A Charmander raised
+  all the way is a Charizard when it graduates, and the ring belongs on
+  Charizard's tile. `Raise.originEntryID` still answers "where did this one start"
+  for anyone who wants the other view.
+- **Per sprite, not per species**, matching invariant 18. A shiny at 100 is a
+  separate trophy from a plain one. The grid asks the species-level question once
+  per tile; the detail pane's variant row asks the per-sprite one.
+
+Drawn as a ring rather than a fourth corner badge. The top trailing corner is
+already the shiny sparkle's, and at 44pt across a grid of 1,083 tiles a border
+reads at a glance where a 7pt glyph does not. The detail pane carries a trophy
+line that counts individuals, because raising a second one the whole way is a
+real thing to have done and flattening it to a boolean would throw that away.
+
+Not yet seen on screen. Nothing in the live collection has graduated: the active
+individual is around level 25 of 100, which is roughly 3.7 more days at this
+machine's throughput. The logic is covered by tests; the pixels are not, and by
+the rule this project already learned the hard way, that means it is unverified.
+
 ### Still open
 
 - **Whether the pick prices are right.** They are deliberately generous and the

@@ -61,6 +61,39 @@ struct CatchEvent: Codable, Sendable, Hashable, Identifiable {
     var slot: VariantSlot { VariantSlot(entryID: entryID, variant: variant) }
 }
 
+/// One individual reaching level 100, appended and never rewritten.
+///
+/// Separate from `CatchEvent` because it records a different fact about a
+/// different thing: a catch is a sprite arriving in the collection, a graduation
+/// is an individual finishing a climb. It has to be recorded *somewhere* because
+/// nothing else in the game remembers it. `Raise` holds the level of the active
+/// Pokemon only, so the moment you switch, "that one made it to 100" is gone,
+/// and the Dex has no way to show a mark it cannot derive.
+struct GraduationEvent: Codable, Sendable, Hashable, Identifiable {
+    let id: UUID
+    /// The entry it *was* at level 100, which is the evolved form rather than
+    /// whatever came out of the egg. A Charizard graduated; a Charmander did not.
+    let entryID: Int
+    let variant: SpriteVariant
+    /// Which individual did it. Two Pikachu each raised to 100 are two
+    /// graduations, and the log should be able to say so.
+    let raiseID: UUID
+    let date: Date
+
+    init(
+        id: UUID = UUID(), entryID: Int, variant: SpriteVariant, raiseID: UUID,
+        date: Date = Date()
+    ) {
+        self.id = id
+        self.entryID = entryID
+        self.variant = variant
+        self.raiseID = raiseID
+        self.date = date
+    }
+
+    var slot: VariantSlot { VariantSlot(entryID: entryID, variant: variant) }
+}
+
 /// The individual currently being raised.
 ///
 /// One at a time, which is the real constraint in this game: raising time caps

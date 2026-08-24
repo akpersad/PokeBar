@@ -70,7 +70,7 @@ Sources/PokeBar/
   Game/
     XPCurve.swift               levels, the shared curve, tokens -> XP
     GameModels.swift            CatchEvent, Raise, GameEvent, Prices
-    CatchLog.swift              append-only catches; the derived slot index
+    CatchLog.swift              append-only catches and graduations; derived indexes
     HatchRoll.swift             weighted draw, shiny odds, gender roll
     Trainer.swift               every game rule. No clock, no RNG, no disk
     GameMonitor.swift           @MainActor @Observable; owns and persists one Trainer
@@ -329,7 +329,7 @@ prints live totals under `POKEBAR_CORPUS=1`.
 
 ## State
 
-**Phases 1 through 4: complete.** 253 tests, 0 failures.
+**Phases 1 through 4: complete.** 260 tests, 0 failures.
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
@@ -354,6 +354,11 @@ What the game does now:
   stone; branching waits for the player. Shininess carries through. An **Everstone**
   toggle holds a Pokemon as it is, and queues rather than cancels: take it off and
   everything the level passed happens at once, so late is always allowed.
+- **Graduate.** Reaching level 100 is written to the log as its own event, and the
+  Dex tile takes a gold ring for it. It has to be written down: `Raise` holds the
+  level of the *active* Pokemon only, so switching used to erase the fact that the
+  last one finished. Credited to the form it was at 100, not to what hatched, and
+  per sprite rather than per species, the same way ownership is.
 - **Two currencies.** Coins buy volume, Dust buys choice, and duplicates are the
   only source of Dust. See DECISIONS.md for why, and for what was rejected.
 - **Browse** 1,083 tiles in the Dex tab, with per-variant slots and the evolution
@@ -439,14 +444,13 @@ that came out of the original plan, is in DECISIONS.md.
 
 - **The Dust prices**, which decide how long the tail of the dex takes. Set
   deliberately generous with the user's agreement, on the grounds that harsher is
-  an easy change and "completion was never reachable" is not. Tune after playing.
-- **Whether level 100 needs a reward.** Graduation is currently its own trophy.
+  an easy change and "completion was never reachable" is not. **Deferred on
+  purpose 2026-08-24**: the user will tune them on hitting the wall, not before.
+  Do not raise this again unasked.
+- **Whether level 100 needs a reward.** Partly answered 2026-08-24: graduation now
+  marks the Dex tile with a ring. Whether it needs more than a mark is still open.
 - **Re-check `gpt-5.6-sol`'s rate around 2026-11-21.** It is bundled at OpenAI's
   promotional $4/$20 because no list price is published, and `PricingCatalog`
   filters to `claude-` keys so nothing will ever refresh it. When the promo
   lapses the tier multiplier goes stale silently. This is the one dated item on
   the list; everything else here waits on play.
-- `_audit_poketokenbar/` still sits in the parent directory. Phase 3 took what it
-  needed from it and Phase 4 took the floating pet and the shop's shape. Safe to
-  delete now; left in place only because deleting a directory outside this repo is
-  the user's call.

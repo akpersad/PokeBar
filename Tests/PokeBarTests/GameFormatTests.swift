@@ -141,6 +141,24 @@ final class GameFormatTests: XCTestCase {
             "Raichu graduated at level 100")
     }
 
+    func testDexTileLabelSaysOutLoudWhatTheRingShows() {
+        XCTAssertEqual(
+            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: true, graduated: true),
+            "Lapras, reached level 100")
+        XCTAssertEqual(
+            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: true, graduated: false),
+            "Lapras")
+        XCTAssertEqual(
+            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: false, graduated: false),
+            "Number 131, not caught")
+    }
+
+    func testGraduationLineCountsIndividuals() {
+        XCTAssertEqual(GameFormat.graduationLine(count: 1), "Reached level 100")
+        XCTAssertEqual(GameFormat.graduationLine(count: 2), "Reached level 100 twice")
+        XCTAssertEqual(GameFormat.graduationLine(count: 3), "Reached level 100, 3 times")
+    }
+
     /// Every user-facing string in this project avoids em dashes, including the
     /// ones assembled at runtime.
     func testNoEmDashesInGeneratedCopy() throws {
@@ -152,6 +170,11 @@ final class GameFormatTests: XCTestCase {
             GameFormat.describe(Trainer.GameError.notEnoughDust(needed: 5, have: 1)),
             GameFormat.describe(Trainer.GameError.missingItem("thunder-stone")),
             GameFormat.duration(days: 3),
+            GameFormat.graduationLine(count: 1),
+            GameFormat.graduationLine(count: 2),
+            GameFormat.graduationLine(count: 7),
+            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: true, graduated: true),
+            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: false, graduated: false),
         ]
         strings += [
             GameFormat.describe(.evolutionChoice(from: pikachu.id, options: [26]), dex: dex),

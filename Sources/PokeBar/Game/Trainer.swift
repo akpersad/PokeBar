@@ -95,8 +95,20 @@ struct Trainer: Codable, Sendable, Equatable {
         let after = raise.level
         if after > before { events.append(.levelledUp(to: after)) }
         events += resolveEvolutions(dex: dex, now: now)
-        if after >= XPCurve.maxLevel && before < XPCurve.maxLevel, let entryID = active?.entryID {
-            events.append(.graduated(entryID: entryID))
+        // Read `active` again rather than `raise`: an evolution resolved just
+        // above may have changed what this individual is, and it graduates as
+        // whatever it is now.
+        if after >= XPCurve.maxLevel && before < XPCurve.maxLevel, let graduate = active {
+            if let entry = dex.entry(id: graduate.entryID) {
+                log.recordGraduation(
+                    GraduationEvent(
+                        entryID: graduate.entryID,
+                        variant: graduate.gender.spriteVariant(
+                            shiny: graduate.shiny, for: entry),
+                        raiseID: graduate.id,
+                        date: now))
+            }
+            events.append(.graduated(entryID: graduate.entryID))
         }
         return events
     }

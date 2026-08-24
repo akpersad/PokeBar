@@ -16,24 +16,46 @@ struct CatchLog: Codable, Sendable, Equatable {
 
     private(set) var events: [CatchEvent] = []
 
+    /// Every level 100, in the order reached. The second append-only list, kept
+    /// beside `events` rather than folded into it for the reason the two exist
+    /// at all: a catch and a graduation answer different questions, and a
+    /// `CatchEvent` with an optional "and it graduated" flag would have to be
+    /// rewritten in place, which this log does not do.
+    private(set) var graduations: [GraduationEvent] = []
+
     /// Which of the 2,368 ownable sprites have been filled.
     private(set) var filledSlots: Set<VariantSlot> = []
 
-    init(events: [CatchEvent] = []) {
+    /// Derived on decode, like `filledSlots`, and for the same reason.
+    private(set) var graduatedSlots: Set<VariantSlot> = []
+    private(set) var graduatedEntryIDs: Set<Int> = []
+
+    init(events: [CatchEvent] = [], graduations: [GraduationEvent] = []) {
         self.events = events
         self.filledSlots = Set(events.map(\.slot))
+        self.graduations = graduations
+        self.graduatedSlots = Set(graduations.map(\.slot))
+        self.graduatedEntryIDs = Set(graduations.map(\.entryID))
     }
 
-    private enum CodingKeys: String, CodingKey { case events }
+    private enum CodingKeys: String, CodingKey { case events, graduations }
 
+    /// `graduations` decodes with `decodeIfPresent` and a default, which is not
+    /// optional politeness: every save written before this field existed omits
+    /// the key, the synthesized decoder would throw on it, and `GameMonitor`
+    /// cannot tell "no save yet" from "save I could not read". See invariant 23.
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.init(events: try container.decode([CatchEvent].self, forKey: .events))
+        self.init(
+            events: try container.decode([CatchEvent].self, forKey: .events),
+            graduations: try container.decodeIfPresent(
+                [GraduationEvent].self, forKey: .graduations) ?? [])
     }
 
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(events, forKey: .events)
+        try container.encode(graduations, forKey: .graduations)
     }
 
     // MARK: - Writing
@@ -48,6 +70,19 @@ struct CatchLog: Codable, Sendable, Equatable {
         let isNew = filledSlots.insert(event.slot).inserted
         events.append(event)
         return isNew
+    }
+
+    /// Appends, and reports whether this is the first time this exact sprite has
+    /// reached 100. The return value is the "new trophy" test, and it is the
+    /// same shape as `append`'s duplicate test for the same reason: graduation
+    /// is per sprite, not per species, so a shiny Pikachu at 100 is a first even
+    /// when a plain one already did it.
+    @discardableResult
+    mutating func recordGraduation(_ event: GraduationEvent) -> Bool {
+        let isFirst = graduatedSlots.insert(event.slot).inserted
+        graduatedEntryIDs.insert(event.entryID)
+        graduations.append(event)
+        return isFirst
     }
 
     // MARK: - Derived views
@@ -70,6 +105,21 @@ struct CatchLog: Codable, Sendable, Equatable {
     func completion(in dex: Pokedex) -> (filled: Int, total: Int) {
         let total = dex.entries.reduce(0) { $0 + $1.ownableVariants.count }
         return (filledSlots.count, total)
+    }
+
+    /// Has anything of this species finished the climb, in any variant. What the
+    /// Dex grid asks, once per tile.
+    func hasGraduated(entryID: Int) -> Bool { graduatedEntryIDs.contains(entryID) }
+
+    /// Has *this sprite* finished it. What the detail pane's variant row asks.
+    func hasGraduated(entryID: Int, variant: SpriteVariant = .normal) -> Bool {
+        graduatedSlots.contains(VariantSlot(entryID: entryID, variant: variant))
+    }
+
+    /// How many individuals of this species reached 100. Two Pikachu raised the
+    /// whole way are two, and the detail pane says so rather than flattening it.
+    func graduationCount(entryID: Int) -> Int {
+        graduations.count { $0.entryID == entryID }
     }
 
     func firstCaught(entryID: Int) -> Date? {

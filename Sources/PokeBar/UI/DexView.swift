@@ -111,6 +111,7 @@ struct DexView: View {
 
     private func tile(_ entry: DexEntry) -> some View {
         let seen = game.log.seenEntryIDs.contains(entry.id)
+        let graduated = game.log.hasGraduated(entryID: entry.id)
         return Button {
             selected = entry
         } label: {
@@ -126,6 +127,9 @@ struct DexView: View {
                 }
             }
             .frame(height: 44)
+            .overlay {
+                if graduated { GraduationRing() }
+            }
             .overlay(alignment: .topTrailing) {
                 if game.log.owns(entryID: entry.id, variant: .shiny) {
                     Image(systemName: "sparkles")
@@ -136,7 +140,33 @@ struct DexView: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(seen ? entry.name : "Number \(entry.id), not caught")
+        .accessibilityLabel(
+            GameFormat.dexTileLabel(
+                name: entry.name, id: entry.id, seen: seen, graduated: graduated))
+    }
+}
+
+/// The level 100 mark on a Dex tile.
+///
+/// A ring rather than a fourth corner badge. The top trailing corner already
+/// belongs to the shiny sparkle, and graduation is a property of the whole tile
+/// rather than a detail hung off it: at 44pt across a grid of 1,083, a border
+/// reads at a glance where a 7pt glyph does not.
+struct GraduationRing: View {
+    var cornerRadius: CGFloat = 7
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .strokeBorder(
+                LinearGradient(
+                    colors: [
+                        Color(red: 1.00, green: 0.86, blue: 0.38),
+                        Color(red: 0.94, green: 0.56, blue: 0.15),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing),
+                lineWidth: 1.5)
+            .shadow(color: .yellow.opacity(0.5), radius: 3)
     }
 }
 
@@ -182,6 +212,14 @@ struct DexDetailView: View {
                 )
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
+                if game.log.hasGraduated(entryID: entry.id) {
+                    Label(
+                        GameFormat.graduationLine(
+                            count: game.log.graduationCount(entryID: entry.id)),
+                        systemImage: "trophy.fill")
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.yellow)
+                }
             }
             Spacer()
             Button {
@@ -208,6 +246,14 @@ struct DexDetailView: View {
                         if owned, let dex = game.dex {
                             SpriteTile(
                                 entry: entry, variant: variant, dex: dex, store: store, height: 36)
+                                .overlay(alignment: .topTrailing) {
+                                    if game.log.hasGraduated(
+                                        entryID: entry.id, variant: variant) {
+                                        Image(systemName: "trophy.fill")
+                                            .font(.system(size: 8))
+                                            .foregroundStyle(.yellow)
+                                    }
+                                }
                         } else {
                             Image(systemName: "questionmark")
                                 .font(.caption2)

@@ -79,6 +79,86 @@ final class TrainerTests: XCTestCase {
         XCTAssertEqual(trainer.active?.totalXP, 1_000_000)
     }
 
+    /// The event alone is not enough. `Raise` holds the level of the *active*
+    /// Pokemon only, so without a written record the fact that this one reached
+    /// 100 disappears the moment the player switches, and the Dex ring has
+    /// nothing to derive itself from.
+    func testGraduationIsWrittenToTheLogOncePerIndividual() throws {
+        let lapras = try entry("lapras")
+        var trainer = try raising("lapras")
+        XCTAssertFalse(trainer.log.hasGraduated(entryID: lapras.id))
+
+        trainer.credit(weightedTokens: 1e12, dex: dex)
+        XCTAssertTrue(trainer.log.hasGraduated(entryID: lapras.id))
+        XCTAssertEqual(trainer.log.graduationCount(entryID: lapras.id), 1)
+
+        let recorded = try XCTUnwrap(trainer.log.graduations.first)
+        XCTAssertEqual(recorded.entryID, lapras.id)
+        XCTAssertEqual(recorded.raiseID, trainer.active?.id)
+        XCTAssertTrue(trainer.log.hasGraduated(entryID: lapras.id, variant: recorded.variant))
+
+        // Crediting a graduate again must not write a second trophy.
+        trainer.credit(weightedTokens: 1e12, dex: dex)
+        XCTAssertEqual(trainer.log.graduationCount(entryID: lapras.id), 1)
+    }
+
+    /// It graduates as whatever it is *now*. A Charmander that climbed all the
+    /// way is a Charizard at the top, and the ring belongs on Charizard's tile.
+    func testGraduationIsCreditedToTheEvolvedForm() throws {
+        let charmander = try entry("charmander")
+        let charizard = try entry("charizard")
+        var trainer = try raising("charmander")
+
+        trainer.credit(weightedTokens: 1e12, dex: dex)
+
+        XCTAssertEqual(trainer.active?.entryID, charizard.id)
+        XCTAssertTrue(trainer.log.hasGraduated(entryID: charizard.id))
+        XCTAssertFalse(
+            trainer.log.hasGraduated(entryID: charmander.id),
+            "the origin did not finish the climb, the evolved form did")
+    }
+
+    /// Graduation is per sprite, the same way ownership is. A shiny at 100 is a
+    /// separate trophy from a plain one, and the species-level question stays
+    /// true for both.
+    func testGraduationIsPerSpriteNotPerSpecies() throws {
+        let lapras = try entry("lapras")
+        var trainer = try raising("lapras", shiny: true)
+        trainer.credit(weightedTokens: 1e12, dex: dex)
+
+        let gender = HatchRoll.canonicalGender(for: lapras)
+        let shinySlot = gender.spriteVariant(shiny: true, for: lapras)
+        let plainSlot = gender.spriteVariant(shiny: false, for: lapras)
+        XCTAssertTrue(trainer.log.hasGraduated(entryID: lapras.id, variant: shinySlot))
+        XCTAssertFalse(trainer.log.hasGraduated(entryID: lapras.id, variant: plainSlot))
+        XCTAssertTrue(trainer.log.hasGraduated(entryID: lapras.id))
+    }
+
+    /// Invariant 23. Every save written before graduations existed omits the
+    /// key, and a throwing decode there means `GameMonitor` cannot tell "no save
+    /// yet" from "save I could not read" and writes an empty log over a real
+    /// collection.
+    func testALogSavedBeforeGraduationsExistedStillDecodes() throws {
+        let legacy = Data(#"{"events":[]}"#.utf8)
+        let log = try JSONDecoder().decode(CatchLog.self, from: legacy)
+        XCTAssertTrue(log.graduations.isEmpty)
+        XCTAssertTrue(log.graduatedSlots.isEmpty)
+        XCTAssertFalse(log.hasGraduated(entryID: 25))
+    }
+
+    /// The derived sets are rebuilt on decode rather than stored, the same bet
+    /// `filledSlots` makes. A round trip has to reproduce them.
+    func testGraduationIndexIsRebuiltOnDecode() throws {
+        var trainer = try raising("lapras")
+        trainer.credit(weightedTokens: 1e12, dex: dex)
+
+        let data = try JSONEncoder().encode(trainer.log)
+        let restored = try JSONDecoder().decode(CatchLog.self, from: data)
+        XCTAssertEqual(restored.graduations, trainer.log.graduations)
+        XCTAssertEqual(restored.graduatedSlots, trainer.log.graduatedSlots)
+        XCTAssertEqual(restored.graduatedEntryIDs, trainer.log.graduatedEntryIDs)
+    }
+
     // MARK: - Evolution
 
     func testLevelEvolutionFiresOnItsOwn() throws {
