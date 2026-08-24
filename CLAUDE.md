@@ -52,7 +52,9 @@ XCTest, not swift-testing. `import Testing` does not resolve in this toolchain.
 
 ```
 Sources/PokeBar/
-  App/PokeBarApp.swift          MenuBarExtra scene + AppDelegate (.accessory)
+  App/
+    PokeBarApp.swift            MenuBarExtra scene + AppDelegate (.accessory)
+    Notifier.swift              which events are worth interrupting for
   Usage/
     JSONLStreamer.swift         chunked reads, resumable byte offsets
     ClaudeUsageParser.swift     one JSONL line -> UsageEntry, keep-max dedup
@@ -64,10 +66,24 @@ Sources/PokeBar/
   Pricing/
     ModelPricing.swift          bundled rate table, tier multipliers
     PricingCatalog.swift        weekly LiteLLM refresh, disk cache
+  Game/
+    XPCurve.swift               levels, the shared curve, tokens -> XP
+    GameModels.swift            CatchEvent, Raise, GameEvent, Prices
+    CatchLog.swift              append-only catches; the derived slot index
+    HatchRoll.swift             weighted draw, shiny odds, gender roll
+    Trainer.swift               every game rule. No clock, no RNG, no disk
+    GameMonitor.swift           @MainActor @Observable; owns and persists one Trainer
   UI/
     MenuBarLabel.swift          status item: sprite + coin count
-    UsagePopover.swift          the menu bar window, all of it
+    PokeBarPopover.swift        the menu bar window: chrome, currency, tabs
+    CompanionView.swift         the Pokemon being raised, and what changes it
+    DexView.swift               1,083 tiles plus a detail pane
+    ShopView.swift              what coins buy
+    SpriteTile.swift            one still sprite, fetched on appearance
+    FloatingPetPanel.swift      the desktop companion, an NSPanel
+    UsagePopover.swift          the usage pane
     UsageFormat.swift           pure display logic; where the UI tests live
+    GameFormat.swift            the same, for the game panes
   Dex/
     DexModels.swift             DexEntry, Rarity, SpriteSet, DexManifest
     Pokedex.swift               loads the manifest; lookup, sprite URLs, featured
@@ -180,6 +196,34 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     on this notched display, but the extra is safe-area inset and unavailable to a
     status item, so do not reach for it.
 
+17. **Only egg hatches mint Dust.** Not taste, an exploit. Dust pays out on the raw
+    capture rate, so a duplicate legendary is worth 85 while a re-roll of one costs
+    25: if re-rolls paid out they would print money on exactly the entries the price
+    exists to protect. `Trainer.obtain` checks the source.
+
+18. **A duplicate is per sprite, not per species.** A shiny Pikachu is new when
+    Pikachu is not. Completion is over the 2,368 ownable sprites, which is not
+    1,083 x 4: only 102 entries have a distinct female sprite and two have no shiny.
+
+19. **Coins are spent by recording the spend, never by decrementing a balance.**
+    `Trainer.coinsSpent` against the ledger's frozen `coins`. Same reason as
+    invariant 3: the two must not be able to disagree, and nothing may reach
+    backwards and unspend a purchase.
+
+20. **Auto-evolution fires only for a single item-free edge, and it loops.** An item
+    edge never fires on its own; where several item-free edges are satisfied at once
+    nothing fires and the choice is the player's (Eevee has three at level 36). It
+    loops because one credit can cross two thresholds.
+
+21. **The hatch pool is derived from the edge set, never flagged per entry.**
+    `Pokedex.hatchable` is "no incoming edge", 570 of 1,083. A stored flag could
+    disagree with the edges, and the failure is silent: an entry that hatches when
+    it should have to be earned, or one nothing can produce. The generator asserts
+    every entry is reachable from a hatchable seed.
+
+22. **`CatchLog` persists events only.** The slot index is rebuilt on decode. Two
+    copies of one fact on disk is two things that can drift.
+
 ---
 
 ## UI copy rules
@@ -223,7 +267,18 @@ Pokédex, measured 2026-08-22 and asserted by `scripts/generate-dex.py`:
 | Hatchable (no incoming edge) | 570. The other 513 are evolution-gated |
 | Rarity bands | rare 493, common 238, uncommon 187, legendary 74, epic 68, mythical 23 |
 | Sprite animation | 51-129 frames, 60-200 ms delays, so 5-16 fps |
-| Sprites commit | `c10459b9b0129eaca5c5d9b1cac65336debb1d08` |
+| Sprites commit | `c10459b9b0129eaca5c5d9b1cac65336debb1d08` (pinned in the generator; `--repin` to move it) |
+
+Game layer, decided or derived:
+
+| Quantity | Value |
+|---|---|
+| XP curve | `totalXP(level) = 100 * level^2`. Level 100 = 1,000,000 XP |
+| XP rate | 1 XP per 500 weighted tokens. A full climb is **4.63 days** here |
+| Egg / Rare Candy / stone / cord / charm | 300 / 250 / 400 / 400 / 30,000 coins |
+| Dust per duplicate | `255 / captureRate`. Expected **1.97**, so ~7 Dust/day |
+| Targeted pick | 10 / 20 / 50 / 100 / 250 / 300 Dust by band. Re-roll is a tenth |
+| Shiny odds | 1 in 64, 1 in 48 with the charm |
 
 To re-verify parity independently, `Tests/PokeBarTests/CorpusParityTests.swift`
 prints live totals under `POKEBAR_CORPUS=1`.
@@ -232,55 +287,59 @@ prints live totals under `POKEBAR_CORPUS=1`.
 
 ## State
 
-**Phases 1, 2 and 3 (data layer): complete.** 155 tests, 0 failures.
+**Phases 1 through 4: complete.** 215 tests, 0 failures.
 
-**Phase 4 step 1 (the manifest) is done.** `pokedex.json` now carries a structured
-`evolutions` array per entry (`to`, `trigger`, `minLevel`, `item`, `itemName`) with
-the level-36 substitutions applied at generation time, so the game layer compares a
-level and checks an item and never has to know what a tower of darkness is. The
-generator also asserts that every entry is reachable from a hatchable seed, which is
-what caught a silently wrong edge join: ordinary Meowth was claimed to evolve into
-Perrserker, and Alolan Exeggutor had no incoming edge at all. Details in DECISIONS.md.
+Phase 4 shipped in one session, 2026-08-23, in four steps: the manifest, the female
+variant flag, the pure game core, then the UI and the two carried-over extras.
 
-**Next action, in one sentence: build the game layer proper, as an append-only catch
-log plus XP and levels, the hatch roll, and a Pokédex view.**
+**Next action, in one sentence: play it for a few days and tune the prices,
+starting with the targeted pick, which is deliberately generous.** Nothing is
+half-built. What remains is judgement that only real play can supply, plus the two
+items still listed under "Still open" in DECISIONS.md.
 
-Phase 4's shape was decided with the user 2026-08-23 and is recorded in
-DECISIONS.md. Read that section before writing any of it; the short version:
+What the game does now:
 
-- Acquisition is **not purely random**. Weighted draws need ~109,800 hatches just to
-  see every base species, so duplicates convert into a targeted pick.
-- **Evolution-by-XP is in, stats are out.** One shared curve,
-  `totalXP(level) = 100 * level^2`, at 1 XP per 500 weighted tokens: level 100 is
-  1,000,000 XP and ~4.6 days. Graduation is level 100 for every species, so a
+- **Hatch** an egg for 300 coins. Draws from the 570 hatchable entries weighted on
+  raw `captureRate`, rolls shiny at 1/64 (1/48 with the charm) and sex from the
+  species' real gender rate.
+- **Raise** one Pokemon at a time. Every weighted token grants XP here *and* mints
+  a coin in the ledger, in parallel, never from a shared pool. Level 100 is 4.63
+  days at this machine's throughput.
+- **Evolve.** Item-free edges fire on their own and chain; item edges wait for the
+  stone; branching waits for the player. Shininess carries through.
+- **Two currencies.** Coins buy volume, Dust buys choice, and duplicates are the
+  only source of Dust. See DECISIONS.md for why, and for what was rejected.
+- **Browse** 1,083 tiles in the Dex tab, with per-variant slots and the evolution
+  requirements spelled out, including which ones are substitutions.
+- **Notifications** for the passive events only, and a **floating desktop pet**,
+  off by default.
+
+The economy in one line each, all recorded in DECISIONS.md with the measurement:
+
+- Acquisition is **not purely random**. Weighted draws need a median 110,218 hatches
+  to see every hatchable entry, so duplicates convert into a guaranteed pick.
+- **Evolution-by-XP is in, stats are out.** `totalXP(level) = 100 * level^2` at
+  1 XP per 500 weighted tokens. Graduation is level 100 for every species, so a
   non-evolving Pokémon is not a special case.
 - **XP and coins are parallel derivations of the same tokens, never a shared pool.**
-  Training and saving happen at once; there is no allocation choice to make.
 - **Raising time is the bottleneck, not coins.** One active Pokémon caps throughput
   at ~1.7 raises/day, so useful sinks buy time or certainty, not more eggs.
 - Switching Pokémon is **free, with no level gate**. The cost is losing that
-  individual's levels; the collection log keeps everything already earned.
-- "Caught" is an **append-only event log** with a derived per-species view, the same
-  shape as `UsageLedger`. No `nature` field: there is no stat raising to feed it.
-- A variant is ownable **iff its sprite file exists**. That is 2,368 distinct
-  sprites, not 1,083 x 4: only 102 entries have a distinct female sprite.
+  individual's levels; the log keeps everything already earned.
+- "Caught" is an **append-only event log** with the views derived, the same shape as
+  `UsageLedger`. No `nature` field: there is no stat raising to feed it.
+- A variant is ownable **iff its sprite file exists**: 2,368 sprites, not 1,083 x 4.
 - Shop keeps Rare Candy and Shiny Charm. **Mint is rejected**, not deferred.
-- The floating desktop pet, notifications, and a Pokédex view are all in scope.
 
-The app runs via `scripts/bundle.sh`: the status item shows an animated species
-sprite plus the coin count, and the popover shows coins, today's tokens with a
-per-model breakdown and the four token classes, all-time tokens, and the
-API-equivalent dollar figure. Verified against the live corpus, which had grown to
-33,799 coins over 1.88B tokens by the time the UI landed. The reference table above
-is the same day, measured earlier; the corpus grows while you work, which is the
-point of the properties-not-digits note.
+The app runs via `scripts/bundle.sh`. The status item shows the Pokemon being
+raised plus the coin count; the popover has four tabs (Raise, Dex, Shop, Usage) and
+a two-currency row above them. **Approved on screen by the user 2026-08-23**, which
+is the only way rendered pixels get verified here.
 
-**Phase 3 shipped the data layer only, not a dex browser.** The catalog, rarity,
-evolution, sprite resolution and the sprite cache are all in place and tested;
-there is no scrollable Pokédex UI and no notion of "caught" yet, because that is a
-Phase 4 decision. The status item is the only thing rendering a sprite, and it
-shows a deterministic daily pick via `Pokedex.featured(on:)`, which is the seam
-Phase 4 replaces with the player's active or most recently hatched Pokémon.
+`Pokedex.featured(on:)` survives, but only as the fallback for a collection with
+nothing in it yet: the status item follows the active Pokemon once there is one.
+That was the seam Phase 3 left, and it was used rather than deleted, because an
+empty menu bar on a fresh install is worse than a stranger.
 
 **Verified end to end, and signed off by the user 2026-08-22.** The bundled
 manifest loaded inside the app bundle, `featured(on:)` resolved to Glaceon (#471)
@@ -306,8 +365,9 @@ one band. Three were evaluated and all three did. The bands are a display label;
 the raw number behaves like a smooth weight. Measured distribution in DECISIONS.md.
 
 Views hold no logic. Everything they render goes through `UsageFormat`,
-`ModelIdentity` and `ModelBreakdown`, which is where the display behaviour is
-pinned by tests. Keep it that way: a fact asserted in a view body cannot be
+`ModelIdentity`, `ModelBreakdown` and `GameFormat`, which is where the display
+behaviour is pinned by tests, including an assertion that no em dash reaches
+user-facing copy. Keep it that way: a fact asserted in a view body cannot be
 tested in this toolchain.
 
 **Live plan limits: rejected, not deferred.** Do not propose it again, and do not
@@ -320,10 +380,6 @@ that came out of the original plan, is in DECISIONS.md.
 ## Deferred, with reasons in DECISIONS.md
 
 - Trends and burn-rate UI. Per-day data already accumulates in the ledger.
-- **Not deferred, correcting the Phase 3 close-out:** a Pokédex view *is* in scope
-  for Phase 4. The close-out logged it as deferred by misreading "no browser UI" as
-  declining a collection screen; the user was declining a *web app*, which was never
-  on the table.
 - Alternate forms beyond the 58 regionals (260 more sprites exist).
 - Parallelising the cold scan. One-time cost per install.
 - Code signing with a stable identity, and a LaunchAgent. The app bundle itself
@@ -332,11 +388,11 @@ that came out of the original plan, is in DECISIONS.md.
 
 ## Open questions for the user
 
-- **The targeted-pick price**, which decides whether the dex ever completes, and
-  whether duplicates refund coins or a separate scarce currency. Everything else in
-  the Phase 4 economy has a v1 value recorded in DECISIONS.md; these two are the
-  ones flagged as most likely wrong. Not worth settling before the loop runs.
-- `_audit_poketokenbar/` still sits in the parent directory. Phase 3 has landed and
-  took what it needed from it (`SpriteFit` and the content-crop idea, both
-  re-measured here rather than trusted). Safe to delete now; left in place only
-  because deleting a directory outside this repo is the user's call.
+- **The Dust prices**, which decide how long the tail of the dex takes. Set
+  deliberately generous with the user's agreement, on the grounds that harsher is
+  an easy change and "completion was never reachable" is not. Tune after playing.
+- **Whether level 100 needs a reward.** Graduation is currently its own trophy.
+- `_audit_poketokenbar/` still sits in the parent directory. Phase 3 took what it
+  needed from it and Phase 4 took the floating pet and the shop's shape. Safe to
+  delete now; left in place only because deleting a directory outside this repo is
+  the user's call.

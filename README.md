@@ -9,9 +9,9 @@ from it, marked in the source where it is.
 
 ## Status
 
-Phases 1, 2 and 3 are **complete**: usage engine, menu bar UI, and the Pokédex
-data layer. The game layer is designed and next to build. Live plan limits were considered and rejected,
-with reasons in [DECISIONS.md](DECISIONS.md).
+Phases 1 through 4 are **complete**: usage engine, menu bar UI, the Pokédex data
+layer, and the game. Live plan limits were considered and rejected, with reasons in
+[DECISIONS.md](DECISIONS.md).
 
 - [x] Bounded-memory JSONL streaming with resumable offsets
 - [x] Claude Code usage parser with keep-max dedup
@@ -23,13 +23,30 @@ with reasons in [DECISIONS.md](DECISIONS.md).
 - [x] Pokédex data layer, 1,083 collectible entries (98.7% animated)
 - [x] Permanent on-disk sprite cache, pinned to an immutable sprites commit
 - [x] An animated species sprite in the status item
-- [ ] Pokédex view (browse the collection in the popover)
-- [ ] Game layer: eggs, hatching, levels 1-100, evolution-by-XP, shop
+- [x] Evolution triggers, levels and items resolved into the manifest
+- [x] Game layer: eggs, hatching, levels 1-100, evolution-by-XP, two currencies
+- [x] Pokédex view, browse and claim from the popover
+- [x] Shop, notifications, and a floating desktop pet
 
-Phase 4 is **fully designed but not built**. The whole economy, the XP curve, and
-the evolution rules are recorded in [DECISIONS.md](DECISIONS.md) under "Game layer";
-read that before writing any of it. Two numbers are deliberately left open there as
-playtest-shaped.
+What is left is tuning rather than building. The Dust prices are deliberately
+generous and want a few days of real play; see "Still open" in
+[DECISIONS.md](DECISIONS.md).
+
+### The loop
+
+Every weighted token does two things at once: it mints coins in the ledger and
+grants XP to the Pokémon you are raising. They are parallel derivations, never a
+shared pool, so there is no allocation choice and no week of training followed by a
+week of saving.
+
+- **Coins** buy volume: eggs at 300, Rare Candy, evolution stones, the Shiny Charm.
+- **Dust** comes only from duplicate hatches and buys choice: name an entry and be
+  given it, or re-roll a species you own for a variant you do not. That guaranteed
+  path is what makes the dex finishable at all. Random draws alone need a median
+  110,218 hatches.
+- **Level 100 is graduation**, for every species, in about 4.6 days of this
+  machine's usage. Evolution is an event along the climb rather than the goal of
+  it, so a Pokémon that never evolves is not a special case.
 
 ## Requirements
 
@@ -74,6 +91,10 @@ Three worth knowing up front:
 - **The dex is a build-time manifest, and its sprite URLs are pinned to a commit.**
   Sprites are served with `cache-control: max-age=300`, so the disk cache is only
   correct because a pinned URL's bytes cannot change.
+- **The collection is an append-only log**, the same shape as the usage ledger, so
+  "what did I catch in July" and "what is my actual shiny rate" are answerable
+  without changing what is stored. Completion is over the 2,368 sprites that exist,
+  not 1,083 x 4: only 102 entries look different by gender.
 
 ## Privacy
 

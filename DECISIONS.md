@@ -798,16 +798,22 @@ is actually playable.
 |---|---|---|
 | Egg | **300 coins** | ~6.7 h of usage. Cheap on purpose: eggs must never be the bottleneck, since raising time already is. Leaves ~580 coins/day for everything else at level-36 swapping |
 | Rare Candy | **250 coins** for 10,000 XP | The most important sink, because it buys the scarce resource. 1 coin of accrual equals 200 XP, so 10,000 XP is "worth" 50 coins; the 5x markup is upstream's, and makes candy a luxury. Naturally strong early (+4.1 levels at L10) and weak late (+0.6 at L90), like the games |
-| Evolution stones | **400 coins** | 25 items, gating 69 entries |
-| Linking Cord | **400 coins** | Gates 27 entries |
+| Evolution stones | **400 coins** | 23 items, gating 69 edges |
+| Linking Cord | **400 coins** | Gates 26 edges |
 | Shiny Charm | **30,000 coins** | Upstream's price, ~28 days. Passive, permanent, so it should be a genuine commitment |
-| Targeted pick | **200 x (255 / captureRate)** | 200 coins for a Caterpie-tier entry, ~1,100 at the median, ~17,000 for a capture-rate-3 legendary. **This is the number most likely to be wrong** and should be tuned first |
+| Targeted pick | **Dust, priced on the band** | Superseded. Priced in coins here at 200 x (255 / captureRate); the currency and the scale both changed when the user settled duplicates, and the table that shipped is in "Settled 2026-08-23" below |
+| Targeted re-roll | **A tenth of the pick** | Added when the loop was built. Same section |
+
+As shipped, the pick is Dust rather than coins: 10 for a common up to 300 for a
+mythical, against ~7 Dust/day of duplicate income. The reasoning is below, and the
+item and edge counts in this table were corrected from 25/27 when the manifest was
+regenerated with real triggers.
 
 The targeted pick is what makes the dex completable at all, so its price sets the
-endgame. Random hatching alone needs a median **110,218 hatches** to see every base
-species once (29x worse than uniform, because the rarest entries are largely
-non-evolving legendaries that stay in the hatchable pool). Restricting draws to base
-species only improved that by a mere 1.5x over drawing from the full 1,083. Luck
+endgame. Random hatching alone needs a median **110,218 hatches** to see every
+hatchable entry once (27x worse than uniform, because the rarest entries are largely
+non-evolving legendaries that stay in the hatchable pool). Restricting draws to the
+hatchable 570 improved that by a mere 1.6x over drawing from the full 1,083. Luck
 handles the bulk; only the targeted path closes the tail.
 
 ---
@@ -829,17 +835,104 @@ that, not declining a way to look at the collection. There is no web anything in
 this project. The view is a screen inside the menu bar popover for browsing what has
 been collected.
 
+### Settled 2026-08-23, when the loop was built
+
+Both of the open economy questions were put to the user before the model was
+written, because both change the shape of the code rather than the value of a
+constant.
+
+**Duplicates mint a second currency, Dust.** The user's call, from two options.
+Coins already accrue at ~1,080/day whether or not the app is being played, so a
+coin refund for a duplicate is a rounding error you would never notice, and the
+guaranteed path would be funded by idling rather than by playing. A separate
+currency fixes both: it is minted only by hatching, so it accrues at the rate you
+actually play, and it makes the tail of the dex something you work toward.
+
+**The split is coins buy volume, Dust buys choice, and neither substitutes for
+the other.** Coins keep eggs, Rare Candy, stones, the Linking Cord and the Shiny
+Charm. Dust buys exactly two things, and they are the same mechanism aimed at
+different targets:
+
+| | What it does |
+|---|---|
+| **Targeted pick** | Name an entry you do not own and be given it, in its plain sprite. The only reason the dex is completable |
+| **Targeted re-roll** | Hatch a species you already own again, for a shot at a variant you do not. This is the shiny hunt |
+
+Two alternatives were offered and declined: letting Dust also buy Rare Candy
+(rejected because two ways to buy candy makes the dearer one dead), and moving the
+Shiny Charm onto Dust (rejected; it stays a coin purchase).
+
+**Only egg hatches mint Dust.** Not a taste decision, an exploit. Dust pays out on
+the raw capture rate, so a duplicate legendary is worth 85 while a re-roll of one
+costs 25: if re-rolls paid out they would print money on exactly the entries the
+price exists to protect. Evolutions and targeted picks pay nothing either, for the
+weaker reason that neither is a roll.
+
+**Dust income is 1.97 per duplicate, about 7 a day.** Derived, not guessed. Payout
+is `255 / captureRate` and the draw is weighted on `captureRate`, so the expected
+yield collapses to `255 x 570 / sum(captureRate)`: the weighting that makes rare
+things rare makes them rare in the duplicate stream too. At 3.6 eggs/day, which is
+what 1,080 coins buys at 300 each, that is ~7 Dust/day once most hatches are
+duplicates.
+
+**The pick is priced on the rarity band, which is the reverse of the hatch
+weighting, and deliberately.** The raw rate spans 85x, so pricing on it puts a
+legendary at ~85 days of duplicates against a common's one. A price is a thing you
+read, not a weight you sample, so it gets the quantized band the raw number is too
+lumpy for.
+
+| Band | Dust | Days at ~7/day |
+|---|---|---|
+| common | 10 | 1.4 |
+| uncommon | 20 | 3 |
+| rare (the median band, 493 entries) | 50 | 7 |
+| epic | 100 | 14 |
+| legendary | 250 | 36 |
+| mythical | 300 | 43 |
+
+The user chose **generous, to be tuned down**: it is easier to make this harsher
+once the loop is playable than to find out a year in that completion was never
+reachable. A re-roll is a tenth of the pick, so a 1/64 shiny hunt on a rare species
+is ~320 Dust, a long project rather than an afternoon.
+
+**Auto-evolution fires only for a single item-free edge.** The games' behaviour and
+the only safe rule. A stone is a thing you choose to use, so an item edge never
+fires on its own no matter how high the level goes. Where several item-free edges
+are satisfied at once, nothing fires and the choice is the player's, which is not
+an edge case worth glossing over: Eevee has three at level 36, Wurmple two at 7,
+Tyrogue three at 20. The resolution loops, because one credit can cross two
+thresholds and a Rare Candy at level 5 takes a Caterpie past both 7 and 10.
+
+**Shininess carries through evolution**, which is the only way a shiny Charizard
+slot can ever be filled: eggs draw from the hatchable pool and Charizard is not in
+it.
+
+**Notifications are quiet by default.** What earns an alert is an event that
+happens on its own while the window is closed, which is the set token accrual
+drives: an evolution, a graduation, and a choice now waiting. A shiny is the one
+exception, and only at the roll. Level ups are excluded on volume alone, at 99 per
+climb. A notification for something the player just clicked arrives second to the
+result already on screen, which is how an app gets its notifications turned off.
+Permission is requested lazily, on the first thing worth posting.
+
+**The desktop pet is an `NSPanel`, not a SwiftUI `Window`.** Three requirements
+SwiftUI has no vocabulary for: float above ordinary windows without stealing focus
+(`.nonactivatingPanel` at `.floating`), follow the user across Spaces
+(`.canJoinAllSpaces`), and be dragged by a transparent background
+(`isMovableByWindowBackground`). Off by default, because an always-on-top window
+is a thing a user asks for rather than one that appears.
+
+**Dex detail replaces the grid in place; it is not a sheet.** A `MenuBarExtra`
+window closes on focus loss, which is exactly what presenting a sheet from it does.
+
+**Unseen dex entries draw a glyph, not a greyed sprite.** Two reasons that happen
+to agree: it keeps the dex a thing you fill in, and it stops browsing from pulling
+2,368 sprite files for Pokemon nobody has caught.
+
 ### Still open
 
-The raising question is settled (evolution-by-XP stays, stats do not), and the XP
-curve is derived rather than guessed. What remains is genuinely playtest-shaped:
-
-- **The targeted-pick price.** Named again here because it is the one number that
-  decides whether the dex ever completes, and the one most likely to be wrong.
-- **Duplicate handling.** A duplicate should refund something, but whether that is
-  coins or a second currency is undecided. Coins are already abundant, which argues
-  for a separate scarce currency; one currency argues for fewer concepts. Not worth
-  resolving before the loop runs.
+- **Whether the pick prices are right.** They are deliberately generous and the
+  user expects to tune them down. That is a judgement only play can make.
 - **Whether level 100 needs a reward.** Right now graduation is its own trophy. If
   the last 2.7 days of a climb feel empty in practice, that is where to look.
 
