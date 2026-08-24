@@ -47,16 +47,17 @@ struct CompanionView: View {
                 StarterPickerView(game: game, store: store, onError: onError)
             } else {
                 teamHeader
+                teamGrid
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
                         if let selected {
-                            card(slot: selected.slot, raise: selected.raise, entry: selected.entry)
+                            selectedDetail(
+                                slot: selected.slot, raise: selected.raise, entry: selected.entry)
                             everstoneToggle(raise: selected.raise, entry: selected.entry)
                         } else {
                             emptyState
                         }
                         evolutionActions
-                        otherSlots
                         bench
                     }
                     .padding(.trailing, 4)
@@ -97,34 +98,145 @@ struct CompanionView: View {
         }
     }
 
+    // MARK: The team
+
+    /// All six slots, always, in slot order. **Uniform cards in a 2 x 3 grid**,
+    /// because the first version showed the lead as a big card and the rest as
+    /// thin rows, and the rows read as neither equal members nor as clickable.
+    /// Every slot now looks like every other slot, empty ones included, which is
+    /// also what makes the order legible enough to rearrange.
+    ///
+    /// Two columns rather than three: at 312pt a third column leaves ~100pt per
+    /// card, which truncates a name like "Charizard" beside a level.
+    private var teamGrid: some View {
+        let members = game.teamMembers
+        return LazyVGrid(
+            columns: Array(
+                repeating: GridItem(.flexible(), spacing: PopoverMetrics.TeamGrid.spacing),
+                count: PopoverMetrics.TeamGrid.columns),
+            spacing: PopoverMetrics.TeamGrid.spacing
+        ) {
+            ForEach(0..<Trainer.teamCapacity, id: \.self) { slot in
+                if slot < members.count {
+                    slotCard(members[slot])
+                } else {
+                    emptySlot(slot)
+                }
+            }
+        }
+    }
+
+    private func slotCard(_ member: (slot: Int, raise: Raise, entry: DexEntry)) -> some View {
+        let isSelected = selected?.raise.id == member.raise.id
+        return Button {
+            selectedID = member.raise.id
+        } label: {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 3) {
+                    if member.slot == 0 {
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 7))
+                            .foregroundStyle(.yellow)
+                    }
+                    Text(GameFormat.slotLabel(member.slot).uppercased())
+                        .font(.system(size: 8, weight: .semibold))
+                        .foregroundStyle(.tertiary)
+                        .tracking(0.4)
+                    Spacer()
+                    if member.raise.shiny {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.yellow)
+                            .accessibilityLabel("Shiny")
+                    }
+                }
+                HStack(spacing: 6) {
+                    if let dex = game.dex {
+                        SpriteTile(
+                            entry: member.entry, variant: member.raise.variant(in: dex),
+                            dex: dex, store: store, height: 30)
+                            .frame(width: 34)
+                    }
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(member.entry.name)
+                            .font(.caption.weight(.medium))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                        Text(GameFormat.level(member.raise.level))
+                            .font(.system(size: 9))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Spacer(minLength: 0)
+                }
+                ProgressView(value: GameFormat.levelProgress(totalXP: member.raise.totalXP))
+                    .progressViewStyle(.linear)
+                    .tint(member.raise.isGraduated ? .orange : .green)
+                    .scaleEffect(y: 0.7, anchor: .center)
+            }
+            .padding(7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(isSelected ? Color.accentColor.opacity(0.16) : Color.primary.opacity(0.06)))
+            .overlay(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(isSelected ? Color.accentColor : .clear, lineWidth: 1.5))
+        }
+        .buttonStyle(.plain)
+        // Drag one card onto another to exchange their slots. Swap rather than
+        // insert-and-shift, so dropping onto the lead promotes exactly one
+        // Pokemon and demotes exactly one.
+        .draggable(member.raise.id.uuidString) {
+            Text(member.entry.name).font(.caption)
+        }
+        .dropDestination(for: String.self) { items, _ in
+            guard let dragged = items.first.flatMap(UUID.init(uuidString:)),
+                  dragged != member.raise.id
+            else { return false }
+            do { try game.swapSlots(dragged, member.raise.id) } catch { onError(error) }
+            return true
+        }
+        .accessibilityLabel(
+            "\(member.entry.name), \(GameFormat.slotLabel(member.slot)), "
+                + GameFormat.level(member.raise.level))
+        .accessibilityHint("Select to candy, hold or bench. Drag onto another slot to swap.")
+    }
+
+    private func emptySlot(_ slot: Int) -> some View {
+        VStack(spacing: 3) {
+            Image(systemName: "plus")
+                .font(.system(size: 11))
+                .foregroundStyle(.tertiary)
+            Text("Empty")
+                .font(.system(size: 9))
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: PopoverMetrics.TeamGrid.cardHeight)
+        .background(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(Color.primary.opacity(0.03)))
+        .overlay(
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .strokeBorder(
+                    Color.primary.opacity(0.12),
+                    style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
+        .accessibilityLabel("\(GameFormat.slotLabel(slot)), empty")
+    }
+
     // MARK: The selected member
 
-    private func card(slot: Int, raise: Raise, entry: DexEntry) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 10) {
-                if let dex = game.dex {
-                    SpriteTile(
-                        entry: entry, variant: raise.variant(in: dex), dex: dex, store: store,
-                        height: 52)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 5) {
-                        Text(entry.name)
-                            .font(.headline)
-                        if raise.shiny {
-                            Image(systemName: "sparkles")
-                                .font(.caption)
-                                .foregroundStyle(.yellow)
-                                .accessibilityLabel("Shiny")
-                        }
-                    }
-                    Text("\(GameFormat.level(raise.level)) · \(entry.rarity.label)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text("\(GameFormat.slotLabel(slot)) · \(GameFormat.shareLine(slot: slot, expShare: game.trainer.expShareActive))")
-                        .font(.system(size: 9))
-                        .foregroundStyle(.tertiary)
-                }
+    /// The detail for whichever card is selected: the bar the grid has no room
+    /// for, and the three things that have to be aimed at one Pokemon.
+    private func selectedDetail(slot: Int, raise: Raise, entry: DexEntry) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 5) {
+                Text(entry.name)
+                    .font(.subheadline.weight(.semibold))
+                Text("\(GameFormat.slotLabel(slot)) · \(GameFormat.shareLine(slot: slot, expShare: game.trainer.expShareActive))")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
                 Spacer()
             }
 
@@ -227,67 +339,6 @@ struct CompanionView: View {
                 }
             }
         }
-    }
-
-    // MARK: The rest of the team
-
-    /// Every slot except the one the card is showing. Tap to bring it into the
-    /// card, which is also how it becomes the target for the Rare Candy and the
-    /// Everstone.
-    @ViewBuilder
-    private var otherSlots: some View {
-        let others = game.teamMembers.filter { $0.raise.id != selected?.raise.id }
-        if !others.isEmpty {
-            VStack(alignment: .leading, spacing: 3) {
-                ForEach(others, id: \.raise.id) { member in
-                    memberRow(slot: member.slot, raise: member.raise, entry: member.entry)
-                }
-            }
-        }
-    }
-
-    private func memberRow(slot: Int, raise: Raise, entry: DexEntry) -> some View {
-        Button {
-            selectedID = raise.id
-        } label: {
-            HStack(spacing: 8) {
-                if let dex = game.dex {
-                    SpriteTile(
-                        entry: entry, variant: raise.variant(in: dex), dex: dex, store: store,
-                        height: 26)
-                }
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: 4) {
-                        Text(entry.name)
-                            .font(.caption.weight(.medium))
-                        if raise.shiny {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 8))
-                                .foregroundStyle(.yellow)
-                                .accessibilityLabel("Shiny")
-                        }
-                    }
-                    Text("\(GameFormat.slotLabel(slot)) · \(GameFormat.level(raise.level)) · \(GameFormat.shareLine(slot: slot, expShare: game.trainer.expShareActive))")
-                        .font(.system(size: 9))
-                        .foregroundStyle(.tertiary)
-                }
-                Spacer()
-                ProgressView(value: GameFormat.levelProgress(totalXP: raise.totalXP))
-                    .progressViewStyle(.linear)
-                    .tint(raise.isGraduated ? .orange : .green)
-                    .frame(width: 44)
-            }
-            .padding(.vertical, 3)
-            .padding(.horizontal, 6)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(Color.primary.opacity(0.05)))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(
-            "\(entry.name), \(GameFormat.slotLabel(slot)), \(GameFormat.level(raise.level))")
-        .accessibilityHint("Select to raise, candy or hold")
     }
 
     /// Everyone not currently training, best first. **The screen the roster

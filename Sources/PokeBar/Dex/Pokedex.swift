@@ -20,6 +20,9 @@ struct Pokedex: Sendable {
     private let byID: [Int: DexEntry]
     private let bySlug: [String: DexEntry]
     private let gatedIDs: Set<Int>
+    /// Target -> what evolves into it. The reverse of the edge set, so "where does
+    /// this one come from" is a lookup rather than a search.
+    private let parentIDs: [Int: Int]
 
     init(manifest: DexManifest) {
         self.spritesCommit = manifest.spritesCommit
@@ -27,6 +30,9 @@ struct Pokedex: Sendable {
         self.byID = Dictionary(uniqueKeysWithValues: manifest.entries.map { ($0.id, $0) })
         self.bySlug = Dictionary(uniqueKeysWithValues: manifest.entries.map { ($0.slug, $0) })
         self.gatedIDs = Set(manifest.entries.flatMap(\.evolvesTo))
+        self.parentIDs = Dictionary(
+            manifest.entries.flatMap { entry in entry.evolvesTo.map { ($0, entry.id) } },
+            uniquingKeysWith: { first, _ in first })
     }
 
     // MARK: - Loading
@@ -90,6 +96,23 @@ struct Pokedex: Sendable {
 
     /// Whether `entry` can only be obtained by evolving something else.
     func isEvolutionGated(_ entry: DexEntry) -> Bool { gatedIDs.contains(entry.id) }
+
+    /// The bottom of this entry's line: itself when nothing evolves into it.
+    ///
+    /// Walks the reverse edges, which is also why it is bounded: a chain here is
+    /// three long at most, and the visited set makes a malformed cycle terminate
+    /// rather than hang the app.
+    func baseForm(of entry: DexEntry) -> DexEntry {
+        var current = entry
+        var visited: Set<Int> = [entry.id]
+        while let parentID = parentIDs[current.id], !visited.contains(parentID),
+              let parent = byID[parentID]
+        {
+            visited.insert(parentID)
+            current = parent
+        }
+        return current
+    }
 
     /// What `entry` evolves into, resolved through the pool.
     ///

@@ -153,6 +153,13 @@ struct DexView: View {
 /// a detail hung off it: at 44pt across a grid of 1,083, a border reads at a
 /// glance where a 7pt glyph does not.
 ///
+/// **A halo, not a border.** The first version was a crisp 1.5pt stroke and it
+/// was caught on screen reading as *selection*, because a crisp rounded rect
+/// around one tile in a grid is what selection looks like, and macOS draws the
+/// focus ring the same way. So the hard edge is now a whisper and the mark is
+/// carried by a blurred stroke that bleeds outward: a glow is not a state, and
+/// nothing else in this grid glows.
+///
 /// Only the highest mark is ever drawn, so gold replaces silver rather than
 /// stacking with it. Everything at 100 passed 50 on the way, and two rings would
 /// say the same thing twice.
@@ -178,13 +185,28 @@ struct MilestoneRing: View {
         level >= XPCurve.maxLevel ? .yellow : Color(white: 0.85)
     }
 
+    private var isGold: Bool { level >= XPCurve.maxLevel }
+
+    private var gradient: LinearGradient {
+        LinearGradient(colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
     var body: some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .strokeBorder(
-                LinearGradient(
-                    colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing),
-                lineWidth: 1.5)
-            .shadow(color: glow.opacity(level >= XPCurve.maxLevel ? 0.5 : 0.35), radius: 3)
+        ZStack {
+            // The halo. A wide stroke, blurred, so it reads as light coming off
+            // the tile rather than as a line drawn around it. Tile spacing in the
+            // grid is 6pt, so the bleed stays inside its own cell.
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .stroke(gradient, lineWidth: 3)
+                .blur(radius: 3)
+                .opacity(isGold ? 0.95 : 0.8)
+            // Just enough hard edge to give the glow something to sit on. At 0.6pt
+            // this is half the weight of the version that read as selection.
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(gradient.opacity(isGold ? 0.55 : 0.4), lineWidth: 0.6)
+        }
+        .shadow(color: glow.opacity(isGold ? 0.55 : 0.4), radius: 5)
+        .allowsHitTesting(false)
     }
 }
 
@@ -329,20 +351,79 @@ struct DexDetailView: View {
         }
     }
 
+    /// Bringing one back off the bench, and buying another.
+    ///
+    /// **Nothing here conjures a Pokemon out of nothing**, which is the rule this
+    /// pane was rebuilt around. "Add to team" only ever offers individuals that
+    /// already exist, and a brand new one has to be *hatched*, at a price, and only
+    /// at the bottom of its line: a Charmeleon is a Charmander that grew, so the
+    /// Charmeleon tile says so instead of offering to sell you one.
+    @ViewBuilder
+    private func teamOffers(_ options: Trainer.DexOptions) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let title = GameFormat.addToTeamTitle(options) {
+                HStack(spacing: 8) {
+                    if options.resumable.count == 1, let only = options.resumable.first {
+                        Button(title) { run { try game.resume(raiseID: only.id) } }
+                            .disabled(!options.teamHasRoom)
+                    } else {
+                        Menu(title) {
+                            ForEach(options.resumable) { candidate in
+                                Button(GameFormat.candidateRow(candidate)) {
+                                    run { try game.resume(raiseID: candidate.id) }
+                                }
+                            }
+                        }
+                        .disabled(!options.teamHasRoom)
+                        .fixedSize()
+                    }
+                    Spacer()
+                }
+                .controlSize(.small)
+                if let refusal = GameFormat.addToTeamRefusal(options) {
+                    caption(refusal)
+                }
+            }
+
+            if let price = options.hatchAnother {
+                Menu("Hatch another") {
+                    Button(GameFormat.hatchAnotherCoinsRow(price)) {
+                        run { try game.hatchAnother(entryID: entry.id, paying: .coins) }
+                    }
+                    .disabled(game.coins < price.coins)
+                    Button(GameFormat.hatchAnotherDustRow(price)) {
+                        run { try game.hatchAnother(entryID: entry.id, paying: .dust) }
+                    }
+                    .disabled(game.dust < price.dust)
+                }
+                .controlSize(.small)
+                .fixedSize()
+                caption("A second one of this exact species, at level 1, to raise alongside the rest.")
+            } else if let baseFormID = options.baseFormID,
+                      let base = game.entry(id: baseFormID) {
+                caption(GameFormat.comesFromLine(baseFormName: base.name))
+            }
+
+            if let note = GameFormat.onTeamNote(options) { caption(note) }
+        }
+    }
+
+    private func caption(_ text: String) -> some View {
+        Text(text)
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
     private var actions: some View {
         VStack(alignment: .leading, spacing: 6) {
             if seen {
-                // The button says which of the two things it will do before it is
-                // pressed. "Resume at level 47" and "Raise a new one" are very
-                // different, and behind one unlabelled click a stray press
-                // silently starts a fresh level 1 individual.
-                let action = game.raiseAction(entryID: entry.id)
+                // Three separate offers, not one button doing three things. Which
+                // ones exist is decided in `Trainer.dexOptions`, because a rule
+                // asserted in a view body cannot be tested.
+                let options = game.dexOptions(entryID: entry.id)
+                teamOffers(options)
                 HStack(spacing: 8) {
-                    Button(GameFormat.raiseActionTitle(action)) {
-                        run { try game.raiseOrResume(entryID: entry.id) }
-                    }
-                    .disabled(!GameFormat.canRaise(action))
-
                     Button("Re-roll for \(Prices.reroll(entry.rarity)) Dust") {
                         run { try game.reroll(entryID: entry.id) }
                     }

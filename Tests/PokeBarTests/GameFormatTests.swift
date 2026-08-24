@@ -215,20 +215,105 @@ final class GameFormatTests: XCTestCase {
             try XCTUnwrap(GameFormat.wastedSlotNote(graduated: 3)).hasPrefix("3 graduated Pokemon are"))
     }
 
-    /// The Dex button says which of two very different things it will do.
-    func testRaiseActionTitles() {
-        let id = UUID()
-        XCTAssertEqual(
-            GameFormat.raiseActionTitle(.resume(raiseID: id, level: 47)), "Resume at level 47")
-        XCTAssertEqual(GameFormat.raiseActionTitle(.startNew), "Raise a new one")
-        XCTAssertEqual(GameFormat.raiseActionTitle(.alreadyRaising), "On your team")
-        XCTAssertEqual(GameFormat.raiseActionTitle(.teamFull), "Team is full")
-        XCTAssertEqual(GameFormat.raiseActionTitle(.notOwned), "Not caught yet")
+    /// The Dex offers only what exists. No button at all when there is nobody to
+    /// bring back, because a disabled control with no explanation is worse than
+    /// no control.
+    func testAddToTeamOnlyAppearsWhenSomebodyCanCome() {
+        var options = Trainer.DexOptions()
+        XCTAssertNil(GameFormat.addToTeamTitle(options), "nothing benched, no button")
 
-        XCTAssertTrue(GameFormat.canRaise(.resume(raiseID: id, level: 1)))
-        XCTAssertTrue(GameFormat.canRaise(.startNew))
-        for refusal: Trainer.RaiseAction in [.alreadyRaising, .teamFull, .notOwned] {
-            XCTAssertFalse(GameFormat.canRaise(refusal), "\(refusal)")
+        options.resumable = [Trainer.Candidate(id: UUID(), level: 47, variant: .normal)]
+        options.benchedTotal = 1
+        XCTAssertEqual(GameFormat.addToTeamTitle(options), "Add to team")
+        XCTAssertNil(GameFormat.addToTeamRefusal(options))
+
+        options.resumable.append(
+            Trainer.Candidate(id: UUID(), level: 12, variant: .shiny))
+        options.benchedTotal = 2
+        XCTAssertEqual(GameFormat.addToTeamTitle(options), "Add to team (2 benched)")
+
+        // The menu is capped but the count is not: it says how many are really
+        // there, and shows the six worth choosing between.
+        options.benchedTotal = 20
+        XCTAssertEqual(GameFormat.addToTeamTitle(options), "Add to team (20 benched)")
+
+        options.teamHasRoom = false
+        XCTAssertEqual(
+            GameFormat.addToTeamRefusal(options),
+            "Your team is full at 6. Bench one first.")
+    }
+
+    func testCandidateRowsNameTheVariantAndLevel() {
+        XCTAssertEqual(
+            GameFormat.candidateRow(
+                Trainer.Candidate(id: UUID(), level: 47, variant: .normal)),
+            "Normal, level 47")
+        XCTAssertEqual(
+            GameFormat.candidateRow(
+                Trainer.Candidate(id: UUID(), level: 5, variant: .shiny)),
+            "Shiny, level 5")
+    }
+
+    func testOnTeamNoteCountsWhatIsAlreadyTraining() {
+        var options = Trainer.DexOptions()
+        XCTAssertNil(GameFormat.onTeamNote(options))
+        options.onTeam = 1
+        XCTAssertEqual(GameFormat.onTeamNote(options), "One is on your team.")
+        options.onTeam = 3
+        XCTAssertEqual(GameFormat.onTeamNote(options), "3 of these are on your team.")
+    }
+
+    /// The line that answers "why is there a Hatch another button on Charmeleon":
+    /// there is not, and this says what to do instead.
+    func testTheEvolvedFormExplainsItself() {
+        XCTAssertEqual(
+            GameFormat.comesFromLine(baseFormName: "Charmander"),
+            "Only Charmander can be hatched. This one is reached by raising it.")
+        let price = Trainer.DexOptions.Price(coins: 3_000, dust: 25)
+        XCTAssertEqual(GameFormat.hatchAnotherCoinsRow(price), "3,000 coins")
+        XCTAssertEqual(GameFormat.hatchAnotherDustRow(price), "25 Dust")
+    }
+
+    // MARK: Celebrations
+
+    /// A 300 coin egg used to announce itself as one grey line in a four-row
+    /// feed, under the button that bought it.
+    func testCelebrationSaysWhatHappenedAndWhereItWent() {
+        let hatched = Celebration(
+            entryID: 204, variant: .normal, source: .hatch, isNew: true, dust: 0, slot: 1)
+        XCTAssertEqual(GameFormat.celebrationTitle(hatched, name: "Pineco"), "Hatched Pineco")
+        XCTAssertEqual(
+            GameFormat.celebrationSubtitle(hatched),
+            "New to the dex. It joins your team in slot 2.")
+
+        let duplicate = Celebration(
+            entryID: 10, variant: .normal, source: .hatch, isNew: false, dust: 3, slot: 0)
+        XCTAssertEqual(
+            GameFormat.celebrationSubtitle(duplicate),
+            "You already had this one. Traded the duplicate for 3 Dust. It is your lead now.")
+
+        let benched = Celebration(
+            entryID: 10, variant: .normal, source: .another, isNew: false, dust: 0, slot: nil)
+        XCTAssertEqual(GameFormat.celebrationTitle(benched, name: "Caterpie"), "Another Caterpie")
+        XCTAssertTrue(
+            GameFormat.celebrationSubtitle(benched).hasSuffix(
+                "Your team is full, so it is waiting on the bench."))
+    }
+
+    /// The one place this app raises its voice, and it has to be earned.
+    func testOnlyAShinyGetsAnExclamationMark() {
+        let plain = Celebration(
+            entryID: 25, variant: .normal, source: .hatch, isNew: true, dust: 0, slot: 0)
+        let shiny = Celebration(
+            entryID: 25, variant: .shiny, source: .hatch, isNew: true, dust: 0, slot: 0)
+        XCTAssertEqual(GameFormat.celebrationTitle(plain, name: "Pikachu"), "Hatched Pikachu")
+        XCTAssertEqual(GameFormat.celebrationTitle(shiny, name: "Pikachu"), "Shiny Pikachu!")
+
+        for source: CatchSource in [.starter, .targetedPick, .reroll, .another] {
+            let event = Celebration(
+                entryID: 25, variant: .normal, source: source, isNew: true, dust: 0, slot: 0)
+            XCTAssertFalse(
+                GameFormat.celebrationTitle(event, name: "Pikachu").hasSuffix("!"), "\(source)")
         }
     }
 
@@ -291,8 +376,22 @@ final class GameFormatTests: XCTestCase {
             GameFormat.slotLabel(2),
             GameFormat.shareLine(slot: 1, expShare: false),
             GameFormat.wastedSlotNote(graduated: 2) ?? "",
-            GameFormat.raiseActionTitle(.resume(raiseID: UUID(), level: 9)),
-            GameFormat.raiseActionTitle(.teamFull),
+            GameFormat.addToTeamTitle(
+                Trainer.DexOptions(
+                    resumable: [Trainer.Candidate(id: UUID(), level: 9, variant: .shiny)]))
+                ?? "",
+            GameFormat.comesFromLine(baseFormName: "Charmander"),
+            GameFormat.candidateRow(Trainer.Candidate(id: UUID(), level: 9, variant: .shiny)),
+            GameFormat.onTeamNote(Trainer.DexOptions(onTeam: 2)) ?? "",
+            GameFormat.celebrationTitle(
+                Celebration(
+                    entryID: 25, variant: .shiny, source: .hatch, isNew: true, dust: 2, slot: 1),
+                name: "Pikachu"),
+            GameFormat.celebrationSubtitle(
+                Celebration(
+                    entryID: 25, variant: .shiny, source: .hatch, isNew: false, dust: 2,
+                    slot: nil)),
+            GameFormat.describe(Trainer.GameError.notABaseForm(5)),
             GameFormat.benchOverflowNote(total: 40) ?? "",
             GameFormat.rareCandyTarget("Lapras"),
             GameFormat.rareCandyTarget(nil),

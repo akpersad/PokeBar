@@ -96,24 +96,60 @@ enum GameFormat {
         return "\(subject) taking a team slot and earning nothing. Bench to free the share."
     }
 
-    /// What the Dex button will do, said before it is pressed.
-    static func raiseActionTitle(_ action: Trainer.RaiseAction) -> String {
-        switch action {
-        case .resume(_, let level): "Resume at level \(level)"
-        case .startNew: "Raise a new one"
-        case .alreadyRaising: "On your team"
-        case .teamFull: "Team is full"
-        case .notOwned: "Not caught yet"
+    // MARK: The Dex offers
+
+    /// "Add to team", or why it is off. Nil when there is nobody to add, which is
+    /// the case where the button should not be drawn at all rather than drawn
+    /// dead: a disabled control with no explanation is worse than no control.
+    static func addToTeamTitle(_ options: Trainer.DexOptions) -> String? {
+        guard !options.resumable.isEmpty else { return nil }
+        return options.benchedTotal == 1
+            ? "Add to team" : "Add to team (\(options.benchedTotal) benched)"
+    }
+
+    /// Why "Add to team" is disabled, or nil when it is not.
+    static func addToTeamRefusal(_ options: Trainer.DexOptions) -> String? {
+        guard !options.resumable.isEmpty, !options.teamHasRoom else { return nil }
+        return "Your team is full at \(Trainer.teamCapacity). Bench one first."
+    }
+
+    /// One benched individual, as a menu row: "Shiny, level 47".
+    static func candidateRow(_ candidate: Trainer.Candidate) -> String {
+        "\(variantLabel(candidate.variant)), level \(candidate.level)"
+    }
+
+    static func variantLabel(_ variant: SpriteVariant) -> String {
+        switch (variant.shiny, variant.female) {
+        case (false, false): "Normal"
+        case (true, false): "Shiny"
+        case (false, true): "Female"
+        case (true, true): "Shiny female"
         }
     }
 
-    /// Whether that button should be pressable. The two refusals are states, not
-    /// errors: the player is being told why, not stopped with a message.
-    static func canRaise(_ action: Trainer.RaiseAction) -> Bool {
-        switch action {
-        case .resume, .startNew: true
-        case .alreadyRaising, .teamFull, .notOwned: false
+    /// How many of this entry are already training, for the line under the button.
+    static func onTeamNote(_ options: Trainer.DexOptions) -> String? {
+        switch options.onTeam {
+        case 0: nil
+        case 1: "One is on your team."
+        default: "\(options.onTeam) of these are on your team."
         }
+    }
+
+    /// The two ways to pay for another one.
+    static func hatchAnotherCoinsRow(_ price: Trainer.DexOptions.Price) -> String {
+        "\(UsageFormat.groupedInt(price.coins)) coins"
+    }
+
+    static func hatchAnotherDustRow(_ price: Trainer.DexOptions.Price) -> String {
+        "\(UsageFormat.groupedInt(price.dust)) Dust"
+    }
+
+    /// Why an evolved form cannot be bought, naming what to buy instead. This is
+    /// the line that answers "there is a button on Charmeleon and there should
+    /// not be": a Charmeleon is a Charmander that grew.
+    static func comesFromLine(baseFormName: String) -> String {
+        "Only \(baseFormName) can be hatched. This one is reached by raising it."
     }
 
     /// How many bench rows the Raise pane draws before it summarises.
@@ -152,6 +188,41 @@ enum GameFormat {
         case false:
             return "Off. Bench slots are back to \(multiplier(XPCurve.benchShare)) each, so a full team is \(full) XP."
         }
+    }
+
+    // MARK: Celebrations
+
+    /// "Shiny Pineco!" The exclamation mark is earned by a 1 in 64 roll and by
+    /// nothing else, so it is the one place this app raises its voice.
+    static func celebrationTitle(_ celebration: Celebration, name: String) -> String {
+        if celebration.variant.shiny { return "Shiny \(name)!" }
+        switch celebration.source {
+        case .starter: return "\(name) joins you"
+        case .hatch: return "Hatched \(name)"
+        case .another: return "Another \(name)"
+        case .reroll: return "Re-rolled \(name)"
+        case .targetedPick: return "Claimed \(name)"
+        case .evolution: return name
+        }
+    }
+
+    /// What actually happened, in one line: the collection, the payout, and where
+    /// it went. Every clause is a fact the player would otherwise have to go
+    /// looking for.
+    static func celebrationSubtitle(_ celebration: Celebration) -> String {
+        var parts: [String] = []
+        parts.append(celebration.isNew ? "New to the dex." : "You already had this one.")
+        if celebration.dust > 0 {
+            parts.append("Traded the duplicate for \(dust(celebration.dust)).")
+        }
+        if let slot = celebration.slot {
+            parts.append(slot == 0
+                ? "It is your lead now."
+                : "It joins your team in \(slotLabel(slot).lowercased()).")
+        } else {
+            parts.append("Your team is full, so it is waiting on the bench.")
+        }
+        return parts.joined(separator: " ")
     }
 
     // MARK: Collection
@@ -207,6 +278,7 @@ enum GameFormat {
             case .evolution: return "Registered \(shiny)\(name(catchEvent.entryID))"
             case .targetedPick: return "Claimed \(name(catchEvent.entryID))"
             case .reroll: return "Re-rolled into \(shiny)\(name(catchEvent.entryID))"
+            case .another: return "Hatched another \(shiny)\(name(catchEvent.entryID))"
             case .starter: return "Chose \(shiny)\(name(catchEvent.entryID)) to start"
             }
         case .duplicate(let entryID, let dust):
@@ -282,6 +354,7 @@ enum GameFormat {
             return "Your team is full at \(Trainer.teamCapacity). Bench one first."
         case .alreadyOnTeam: return "That one is already on your team."
         case .unknownIndividual: return "That one is no longer in your roster."
+        case .notABaseForm: return "Only the first form of a line can be hatched."
         }
     }
 

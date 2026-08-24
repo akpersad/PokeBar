@@ -21,6 +21,10 @@ enum CatchSource: Codable, Sendable, Hashable {
     case targetedPick
     /// A paid re-hatch of a species already owned, for a variant not yet owned.
     case reroll
+    /// A paid, guaranteed second individual of a base-form species already owned.
+    /// Distinct from `reroll` because the two are bought for different reasons and
+    /// at different prices, and the log is the only place that can still say which.
+    case another
     /// The free first pick. Exists once per collection, and is a distinct source
     /// rather than a `hatch` because "what did my first egg give me" and "who did
     /// I start with" are different questions and the log should answer both.
@@ -232,6 +236,44 @@ enum GameEvent: Sendable, Equatable {
     case duplicate(entryID: Int, dust: Int)
 }
 
+/// A thing worth stopping to look at, derived from what a click just produced.
+///
+/// **The popover celebrates what you clicked; the notifier announces what
+/// happened while you were not looking.** They are the two halves of one rule and
+/// neither should do the other's job: a banner for a button you just pressed
+/// arrives second and reads as noise, and a hatch that only writes a line into a
+/// four-row feed is how a player misses the thing they spent 300 coins on.
+///
+/// Evolutions are deliberately not celebrated here. They fire on their own from
+/// token accrual, often while the window is shut, which is exactly the set the
+/// notifier already covers.
+struct Celebration: Equatable, Identifiable, Sendable {
+    let id: UUID
+    let entryID: Int
+    let variant: SpriteVariant
+    let source: CatchSource
+    /// Whether this filled a sprite slot the collection did not have.
+    let isNew: Bool
+    /// Dust paid for a duplicate. Only ever non-zero for an egg.
+    let dust: Int
+    /// Which team slot it went into, or nil when the team was full and it went
+    /// to the bench instead.
+    let slot: Int?
+
+    init(
+        id: UUID = UUID(), entryID: Int, variant: SpriteVariant, source: CatchSource,
+        isNew: Bool, dust: Int, slot: Int?
+    ) {
+        self.id = id
+        self.entryID = entryID
+        self.variant = variant
+        self.source = source
+        self.isNew = isNew
+        self.dust = dust
+        self.slot = slot
+    }
+}
+
 /// Every price in the game, in one place, so the economy can be read at a glance
 /// and tuned without hunting through call sites.
 ///
@@ -272,6 +314,25 @@ enum Prices {
     /// correctly against it.
     static let expShare = 10_000
 
+    /// Coins to hatch another of a base-form species already in the collection.
+    ///
+    /// **Flat, and deliberately not scaled by band**, unlike everything Dust buys.
+    /// Nothing else priced in coins scales (egg 300, candy 250, stone 400), and
+    /// the flat figure creates the useful shape: Dust is the cheap path for a
+    /// common and coins are the escape hatch for a legendary, so the two
+    /// currencies curve differently and the choice is real.
+    ///
+    /// 3,000 is ~2.8 days of accrual at this machine's ~1,080 coins/day, or 10
+    /// eggs. An egg already fills a team slot for 300, so this is the price of
+    /// *choosing which species*, and it has to sit well above an egg or the random
+    /// draw stops being the way the game is played. Filling five bench slots this
+    /// way is ~14 days, the same order as the Exp Share.
+    ///
+    /// It cannot be farmed: the team caps at 6, so there is no reason to buy more
+    /// than a handful ever. That self-limit is what makes a merely-steep price
+    /// safe rather than needing a cooldown.
+    static let hatchAnotherCoins = 3_000
+
     // MARK: Dust
 
     /// What a duplicate pays, on the raw capture rate rather than the band: 1 for
@@ -304,6 +365,20 @@ enum Prices {
         case .legendary: 250
         case .mythical: 300
         }
+    }
+
+    /// Dust to hatch another of a base-form species already owned, guaranteed.
+    ///
+    /// **Half a targeted pick**, which is the ordering that makes the three Dust
+    /// prices read as one scale: a pick (100%) gives a sprite the collection does
+    /// not have *and* something to raise; this (50%) gives only something to
+    /// raise; a re-roll (10%) gives only a chance at a variant. 5 Dust for a
+    /// common, 25 at the median band, 150 for a mythical.
+    ///
+    /// At the measured ~7 Dust/day a common is under a day and a legendary is
+    /// nearly three weeks, which is why the coin path exists beside it.
+    static func hatchAnother(_ rarity: Rarity) -> Int {
+        max(1, targetedPick(rarity) / 2)
     }
 
     /// Dust to hatch a species you already own again, for a shot at a variant you

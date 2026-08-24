@@ -466,4 +466,32 @@ final class PokedexTests: XCTestCase {
             XCTAssertNotNil(dex.featured(on: start.addingTimeInterval(Double(-day) * 86_400)))
         }
     }
+
+    /// The bottom of a line, which is what decides whether the Dex may offer to
+    /// hatch another. It is the same 570 entries an egg draws from, so the rule
+    /// is the edge set rather than a second flag that could disagree with it.
+    func testBaseFormWalksBackToTheStartOfTheLine() throws {
+        let dex = try Pokedex.loadBundled()
+        func base(_ slug: String) throws -> String {
+            let entry = try XCTUnwrap(dex.entry(slug: slug), slug)
+            return dex.baseForm(of: entry).slug
+        }
+
+        XCTAssertEqual(try base("charizard"), "charmander", "two edges back")
+        XCTAssertEqual(try base("charmeleon"), "charmander")
+        XCTAssertEqual(try base("charmander"), "charmander", "already the bottom")
+        XCTAssertEqual(try base("lapras"), "lapras", "no line at all")
+        // A baby counts as the bottom of its line, which is why Pikachu is not.
+        XCTAssertEqual(try base("raichu"), "pichu")
+        XCTAssertEqual(try base("pikachu"), "pichu")
+
+        // Every entry resolves to something an egg can actually produce, or the
+        // Dex would offer a purchase that the hatch pool cannot honour.
+        let hatchable = Set(dex.hatchable.map(\.id))
+        for entry in dex.entries {
+            XCTAssertTrue(
+                hatchable.contains(dex.baseForm(of: entry).id),
+                "\(entry.slug) resolves to \(dex.baseForm(of: entry).slug)")
+        }
+    }
 }

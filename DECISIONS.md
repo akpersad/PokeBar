@@ -1540,6 +1540,86 @@ This one is one card on a fresh install and six slots plus a bench of twenty
 later: a fixed frame means dead space at one end or a 900pt popover at the other.
 `PopoverMetrics.RaisePane` holds the two bounds and a test pins the clamp.
 
+### The feedback round, 2026-08-24
+
+Everything below came out of the user playing the team build cold, which is the
+only way any of it would have been found.
+
+**A hatch is celebrated, not logged.** A 300 coin egg announced itself as one grey
+line in a four-row feed, directly under the button that bought it, and the first
+thing the user did with the team was miss it entirely. `CelebrationCard` is now an
+overlay over the whole popover: the sprite at 84pt, what it was, whether it was new
+to the dex, what the duplicate paid, and which slot it went into.
+
+The rule it settles is worth more than the card: **the popover celebrates what you
+clicked, and the notifier announces what happened while you were not looking.**
+Evolutions therefore never celebrate, because they fire on their own from token
+accrual and the notifier already covers them. Dismissed by a click and by nothing
+else: no timer, because a card that vanishes mid-read is worse than one you have
+to wave away, and the sprite may still be arriving from the network.
+
+**Nothing conjures a Pokemon out of nothing.** "Raise a new one" in the Dex read as
+an offer to invent one, and worse, it appeared on Charmander and Charmeleon, whose
+individuals had *become* the player's Charizard. Two rules replace it:
+
+- **"Add to team" only ever offers individuals that already exist**, by name, with
+  their variant and level, so two benched Pikachu are two rows. No button at all
+  when there is nobody to bring back, rather than a disabled one: a dead control
+  with no explanation is worse than no control.
+- **A brand new individual has to be hatched, at a price, and only at the bottom
+  of its line.** A Charmeleon is a Charmander that grew, so the Charmeleon tile
+  says exactly that instead of selling one. "Bottom of the line" is
+  `Pokedex.isEvolutionGated` inverted, which is the same 570 entries an egg draws
+  from, babies included, and therefore not a second rule that could disagree with
+  the first.
+
+**Hatch another is priced in both currencies, and they curve differently.** The
+user asked for both and asked for the numbers to be reasoned rather than guessed.
+
+| | Coins | Dust |
+|---|---|---|
+| Price | 3,000, flat | half a targeted pick: 5 / 10 / 25 / 50 / 125 / 150 |
+| Accrual here | ~1,080/day | ~7/day |
+| So, in time | 2.8 days, any species | 0.7 days common, 3.6 rare, 18 legendary |
+
+Flat coins against banded Dust is the whole design: **Dust is the cheap path for a
+Caterpie and coins are the cheap path for a legendary**, so the two currencies are
+not interchangeable and the choice is real. 3,000 is ten eggs, and an egg already
+fills a slot for 300, so what is being charged for is *choosing the species*, which
+has to sit well clear of the random draw or the draw stops being the game.
+
+It cannot be farmed, which is what makes a merely-steep price safe without a
+cooldown: **the team caps at six**, so there is no reason to buy more than a
+handful, ever. The sink is self-limiting by construction rather than by rule.
+
+**An acquisition always produces an individual, and fills an empty slot if there
+is one.** The old rule was "start a raise only when nothing is training", which was
+correct when there was one active Pokemon and became wrong the moment there were
+six: hatching into a team with five empty slots did nothing visible. With no room
+the individual lands on the bench, because an egg that was paid for must never
+produce nothing. The shiny-hunt protection is unchanged: it still never disturbs an
+*occupied* slot.
+
+The consequence, accepted: the bench now accumulates duplicates, since every hatch
+leaves an individual. That is the right model (the bench is the box) and both lists
+that show it are capped at six with a count of what is hidden.
+
+**Six uniform cards in a 2 x 3 grid, and drag to swap.** The first version had the
+lead as a large card and the rest as thin rows, and the rows read as neither equal
+members nor as clickable. Every slot now looks like every other slot, empty ones
+included, which is also what makes the order legible enough to be worth
+rearranging. Two columns rather than three: at 312pt a third column leaves ~100pt
+a card, which truncates "Charizard" beside a level. Dropping one card on another
+**swaps** them rather than inserting and shifting, so dropping onto the lead
+promotes exactly one Pokemon and demotes exactly one. "Make lead" survives beside
+it as the reliable way.
+
+**The milestone mark is a halo, not a border.** Caught on screen: a crisp 1.5pt
+ring around one tile in a grid is what *selection* looks like, and macOS draws its
+focus ring the same way. The hard edge is now 0.6pt at 40% and the mark is carried
+by a blurred stroke that bleeds outward. A glow is not a state, and nothing else in
+that grid glows.
+
 **Deferred by the user, not rejected:** widgets, and battles. Battles were liked
 but named as a risk of "losing the plot of a token use project", and would also
 require reopening "stats are out", which is what Mint's rejection hangs off.

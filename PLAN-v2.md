@@ -334,9 +334,29 @@ Deleted, as promised: `Trainer.switchTo`, `evolveActive`, `Trainer.active`, and 
 lead-only `useRareCandy` and `setEverstone` overloads. Every verb names its
 individual now.
 
-**Awaiting the user's eyes.** Rendered pixels can only be confirmed by asking.
-Also newly reachable: the live Charizard is level 51, so the Dex **silver ring**
-can finally be looked at.
+### The feedback round, same day
+
+The user played it cold and found six things. All fixed, all recorded in
+DECISIONS.md under "the feedback round":
+
+1. **A hatch needs fanfare.** It announced itself as one grey feed line under the
+   button that bought it. Now `CelebrationCard`, over the whole popover.
+2. **"Raise a new one" read as conjuring one.** Replaced by "Add to team", which
+   only ever offers individuals that exist, named with their variant and level.
+3. **It appeared on Charmander and Charmeleon**, whose individuals had become the
+   player's Charizard. New individuals must now be *hatched*, at a price, and only
+   at the bottom of a line.
+4. **Hatch another, priced in both currencies**: 3,000 coins flat, or half a
+   targeted pick in Dust. Flat against banded, so Dust is the cheap path for a
+   common and coins for a legendary. Self-limiting, because the team caps at 6.
+5. **The team display was lame.** Six uniform cards, 2 x 3, drag to swap.
+6. **The silver ring read as selection.** It is a halo now.
+
+Plus the thing all of that exposed: **an acquisition now fills an empty slot**,
+which is what the user expected when they hatched an egg into a team of one.
+
+**Awaiting the user's eyes** on the rebuilt pane. Rendered pixels can only be
+confirmed by asking.
 
 ---
 

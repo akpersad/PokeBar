@@ -63,6 +63,15 @@ struct PokeBarPopover: View {
         .padding(PopoverMetrics.padding)
         .frame(width: PopoverMetrics.width)
         .onChange(of: pane) { message = nil }
+        // Over the whole popover, not inside a pane: a hatch can be started from
+        // the Raise tab or from the Dex, and the thing you just paid for deserves
+        // the same moment either way.
+        .overlay {
+            if let celebration = game.celebration { CelebrationCard(
+                game: game, store: store, celebration: celebration)
+            }
+        }
+        .animation(.snappy, value: game.celebration)
     }
 
     /// Shows why something was refused, in the player's terms. Cleared on the

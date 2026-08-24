@@ -142,13 +142,16 @@ final class GameMonitor {
         }
     }
 
-    /// What "raise this one" would do for a dex entry, so the button can say so.
-    func raiseAction(entryID: Int, shiny: Bool = false, gender: Gender? = nil)
-        -> Trainer.RaiseAction
-    {
-        guard let dex else { return .notOwned }
-        return trainer.raiseAction(entryID: entryID, shiny: shiny, gender: gender, dex: dex)
+    /// What the Dex detail pane can offer for one entry: who can come back off the
+    /// bench, and whether another can be bought.
+    func dexOptions(entryID: Int) -> Trainer.DexOptions {
+        guard let dex else { return Trainer.DexOptions() }
+        return trainer.dexOptions(entryID: entryID, dex: dex)
     }
+
+    /// The bottom of a line, for the copy that explains why an evolved form
+    /// cannot be hatched.
+    func entry(id: Int) -> DexEntry? { dex?.entry(id: id) }
 
     /// Settles notification permission once the player has something to raise.
     ///
@@ -235,11 +238,20 @@ final class GameMonitor {
         persist()
     }
 
-    /// Resumes a benched individual of this entry, or starts a new one. What the
-    /// Dex button does, and `raiseAction` is how it labelled itself first.
-    func raiseOrResume(entryID: Int, shiny: Bool = false, gender: Gender? = nil) throws {
-        guard let dex else { return }
-        try trainer.raiseOrResume(entryID: entryID, shiny: shiny, gender: gender, dex: dex)
+    /// Buys another individual of a base-form species already in the collection.
+    @discardableResult
+    func hatchAnother(entryID: Int, paying payment: Trainer.Payment) throws -> [GameEvent] {
+        guard let dex else { return [] }
+        let events = try trainer.hatchAnother(
+            entryID: entryID, paying: payment, coinsEarned: coinsEarned, dex: dex, using: &rng)
+        record(events)
+        persist()
+        return events
+    }
+
+    /// Exchanges two team slots. What a drag from one card onto another means.
+    func swapSlots(_ one: UUID, _ other: UUID) throws {
+        try trainer.swapSlots(one, other)
         persist()
     }
 
@@ -261,9 +273,43 @@ final class GameMonitor {
         persist()
     }
 
+    /// The last thing worth stopping to look at, or nil once dismissed.
+    private(set) var celebration: Celebration?
+
+    func dismissCelebration() { celebration = nil }
+
+    /// Turns an acquisition into something the popover can put on screen.
+    ///
+    /// Read *after* the trainer has been mutated, because "which slot did it go
+    /// into" is a question about the team as it now stands. `roster.last` is the
+    /// individual this acquisition created: every path appends one, and it lands
+    /// on the bench rather than the team only when all six slots were taken.
+    private func celebrate(_ events: [GameEvent]) {
+        guard let caught = events.compactMap({ event -> CatchEvent? in
+            if case .caught(let catchEvent) = event { catchEvent } else { nil }
+        }).last else { return }
+        // Evolutions announce themselves through the notifier, because they happen
+        // on their own while the window is shut.
+        if case .evolution = caught.source { return }
+
+        let dust = events.compactMap { event -> Int? in
+            if case .duplicate(_, let paid) = event { paid } else { nil }
+        }.last ?? 0
+        let duplicate = events.contains { if case .duplicate = $0 { true } else { false } }
+        let newcomer = trainer.roster.last
+        celebration = Celebration(
+            entryID: caught.entryID,
+            variant: caught.variant,
+            source: caught.source,
+            isNew: !duplicate,
+            dust: dust,
+            slot: newcomer.flatMap { trainer.team.firstIndex(of: $0.id) })
+    }
+
     private func record(_ events: [GameEvent]) {
         guard !events.isEmpty else { return }
         recentEvents = (events.reversed() + recentEvents).prefix(20).map(\.self)
+        celebrate(events)
         // Fire and forget. Most events are silent by design, and a notification
         // that fails to post must never stop a hatch from being recorded.
         if let dex {

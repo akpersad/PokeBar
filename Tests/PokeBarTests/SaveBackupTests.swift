@@ -232,4 +232,58 @@ final class GameMonitorBackupTests: XCTestCase {
             FileManager.default.fileExists(atPath: quarantine.path),
             "and still quarantined by the existing path")
     }
+
+    // MARK: - Celebrations
+
+    /// A hatch has to be *shown*, not written into a four-row feed under the
+    /// button that bought it. This pins what the popover gets handed.
+    func testAHatchProducesACelebrationNamingWhereItWent() throws {
+        let stateURL = try makeStateURL()
+        let game = GameMonitor(stateURL: stateURL)
+        try XCTSkipIf(game.dex == nil, "no bundled dex")
+        game.coinsEarned = 100_000
+        try game.chooseStarter(entryID: 7)
+        game.dismissCelebration()
+
+        _ = try game.hatch()
+
+        let celebration = try XCTUnwrap(game.celebration)
+        XCTAssertEqual(celebration.slot, 1, "the starter has slot 1, so this took slot 2")
+        XCTAssertEqual(celebration.entryID, game.trainer.roster.last?.entryID)
+        XCTAssertTrue(celebration.dust == 0 || !celebration.isNew)
+
+        game.dismissCelebration()
+        XCTAssertNil(game.celebration, "and it goes away when waved away")
+    }
+
+    /// The first pick is a moment too, and the only one that is free.
+    func testTheStarterIsCelebratedInSlotOne() throws {
+        let stateURL = try makeStateURL()
+        let game = GameMonitor(stateURL: stateURL)
+        try XCTSkipIf(game.dex == nil, "no bundled dex")
+
+        try game.chooseStarter(entryID: 7)
+
+        let celebration = try XCTUnwrap(game.celebration)
+        XCTAssertEqual(celebration.entryID, 7)
+        XCTAssertEqual(celebration.source, .starter)
+        XCTAssertTrue(celebration.isNew)
+        XCTAssertEqual(celebration.slot, 0)
+    }
+
+    /// Evolutions fire on their own while the window is shut, which is the
+    /// notifier's half of the job. A card waiting behind a closed popover for an
+    /// event the player did not cause is not a celebration, it is a chore.
+    func testAnEvolutionIsNotCelebrated() throws {
+        let stateURL = try makeStateURL()
+        let game = GameMonitor(stateURL: stateURL)
+        try XCTSkipIf(game.dex == nil, "no bundled dex")
+        try game.chooseStarter(entryID: 4)
+        game.dismissCelebration()
+
+        game.credit(weightedTokens: 1e9, coinsEarned: 100_000)
+
+        XCTAssertEqual(game.lead?.entryID, 6, "it did evolve, twice")
+        XCTAssertNil(game.celebration, "and said nothing about it here")
+    }
 }

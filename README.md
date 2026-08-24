@@ -30,6 +30,7 @@ layer, and the game. Live plan limits were considered and rejected, with reasons
 - [x] A team of up to 6 gains XP from the same credit, lead at 1.0 and bench at 0.8
 - [x] Exp Share: 10,000 coins to put every bench slot on the lead's rate
 - [x] The team on screen: six slots, a bench you can bring anyone back from
+- [x] Hatch another of a base form, in coins or Dust, and a proper moment for it
 
 v1 is feature-complete and **v2 is most of the way there**. Levels persist per
 individual, the save file is backed up daily, a team of six gains XP together, the

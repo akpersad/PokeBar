@@ -110,7 +110,8 @@ Sources/PokeBar/
     MenuBarLabel.swift          status item: sprite + coin count
     PokeBarPopover.swift        the menu bar window: chrome, currency, tabs
     SegmentedTabs.swift         NSSegmentedControl bridge; the tabs that fill
-    CompanionView.swift         the team, the bench, and what changes them
+    CompanionView.swift         the team grid, the bench, and what changes them
+    CelebrationCard.swift       the moment after a hatch, over the whole popover
     DexView.swift               1,083 tiles plus a detail pane
     ShopView.swift              what coins buy
     SpriteTile.swift            one still sprite, fetched on appearance
@@ -387,6 +388,25 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     behalf for the one item whose whole point is choosing. The Raise pane aims it
     at the selected member.
 
+35. **An acquisition always produces an individual, and fills an empty team slot
+    if there is one.** Every path (hatch, starter, targeted pick, re-roll, hatch
+    another) goes through `Trainer.beginRaising`, which appends to the roster and
+    joins the team only when there is room. The v1 rule was "start a raise only
+    when nothing is training", which was right with one active Pokemon and became
+    wrong with six: hatching into five empty slots did nothing visible, and the
+    user hit exactly that. With the team full the individual lands on the bench,
+    because **an egg that was paid for must never produce nothing**. The
+    shiny-hunt protection is unchanged: it still never disturbs an *occupied* slot.
+
+36. **Nothing conjures a Pokemon out of nothing.** The Dex offers "Add to team"
+    only for individuals that already exist, by name and level, and a brand new
+    one has to be *hatched*: `Trainer.hatchAnother`, paid in coins or Dust, and
+    **only for an entry that is not evolution-gated**. That is
+    `Pokedex.isEvolutionGated` inverted, so it is the same 570 base forms an egg
+    draws from and cannot disagree with the hatch pool. A Charmeleon is a
+    Charmander that grew, and its tile says so instead of selling one.
+    `Pokedex.baseForm(of:)` names what to hatch instead.
+
 34. **Same-kind alerts from one credit are grouped into one banner.**
     `Notifier.announcements(for:dex:)`, not `announcement(for:)` per event. Volume
     was already an explicit constraint (level ups are excluded at 99 per climb) and
@@ -463,6 +483,7 @@ Game layer, decided or derived:
 | With Exp Share | every slot 1.0. Full team **6.0x** |
 | Egg / Rare Candy / stone / cord / charm | 300 / 250 / 400 / 400 / 30,000 coins |
 | Exp Share | 10,000 coins, one-time. Every bench slot earns at the lead's rate |
+| Hatch another | 3,000 coins flat, or half a targeted pick in Dust. Base forms only |
 | Dust per duplicate | `255 / captureRate`. Expected **1.97**, so ~7 Dust/day |
 | Targeted pick | 10 / 20 / 50 / 100 / 250 / 300 Dust by band. Re-roll is a tenth |
 | Shiny odds | 1 in 64, 1 in 48 with the charm |
@@ -478,7 +499,7 @@ writing, which a fixture cannot reproduce.
 
 ## State
 
-**Phases 1 through 4: complete.** 340 tests, 0 failures (341 with
+**Phases 1 through 4: complete.** 353 tests, 0 failures (354 with
 `POKEBAR_CORPUS=1`).
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female

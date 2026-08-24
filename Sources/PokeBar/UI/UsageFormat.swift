@@ -107,6 +107,23 @@ enum PopoverMetrics {
         }
     }
 
+    /// The six team slots.
+    ///
+    /// **Two columns, not three.** At 312pt a third column leaves about 100pt a
+    /// card, which truncates "Charizard" beside a level; two leaves ~150pt, enough
+    /// for a 30pt sprite, a name and a level side by side.
+    enum TeamGrid {
+        static let columns = 2
+        static let spacing: CGFloat = 8
+        /// Only the empty placeholder needs this: an occupied card sizes itself
+        /// and the placeholder has to match whatever that comes out as.
+        static let cardHeight: CGFloat = 64
+
+        static var cardWidth: CGFloat {
+            (PopoverMetrics.contentWidth - spacing * CGFloat(columns - 1)) / CGFloat(columns)
+        }
+    }
+
     /// One row of the per-model breakdown: `name | bar | share | total`.
     ///
     /// The name column is fixed and the **bar** flexes, which is the way round

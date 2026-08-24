@@ -37,6 +37,17 @@ final class TrainerTests: XCTestCase {
         try XCTUnwrap(dex.entry(slug: slug), slug)
     }
 
+    /// Another individual, straight into the roster and into a free slot.
+    ///
+    /// `beginRaising` is the same call every acquisition path makes, so this is
+    /// the production path with the price and the variant roll skipped.
+    @discardableResult
+    private func addMember(to trainer: inout Trainer, entryID: Int) -> UUID {
+        let entry = dex.entry(id: entryID)!
+        return trainer.beginRaising(
+            entryID: entryID, gender: HatchRoll.canonicalGender(for: entry))
+    }
+
     /// The lead's id, for the verbs that now insist on naming an individual.
     /// Force-unwrapped on purpose: a test whose lead vanished should fail loudly.
     private func leadID(_ trainer: Trainer) -> UUID { trainer.lead!.id }
@@ -49,7 +60,7 @@ final class TrainerTests: XCTestCase {
         trainer.log.append(CatchEvent(
             entryID: entry.id, variant: gender.spriteVariant(shiny: shiny, for: entry),
             gender: gender, source: .hatch))
-        try trainer.raiseOrResume(entryID: entry.id, shiny: shiny, dex: dex)
+        trainer.beginRaising(entryID: entry.id, shiny: shiny, gender: gender)
         return trainer
     }
 
@@ -370,7 +381,7 @@ final class TrainerTests: XCTestCase {
         let pikachu = try entry("pikachu")
         trainer.log.append(CatchEvent(
             entryID: pikachu.id, variant: .normal, gender: .male, source: .hatch))
-        let next = try trainer.raiseOrResume(entryID: pikachu.id, dex: dex)
+        let next = addMember(to: &trainer, entryID: pikachu.id)
 
         XCTAssertEqual(trainer.raise(id: next)?.everstone, false, "a new one starts without")
         XCTAssertEqual(
@@ -610,6 +621,7 @@ final class TrainerTests: XCTestCase {
 
         _ = try trainer.hatch(coinsEarned: 10_000, dex: dex, using: &rng)
         XCTAssertEqual(trainer.lead, before, "a hatch stole the raise")
+        XCTAssertEqual(trainer.team.count, 2, "and it filled the next empty slot")
 
         // Re-roll the species being raised, which is the worst case: same entry,
         // so a careless implementation would overwrite the individual.
@@ -863,7 +875,7 @@ final class TrainerTests: XCTestCase {
         let pikachu = try entry("pikachu")
         trainer.log.append(CatchEvent(
             entryID: pikachu.id, variant: .normal, gender: .male, source: .hatch))
-        try trainer.raiseOrResume(entryID: pikachu.id, dex: dex)
+        addMember(to: &trainer, entryID: pikachu.id)
         XCTAssertEqual(trainer.lead?.entryID, pikachu.id)
         XCTAssertEqual(trainer.lead?.level, 1, "a new individual starts at 1")
         XCTAssertEqual(trainer.coinsSpent, 0, "switching is still free")
@@ -874,7 +886,12 @@ final class TrainerTests: XCTestCase {
         XCTAssertEqual(trainer.benched.map(\.id), [grown.id])
         XCTAssertEqual(trainer.raise(id: grown.id)?.totalXP, grown.totalXP)
 
-        try trainer.raiseOrResume(entryID: try entry("venusaur").id, dex: dex)
+        // Through the Dex path the player would actually use: the tile offers the
+        // benched individual by name, and adding it resumes rather than restarts.
+        let offered = trainer.dexOptions(entryID: try entry("venusaur").id, dex: dex)
+        XCTAssertEqual(offered.resumable.map(\.id), [grown.id])
+        XCTAssertEqual(offered.resumable.first?.level, 100)
+        try trainer.addToTeam(raiseID: try XCTUnwrap(offered.resumable.first).id)
         XCTAssertEqual(trainer.raise(id: grown.id)?.level, 100, "still where it was left")
         XCTAssertEqual(trainer.team.count, 2, "and back to work beside the Pikachu")
         XCTAssertEqual(trainer.roster.count, 2, "coming back creates nobody")
@@ -883,65 +900,163 @@ final class TrainerTests: XCTestCase {
         XCTAssertEqual(trainer.lead?.id, grown.id, "the same individual, not a copy")
     }
 
-    /// The Dex offers one button per **entry** while the roster is keyed by
-    /// individual, so the button has to answer "which one" itself. It answers the
-    /// way the player means it: the furthest along.
-    func testRaisingByEntryResumesTheFurthestAlongBenchedIndividual() throws {
+    /// The Dex tile is keyed by **entry** while the roster is keyed by individual,
+    /// so the tile has to offer the individuals by name. Best first, because
+    /// "bring back my Pikachu" means the level 20 one.
+    func testTheDexOffersBenchedIndividualsBestFirst() throws {
         var trainer = try raising("pikachu")
         let pikachu = try entry("pikachu")
         let first = try XCTUnwrap(trainer.lead)
         trainer.credit(weightedTokens: 40_000 * XPCurve.weightedTokensPerXP, dex: dex)
 
         // A second Pikachu, started from scratch and left at level 1.
-        let second = try trainer.startRaising(entryID: pikachu.id, dex: dex)
+        let second = addMember(to: &trainer, entryID: pikachu.id)
         XCTAssertEqual(trainer.roster.count, 2)
-        XCTAssertEqual(trainer.team.count, 2, "startRaising adds, it does not replace")
+        XCTAssertEqual(trainer.team.count, 2, "an acquisition fills an empty slot")
 
-        // Both benched, so both are candidates.
+        XCTAssertEqual(
+            trainer.dexOptions(entryID: pikachu.id, dex: dex).onTeam, 2,
+            "both are training, so there is nobody to bring back")
+        XCTAssertTrue(trainer.dexOptions(entryID: pikachu.id, dex: dex).resumable.isEmpty)
+
         trainer.removeFromTeam(raiseID: first.id)
         trainer.removeFromTeam(raiseID: second)
-        XCTAssertEqual(
-            trainer.raiseAction(entryID: pikachu.id, dex: dex),
-            .resume(raiseID: first.id, level: 20),
-            "the level 20 one, not the level 1 one")
+        let options = trainer.dexOptions(entryID: pikachu.id, dex: dex)
 
-        let resumed = try trainer.raiseOrResume(entryID: pikachu.id, dex: dex)
-        XCTAssertEqual(resumed, first.id)
-        XCTAssertEqual(trainer.roster.count, 2, "and nobody new was created")
+        XCTAssertEqual(options.resumable.map(\.id), [first.id, second], "best first")
+        XCTAssertEqual(options.resumable.first?.level, 20)
+        XCTAssertEqual(options.resumable.last?.level, 1)
+        XCTAssertEqual(options.onTeam, 0)
     }
 
-    /// The button says which of two very different things it will do before it is
-    /// pressed, because a stray click that silently starts a fresh level 1 is how
-    /// a player loses track of what they have.
-    func testTheRaiseActionNamesWhatItWillDo() throws {
-        var trainer = try raising("pikachu")
-        let pikachu = try entry("pikachu")
-        let mew = try entry("mew")
-        let lead = try XCTUnwrap(trainer.lead)
+    /// **Nothing conjures a Pokemon out of nothing.** The Dex offers individuals
+    /// that exist, and a brand new one has to be hatched, at a price, and only at
+    /// the bottom of its line.
+    func testOnlyABaseFormCanBeHatchedAgain() throws {
+        var trainer = try raising("charmander")
+        let charmander = try entry("charmander")
+        let charmeleon = try entry("charmeleon")
 
-        XCTAssertEqual(trainer.raiseAction(entryID: mew.id, dex: dex), .notOwned)
-        XCTAssertEqual(
-            trainer.raiseAction(entryID: pikachu.id, dex: dex), .alreadyRaising,
-            "the only one I have is already training")
+        // Raise it into a Charizard, so all three sprites are owned and the
+        // individual that was a Charmander no longer is one.
+        trainer.credit(weightedTokens: 1e9, dex: dex)
+        XCTAssertEqual(trainer.lead?.entryID, try entry("charizard").id)
 
-        let squirtle = try entry("squirtle")
-        trainer.log.append(CatchEvent(
-            entryID: squirtle.id, variant: .normal, gender: .male, source: .hatch))
-        XCTAssertEqual(trainer.raiseAction(entryID: squirtle.id, dex: dex), .startNew)
+        let base = trainer.dexOptions(entryID: charmander.id, dex: dex)
+        XCTAssertEqual(base.hatchAnother?.coins, Prices.hatchAnotherCoins)
+        XCTAssertEqual(base.hatchAnother?.dust, Prices.hatchAnother(charmander.rarity))
+        XCTAssertNil(base.baseFormID, "a Charmander is already the bottom of the line")
+        XCTAssertTrue(base.resumable.isEmpty, "the Charmander became the Charizard")
 
-        trainer.removeFromTeam(raiseID: lead.id)
-        XCTAssertEqual(
-            trainer.raiseAction(entryID: pikachu.id, dex: dex),
-            .resume(raiseID: lead.id, level: lead.level))
+        let middle = trainer.dexOptions(entryID: charmeleon.id, dex: dex)
+        XCTAssertNil(middle.hatchAnother, "a Charmeleon is a Charmander that grew")
+        XCTAssertEqual(middle.baseFormID, charmander.id, "and this is what to hatch instead")
 
-        // A full team beats everything except not owning it: a button offering to
-        // resume a Pokemon it cannot add would be the worse lie.
-        try trainer.addToTeam(raiseID: lead.id)
-        for _ in 1..<Trainer.teamCapacity {
-            _ = try trainer.startRaising(entryID: squirtle.id, dex: dex)
+        XCTAssertThrowsError(
+            try trainer.hatchAnother(
+                entryID: charmeleon.id, paying: .coins, coinsEarned: 100_000, dex: dex,
+                using: &rng)
+        ) { error in
+            XCTAssertEqual(error as? Trainer.GameError, .notABaseForm(charmeleon.id))
         }
-        XCTAssertEqual(trainer.raiseAction(entryID: pikachu.id, dex: dex), .teamFull)
-        XCTAssertEqual(trainer.raiseAction(entryID: mew.id, dex: dex), .notOwned)
+    }
+
+    /// Two currencies, and they curve differently on purpose: Dust is priced on
+    /// the band so a common is cheap, coins are flat so a legendary is reachable.
+    func testHatchingAnotherTakesEitherCurrency() throws {
+        var trainer = try raising("lapras")
+        let lapras = try entry("lapras")
+        let before = trainer.roster.count
+
+        try trainer.hatchAnother(
+            entryID: lapras.id, paying: .coins, coinsEarned: 100_000, dex: dex, using: &rng)
+        XCTAssertEqual(trainer.coinsSpent, Prices.hatchAnotherCoins)
+        XCTAssertEqual(trainer.roster.count, before + 1, "a second individual")
+        XCTAssertEqual(trainer.team.count, 2, "and it filled the empty slot")
+        XCTAssertEqual(trainer.dust, 0, "a bought duplicate mints no Dust, per invariant 17")
+
+        trainer.dust = 500
+        try trainer.hatchAnother(
+            entryID: lapras.id, paying: .dust, coinsEarned: 100_000, dex: dex, using: &rng)
+        XCTAssertEqual(trainer.dust, 500 - Prices.hatchAnother(lapras.rarity))
+        XCTAssertEqual(trainer.coinsSpent, Prices.hatchAnotherCoins, "and no coins that time")
+        XCTAssertEqual(trainer.roster.count, before + 2)
+
+        // The log can still say which purchase each one was.
+        XCTAssertEqual(trainer.log.events.filter { $0.source == .another }.count, 2)
+    }
+
+    func testHatchingAnotherRefusesWhatIsNotOwnedOrNotAffordable() throws {
+        var trainer = try raising("lapras")
+        let mew = try entry("mew")
+        XCTAssertThrowsError(
+            try trainer.hatchAnother(
+                entryID: mew.id, paying: .coins, coinsEarned: 100_000, dex: dex, using: &rng)
+        ) { error in
+            XCTAssertEqual(error as? Trainer.GameError, .notOwned)
+        }
+
+        let lapras = try entry("lapras")
+        XCTAssertThrowsError(
+            try trainer.hatchAnother(
+                entryID: lapras.id, paying: .coins, coinsEarned: 100, dex: dex, using: &rng)
+        ) { error in
+            XCTAssertEqual(
+                error as? Trainer.GameError,
+                .notEnoughCoins(needed: Prices.hatchAnotherCoins, have: 100))
+        }
+        XCTAssertThrowsError(
+            try trainer.hatchAnother(
+                entryID: lapras.id, paying: .dust, coinsEarned: 100_000, dex: dex, using: &rng)
+        ) { error in
+            XCTAssertEqual(
+                error as? Trainer.GameError,
+                .notEnoughDust(needed: Prices.hatchAnother(lapras.rarity), have: 0))
+        }
+        XCTAssertEqual(trainer.roster.count, 1, "and no refusal created anybody")
+    }
+
+    /// Dragging one card onto another exchanges their slots. Swap rather than
+    /// insert-and-shift, so dropping onto the lead promotes exactly one Pokemon
+    /// and demotes exactly one.
+    func testSwappingExchangesTwoSlots() throws {
+        var trainer = try raising("lapras")
+        let lapras = try entry("lapras")
+        let first = try XCTUnwrap(trainer.lead).id
+        let second = addMember(to: &trainer, entryID: lapras.id)
+        let third = addMember(to: &trainer, entryID: lapras.id)
+
+        try trainer.swapSlots(third, first)
+        XCTAssertEqual(trainer.team, [third, second, first], "two moved, nobody shifted")
+
+        try trainer.swapSlots(third, third)
+        XCTAssertEqual(trainer.team, [third, second, first], "swapping with itself is inert")
+
+        trainer.removeFromTeam(raiseID: second)
+        XCTAssertThrowsError(try trainer.swapSlots(third, second)) { error in
+            XCTAssertEqual(error as? Trainer.GameError, .unknownIndividual(second))
+        }
+        XCTAssertEqual(trainer.team, [third, first], "and a refused swap changes nothing")
+    }
+
+    /// **An acquisition fills an empty slot.** Hatching an egg into a team with
+    /// room and watching nothing happen is the confusion this fixes, caught by
+    /// the user on the day the team shipped.
+    func testAnAcquisitionFillsAnEmptySlotAndThenTheBench() throws {
+        var trainer = Trainer()
+        _ = try trainer.chooseStarter(
+            entryID: try entry("squirtle").id, dex: dex, using: &rng)
+        XCTAssertEqual(trainer.team.count, 1, "the first pick starts training itself")
+
+        for _ in 1..<Trainer.teamCapacity {
+            _ = try trainer.hatch(coinsEarned: 100_000, dex: dex, using: &rng)
+        }
+        XCTAssertEqual(trainer.team.count, Trainer.teamCapacity, "every hatch took a slot")
+
+        _ = try trainer.hatch(coinsEarned: 100_000, dex: dex, using: &rng)
+        XCTAssertEqual(trainer.team.count, Trainer.teamCapacity, "and then they stop")
+        XCTAssertEqual(trainer.benched.count, 1, "the seventh waits on the bench")
+        XCTAssertEqual(trainer.roster.count, Trainer.teamCapacity + 1)
     }
 
     /// Slots 2 to 6 all take the same share, so their order is cosmetic and the
@@ -951,8 +1066,8 @@ final class TrainerTests: XCTestCase {
         let squirtle = try entry("squirtle")
         trainer.log.append(CatchEvent(
             entryID: squirtle.id, variant: .normal, gender: .male, source: .hatch))
-        let second = try trainer.startRaising(entryID: squirtle.id, dex: dex)
-        let third = try trainer.startRaising(entryID: squirtle.id, dex: dex)
+        let second = addMember(to: &trainer, entryID: squirtle.id)
+        let third = addMember(to: &trainer, entryID: squirtle.id)
         let first = try XCTUnwrap(trainer.lead).id
 
         try trainer.promoteToLead(raiseID: third)
@@ -978,21 +1093,16 @@ final class TrainerTests: XCTestCase {
     /// A refused switch must leave the team alone. Emptying it and then throwing
     /// would stop XP accruing with nothing on screen to say why.
     func testCannotRaiseSomethingNotOwnedAndARefusalChangesNothing() throws {
-        var trainer = Trainer()
+        var trainer = try raising("bulbasaur")
+        let before = trainer
         XCTAssertThrowsError(
-            try trainer.startRaising(entryID: try entry("mew").id, dex: dex)
+            try trainer.hatchAnother(
+                entryID: try entry("mew").id, paying: .coins, coinsEarned: 100_000, dex: dex,
+                using: &rng)
         ) { error in
             XCTAssertEqual(error as? Trainer.GameError, .notOwned)
         }
-
-        var raising = try self.raising("bulbasaur")
-        let before = raising
-        XCTAssertThrowsError(
-            try raising.raiseOrResume(entryID: try entry("mew").id, dex: dex)
-        ) { error in
-            XCTAssertEqual(error as? Trainer.GameError, .notOwned)
-        }
-        XCTAssertEqual(raising, before, "a refused raise changes nothing at all")
+        XCTAssertEqual(trainer, before, "a refused purchase changes nothing at all")
     }
 
     // MARK: - The roster and the team
@@ -1023,26 +1133,27 @@ final class TrainerTests: XCTestCase {
         var trainer = try raising("pikachu")
         let pikachu = try entry("pikachu")
         for _ in 1..<Trainer.teamCapacity {
-            _ = try trainer.startRaising(entryID: pikachu.id, dex: dex)
+            addMember(to: &trainer, entryID: pikachu.id)
         }
         XCTAssertEqual(trainer.team.count, Trainer.teamCapacity)
 
-        XCTAssertThrowsError(try trainer.startRaising(entryID: pikachu.id, dex: dex)) { error in
+        // A seventh acquisition is not refused, it lands on the bench. Refusing
+        // it would mean an egg you paid for producing nothing at all.
+        let seventh = addMember(to: &trainer, entryID: pikachu.id)
+        XCTAssertEqual(trainer.team.count, Trainer.teamCapacity, "still six training")
+        XCTAssertEqual(trainer.roster.count, Trainer.teamCapacity + 1)
+        XCTAssertEqual(trainer.benched.map(\.id), [seventh])
+
+        XCTAssertThrowsError(try trainer.addToTeam(raiseID: seventh)) { error in
             XCTAssertEqual(error as? Trainer.GameError, .teamFull)
         }
-        XCTAssertEqual(trainer.roster.count, Trainer.teamCapacity, "a refusal creates nobody")
-        XCTAssertEqual(trainer.raiseAction(entryID: pikachu.id, dex: dex), .teamFull)
-        XCTAssertThrowsError(try trainer.raiseOrResume(entryID: pikachu.id, dex: dex)) { error in
-            XCTAssertEqual(error as? Trainer.GameError, .teamFull)
-        }
+        XCTAssertFalse(trainer.dexOptions(entryID: pikachu.id, dex: dex).teamHasRoom)
 
         // Benching one is the way through, and it costs nothing.
         let benched = try XCTUnwrap(trainer.teamRaises.last).id
         XCTAssertTrue(trainer.removeFromTeam(raiseID: benched))
-        XCTAssertEqual(
-            trainer.raiseAction(entryID: pikachu.id, dex: dex),
-            .resume(raiseID: benched, level: 1))
-        try trainer.raiseOrResume(entryID: pikachu.id, dex: dex)
+        XCTAssertTrue(trainer.dexOptions(entryID: pikachu.id, dex: dex).teamHasRoom)
+        try trainer.addToTeam(raiseID: seventh)
         XCTAssertEqual(trainer.team.count, Trainer.teamCapacity)
     }
 
@@ -1072,7 +1183,7 @@ final class TrainerTests: XCTestCase {
         var trainer = try raising("lapras")
         let lapras = try entry("lapras")
         for _ in 1..<Trainer.teamCapacity {
-            _ = try trainer.startRaising(entryID: lapras.id, dex: dex)
+            addMember(to: &trainer, entryID: lapras.id)
         }
         let baseline = Double(XPCurve.totalXP(forLevel: 1))
         let credit = 5_000.0
@@ -1099,7 +1210,7 @@ final class TrainerTests: XCTestCase {
 
         for size in 1...Trainer.teamCapacity {
             var trainer = try raising("lapras")
-            for _ in 1..<size { _ = try trainer.startRaising(entryID: lapras.id, dex: dex) }
+            for _ in 1..<size { addMember(to: &trainer, entryID: lapras.id) }
             trainer.credit(weightedTokens: credit * XPCurve.weightedTokensPerXP, dex: dex)
 
             let total = trainer.teamRaises.map { $0.totalXP - baseline }.reduce(0, +)
@@ -1135,7 +1246,7 @@ final class TrainerTests: XCTestCase {
         XCTAssertEqual(trainer.raise(id: graduate.id)?.level, XPCurve.maxLevel)
         let ceiling = Double(XPCurve.totalXP(forLevel: XPCurve.maxLevel))
 
-        let climber = try trainer.startRaising(entryID: try entry("lapras").id, dex: dex)
+        let climber = addMember(to: &trainer, entryID: try entry("lapras").id)
         let baseline = try XCTUnwrap(trainer.raise(id: climber)).totalXP
         let credit = 2_000.0
         trainer.credit(weightedTokens: credit * XPCurve.weightedTokensPerXP, dex: dex)
@@ -1156,7 +1267,7 @@ final class TrainerTests: XCTestCase {
         let first = try XCTUnwrap(trainer.lead)
         trainer.log.append(CatchEvent(
             entryID: wurmple.id, variant: .normal, gender: .male, source: .hatch))
-        let second = try trainer.startRaising(entryID: wurmple.id, dex: dex)
+        let second = addMember(to: &trainer, entryID: wurmple.id)
 
         let events = trainer.credit(
             weightedTokens: 200_000 * XPCurve.weightedTokensPerXP, dex: dex)
@@ -1183,7 +1294,7 @@ final class TrainerTests: XCTestCase {
         var trainer = try raising("lapras")
         let lapras = try entry("lapras")
         let first = try XCTUnwrap(trainer.lead)
-        let second = try trainer.startRaising(entryID: lapras.id, dex: dex)
+        let second = addMember(to: &trainer, entryID: lapras.id)
 
         // Enough that even the 0.8 share clears level 50 (250,000 XP).
         trainer.credit(weightedTokens: 400_000 * XPCurve.weightedTokensPerXP, dex: dex)
@@ -1208,7 +1319,7 @@ final class TrainerTests: XCTestCase {
         func totalGained(expShare: Bool) throws -> Double {
             var trainer = try raising("lapras")
             for _ in 1..<Trainer.teamCapacity {
-                _ = try trainer.startRaising(entryID: lapras.id, dex: dex)
+                addMember(to: &trainer, entryID: lapras.id)
             }
             if expShare { try trainer.buy(.expShare, coinsEarned: Prices.expShare) }
             trainer.credit(weightedTokens: credit * XPCurve.weightedTokensPerXP, dex: dex)
@@ -1225,8 +1336,8 @@ final class TrainerTests: XCTestCase {
     func testWithTheExpShareEveryMemberEarnsTheSameXP() throws {
         var trainer = try raising("lapras")
         let lapras = try entry("lapras")
-        _ = try trainer.startRaising(entryID: lapras.id, dex: dex)
-        _ = try trainer.startRaising(entryID: lapras.id, dex: dex)
+        addMember(to: &trainer, entryID: lapras.id)
+        addMember(to: &trainer, entryID: lapras.id)
         try trainer.buy(.expShare, coinsEarned: Prices.expShare)
 
         trainer.credit(weightedTokens: 1_000 * XPCurve.weightedTokensPerXP, dex: dex)
@@ -1275,7 +1386,7 @@ final class TrainerTests: XCTestCase {
         XCTAssertEqual(trainer.coinsSpent, 10_000, "and the toggle is free both ways")
 
         // Off means back to 0.8, not off entirely.
-        let bench = try trainer.startRaising(entryID: try entry("lapras").id, dex: dex)
+        let bench = addMember(to: &trainer, entryID: try entry("lapras").id)
         let baseline = Double(XPCurve.totalXP(forLevel: 1))
         trainer.credit(weightedTokens: 1_000 * XPCurve.weightedTokensPerXP, dex: dex)
         XCTAssertEqual(
@@ -1289,7 +1400,7 @@ final class TrainerTests: XCTestCase {
         var trainer = try raising("lapras")
         let lapras = try entry("lapras")
         let lead = try XCTUnwrap(trainer.lead)
-        let bench = try trainer.startRaising(entryID: lapras.id, dex: dex)
+        let bench = addMember(to: &trainer, entryID: lapras.id)
         let baseline = Double(XPCurve.totalXP(forLevel: 1))
         try trainer.buy(.rareCandy, coinsEarned: 1_000)
 
@@ -1316,7 +1427,7 @@ final class TrainerTests: XCTestCase {
         // holds exactly one sprite.
         trainer.credit(weightedTokens: 10_000 * XPCurve.weightedTokensPerXP, dex: dex)
 
-        let second = try trainer.startRaising(entryID: charmander.id, dex: dex)
+        let second = addMember(to: &trainer, entryID: charmander.id)
 
         XCTAssertNotEqual(second, first.id)
         XCTAssertEqual(trainer.raise(id: second)?.level, 1)

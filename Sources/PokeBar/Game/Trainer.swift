@@ -76,6 +76,7 @@ struct Trainer: Codable, Sendable, Equatable {
         case teamFull
         case alreadyOnTeam
         case unknownIndividual(UUID)
+        case notABaseForm(Int)
 
         var description: String {
             switch self {
@@ -92,6 +93,7 @@ struct Trainer: Codable, Sendable, Equatable {
             case .teamFull: "the team is full at \(Trainer.teamCapacity)"
             case .alreadyOnTeam: "already on the team"
             case .unknownIndividual(let id): "no individual \(id)"
+            case .notABaseForm(let id): "entry \(id) is reached by evolving something"
             }
         }
     }
@@ -465,13 +467,14 @@ struct Trainer: Codable, Sendable, Equatable {
                 events.append(.duplicate(entryID: entry.id, dust: 0))
             }
         }
-        // Nothing that acquires a Pokemon disturbs a raise in progress: it starts
-        // one only when nothing is training. That is what makes a shiny hunt
-        // usable, because the point is to keep fishing while the current one
-        // climbs.
-        if team.isEmpty {
-            beginRaising(entryID: entry.id, shiny: shiny, gender: gender, now: now)
-        }
+        // **An acquisition always produces an individual, and it fills an empty
+        // slot if there is one.** It still never disturbs a raise in progress,
+        // which is what keeps a shiny hunt usable, but "in progress" means an
+        // occupied slot and not the whole team: hatching an egg into a team with
+        // room and watching nothing happen is the confusion this fixes. With no
+        // room it lands on the bench, because an egg that was paid for must not
+        // produce nothing.
+        beginRaising(entryID: entry.id, shiny: shiny, gender: gender, now: now)
         return events
     }
 
@@ -527,9 +530,7 @@ struct Trainer: Codable, Sendable, Equatable {
             entryID: entry.id, variant: variant, gender: gender, date: now,
             source: .targetedPick)
         log.append(event)
-        if team.isEmpty {
-            beginRaising(entryID: entry.id, shiny: false, gender: gender, now: now)
-        }
+        beginRaising(entryID: entry.id, shiny: false, gender: gender, now: now)
         return [.caught(event)]
     }
 
@@ -547,34 +548,57 @@ struct Trainer: Codable, Sendable, Equatable {
         return obtain(entry, source: .reroll, dex: dex, using: &rng, now: now)
     }
 
+    /// Which currency a purchase is paid in, where both are allowed.
+    enum Payment: Equatable, Sendable { case coins, dust }
+
+    /// Buys another individual of a base-form species already in the collection.
+    ///
+    /// **Base forms only**, which is `Pokedex.isEvolutionGated` inverted and
+    /// therefore the same 570 entries an egg can produce, babies included. A
+    /// Charmeleon cannot be bought because a Charmeleon is a Charmander that grew;
+    /// offering one would be the game handing out the middle of a line it spends
+    /// the rest of its rules asking you to climb.
+    ///
+    /// **Two currencies, on purpose.** Dust is priced on the band and coins are
+    /// flat, so the cheap path for a Caterpie is Dust and the cheap path for a
+    /// legendary is coins. See `Prices.hatchAnother`.
+    ///
+    /// Mints no Dust even on a duplicate sprite, per invariant 17: only eggs do,
+    /// and a duplicate here is the *expected* outcome rather than bad luck.
+    @discardableResult
+    mutating func hatchAnother(
+        entryID: Int, paying payment: Payment, coinsEarned: Int, dex: Pokedex,
+        using rng: inout some RandomNumberGenerator, now: Date = Date()
+    ) throws -> [GameEvent] {
+        guard let entry = dex.entry(id: entryID) else { throw GameError.unknownEntry(entryID) }
+        guard log.seenEntryIDs.contains(entryID) else { throw GameError.notOwned }
+        guard !dex.isEvolutionGated(entry) else { throw GameError.notABaseForm(entryID) }
+
+        switch payment {
+        case .coins: try spend(coins: Prices.hatchAnotherCoins, earned: coinsEarned)
+        case .dust: try spend(dust: Prices.hatchAnother(entry.rarity))
+        }
+        return obtain(entry, source: .another, dex: dex, using: &rng, now: now)
+    }
+
     // MARK: - Switching
 
-    /// Appends a new individual and puts it straight on the team.
+    /// Adds a new individual to the roster, **and to the team if there is room**.
     ///
-    /// Takes no view on ownership or capacity: every caller has already answered
-    /// those, and the two acquisition paths have no capacity question because they
-    /// only reach here when the team is empty.
+    /// One rule in one place: every way of acquiring a Pokemon comes through here,
+    /// so "an acquisition fills an empty slot, and joins the bench when the team is
+    /// full" is stated once and cannot drift between the acquisition paths.
+    ///
+    /// Takes no view on ownership, because each caller knows something different
+    /// about why this Pokemon is arriving.
     @discardableResult
-    private mutating func beginRaising(
-        entryID: Int, shiny: Bool, gender: Gender, now: Date
+    mutating func beginRaising(
+        entryID: Int, shiny: Bool = false, gender: Gender, now: Date = Date()
     ) -> UUID {
         let raise = Raise(entryID: entryID, shiny: shiny, gender: gender, startedAt: now)
         roster.append(raise)
-        team.append(raise.id)
+        if team.count < Self.teamCapacity { team.append(raise.id) }
         return raise.id
-    }
-
-    /// Validates that the player owns the sprite being asked for, and resolves
-    /// the sex. Shared by the two ways of starting, so neither can drift.
-    private func ownedVariant(
-        entryID: Int, shiny: Bool, gender: Gender?, dex: Pokedex
-    ) throws -> Gender {
-        guard let entry = dex.entry(id: entryID) else { throw GameError.unknownEntry(entryID) }
-        let sex = gender ?? HatchRoll.canonicalGender(for: entry)
-        guard log.owns(VariantSlot(
-            entryID: entryID, variant: sex.spriteVariant(shiny: shiny, for: entry)))
-        else { throw GameError.notOwned }
-        return sex
     }
 
     /// Puts an individual already in the roster back to work, **at the level it
@@ -600,30 +624,11 @@ struct Trainer: Codable, Sendable, Equatable {
         return true
     }
 
-    /// Starts a brand new individual of an entry the player owns, at level 1.
-    ///
-    /// Free and ungated on purpose. With 570 hatchable entries drawn at random,
-    /// hatching something you do not care about is the common case rather than
-    /// the exception, and a level gate punishes the player for the game's own
-    /// randomness. It no longer costs anything either: whatever was training keeps
-    /// its levels on the bench.
-    @discardableResult
-    mutating func startRaising(
-        entryID: Int, shiny: Bool = false, gender: Gender? = nil, dex: Pokedex,
-        now: Date = Date()
-    ) throws -> UUID {
-        let sex = try ownedVariant(entryID: entryID, shiny: shiny, gender: gender, dex: dex)
-        guard team.count < Self.teamCapacity else { throw GameError.teamFull }
-        return beginRaising(entryID: entryID, shiny: shiny, gender: sex, now: now)
-    }
-
     /// Moves an individual to slot 1.
     ///
-    /// The only reorder that means anything, and worth saying why: slots 2 to 6
-    /// all take the same share, so their order is cosmetic. Slot 1 is the one that
-    /// takes the full share and the one the menu bar draws. So "promote" rather
-    /// than a drag-to-reorder list, which in a 340pt popover would be fiddly to
-    /// use and fiddly to test for no gain.
+    /// Slots 2 to 6 all take the same share, so their order is cosmetic and this
+    /// is the only reorder that changes anything. Kept beside drag-to-swap as the
+    /// reliable way to do it.
     mutating func promoteToLead(raiseID: UUID) throws {
         guard let slot = team.firstIndex(of: raiseID) else {
             throw GameError.unknownIndividual(raiseID)
@@ -632,67 +637,80 @@ struct Trainer: Codable, Sendable, Equatable {
         team.insert(raiseID, at: 0)
     }
 
-    /// What "raise this one" would do for an entry, so the button can say so
-    /// before it is pressed.
-    ///
-    /// The Dex offers one button per *entry* and the roster is keyed by
-    /// individual, so the button has to answer "which one" itself. Two very
-    /// different things (bring back a level 47 Charizard, start a fresh level 1)
-    /// behind one unlabelled click is how a player loses track of what they have,
-    /// so the label says which it will be.
-    enum RaiseAction: Equatable, Sendable {
-        /// A benched individual of this exact sprite, at the level it stopped at.
-        case resume(raiseID: UUID, level: Int)
-        /// Nothing benched to bring back, so this starts a new one at level 1.
-        case startNew
-        /// Every individual of this sprite is already training.
-        case alreadyRaising
-        case teamFull
-        case notOwned
+    /// Exchanges two team slots, which is what a drag from one card onto another
+    /// means. **Swap rather than insert-and-shift**: dropping onto slot 1 should
+    /// make that Pokemon the lead and send the old lead where it came from, not
+    /// push all six along by one.
+    mutating func swapSlots(_ one: UUID, _ other: UUID) throws {
+        guard let a = team.firstIndex(of: one) else { throw GameError.unknownIndividual(one) }
+        guard let b = team.firstIndex(of: other) else { throw GameError.unknownIndividual(other) }
+        team.swapAt(a, b)
     }
 
-    /// Resolves the button without changing anything.
-    ///
-    /// Order matters: **not owned** beats everything, then a full team, because a
-    /// button offering to resume a Pokemon it cannot add is a worse lie than one
-    /// that says the team is full. Among candidates the **highest level** wins,
-    /// which is what "raise Charizard" means in front of two of them.
-    func raiseAction(
-        entryID: Int, shiny: Bool = false, gender: Gender? = nil, dex: Pokedex
-    ) -> RaiseAction {
-        guard let sex = try? ownedVariant(
-            entryID: entryID, shiny: shiny, gender: gender, dex: dex)
-        else { return .notOwned }
-        let mine = roster.filter {
-            $0.entryID == entryID && $0.shiny == shiny && $0.gender == sex
-        }
-        guard team.count < Self.teamCapacity else { return .teamFull }
-        if let best = mine.filter({ !team.contains($0.id) }).max(by: { $0.totalXP < $1.totalXP }) {
-            return .resume(raiseID: best.id, level: best.level)
-        }
-        return mine.isEmpty ? .startNew : .alreadyRaising
+    /// One individual, flattened for a menu row.
+    struct Candidate: Equatable, Sendable, Identifiable {
+        let id: UUID
+        let level: Int
+        let variant: SpriteVariant
     }
 
-    /// Does whatever `raiseAction` said it would.
+    /// Everything the Dex detail pane can offer for one entry, resolved without
+    /// changing anything.
     ///
-    /// One entry point rather than making the view choose between `addToTeam` and
-    /// `startRaising`, so the label and the behaviour cannot drift apart.
-    @discardableResult
-    mutating func raiseOrResume(
-        entryID: Int, shiny: Bool = false, gender: Gender? = nil, dex: Pokedex,
-        now: Date = Date()
-    ) throws -> UUID {
-        switch raiseAction(entryID: entryID, shiny: shiny, gender: gender, dex: dex) {
-        case .notOwned: throw GameError.notOwned
-        case .teamFull: throw GameError.teamFull
-        case .alreadyRaising: throw GameError.alreadyOnTeam
-        case .resume(let raiseID, _):
-            try addToTeam(raiseID: raiseID)
-            return raiseID
-        case .startNew:
-            return try startRaising(
-                entryID: entryID, shiny: shiny, gender: gender, dex: dex, now: now)
+    /// Computed here rather than assembled in a view body, for the usual reason: a
+    /// fact asserted in a view cannot be tested. It is a struct rather than an enum
+    /// because the offers are **not** mutually exclusive: a species can have two
+    /// benched individuals to bring back *and* be worth buying a third of.
+    struct DexOptions: Equatable, Sendable {
+        /// Benched individuals of this entry, best first, capped at `maxOffered`.
+        ///
+        /// Capped because every duplicate hatch now leaves an individual on the
+        /// bench, so a common species accumulates them: twenty identical "Normal,
+        /// level 1" rows in a menu is not a choice, it is a wall.
+        var resumable: [Candidate] = []
+        /// How many are benched in total, which is what the button counts. The
+        /// menu shows `resumable`; this is the honest number beside it.
+        var benchedTotal = 0
+        static let maxOffered = 6
+        /// How many individuals of this entry are already training.
+        var onTeam = 0
+        /// False when all six slots are taken, so a button can say why it is off.
+        var teamHasRoom = true
+        /// What another one costs, or nil when this entry cannot be bought: not
+        /// owned yet, or reached only by evolving something.
+        var hatchAnother: Price?
+        /// The bottom of this line, when this entry is *not* it. The honest answer
+        /// to "why can I not buy a Charmeleon".
+        var baseFormID: Int?
+
+        struct Price: Equatable, Sendable {
+            let coins: Int
+            let dust: Int
         }
+    }
+
+    func dexOptions(entryID: Int, dex: Pokedex) -> DexOptions {
+        var options = DexOptions(teamHasRoom: team.count < Self.teamCapacity)
+        guard let entry = dex.entry(id: entryID) else { return options }
+
+        let mine = roster.filter { $0.entryID == entryID }
+        options.onTeam = mine.filter { team.contains($0.id) }.count
+        let benched = mine
+            .filter { !team.contains($0.id) }
+            .sorted { $0.totalXP > $1.totalXP }
+        options.benchedTotal = benched.count
+        options.resumable = benched
+            .prefix(DexOptions.maxOffered)
+            .map { Candidate(id: $0.id, level: $0.level, variant: $0.variant(in: dex)) }
+
+        guard log.seenEntryIDs.contains(entryID) else { return options }
+        if dex.isEvolutionGated(entry) {
+            options.baseFormID = dex.baseForm(of: entry).id
+        } else {
+            options.hatchAnother = DexOptions.Price(
+                coins: Prices.hatchAnotherCoins, dust: Prices.hatchAnother(entry.rarity))
+        }
+        return options
     }
 
     // MARK: - Shop
