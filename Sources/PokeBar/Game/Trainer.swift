@@ -70,6 +70,19 @@ struct Trainer: Codable, Sendable, Equatable {
         dust -= amount
     }
 
+    /// The levels the Dex marks, lowest first.
+    ///
+    /// Halfway and done. Both are *display* thresholds and nothing else keys off
+    /// them: no notification, no reward, no rule. That is deliberate, because the
+    /// open question is still whether level 100 should pay out at all, and adding
+    /// a second payout before answering the first would make it harder to answer.
+    ///
+    /// 50 rather than any other number because the curve is quadratic:
+    /// `totalXP(50)` is 250,000 of the 1,000,000 a full climb costs, so the
+    /// silver ring lands at a quarter of the work, not half of it. It marks the
+    /// halfway point in *levels*, which is what the player watches.
+    static let milestoneLevels = [50, XPCurve.maxLevel]
+
     // MARK: - XP
 
     /// Credits the tokens' worth of XP to whatever is being raised.
@@ -96,19 +109,29 @@ struct Trainer: Codable, Sendable, Equatable {
         if after > before { events.append(.levelledUp(to: after)) }
         events += resolveEvolutions(dex: dex, now: now)
         // Read `active` again rather than `raise`: an evolution resolved just
-        // above may have changed what this individual is, and it graduates as
-        // whatever it is now.
-        if after >= XPCurve.maxLevel && before < XPCurve.maxLevel, let graduate = active {
-            if let entry = dex.entry(id: graduate.entryID) {
-                log.recordGraduation(
-                    GraduationEvent(
-                        entryID: graduate.entryID,
-                        variant: graduate.gender.spriteVariant(
-                            shiny: graduate.shiny, for: entry),
-                        raiseID: graduate.id,
-                        date: now))
+        // above may have changed what this individual is, and it reaches the
+        // mark as whatever it is now.
+        //
+        // Every level crossed, not just the highest. One credit can clear both
+        // marks at once (a Rare Candy, or a quiet hour on a busy machine), and
+        // the log should say it passed 50 rather than silently skipping it. Same
+        // reason `resolveEvolutions` loops.
+        if let climber = active {
+            for level in Self.milestoneLevels where before < level && after >= level {
+                if let entry = dex.entry(id: climber.entryID) {
+                    log.recordMilestone(
+                        MilestoneEvent(
+                            entryID: climber.entryID,
+                            variant: climber.gender.spriteVariant(
+                                shiny: climber.shiny, for: entry),
+                            raiseID: climber.id,
+                            level: level,
+                            date: now))
+                }
+                if level >= XPCurve.maxLevel {
+                    events.append(.graduated(entryID: climber.entryID))
+                }
             }
-            events.append(.graduated(entryID: graduate.entryID))
         }
         return events
     }

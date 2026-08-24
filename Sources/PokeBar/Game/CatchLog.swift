@@ -16,46 +16,59 @@ struct CatchLog: Codable, Sendable, Equatable {
 
     private(set) var events: [CatchEvent] = []
 
-    /// Every level 100, in the order reached. The second append-only list, kept
+    /// Every marked level reached, in order. The second append-only list, kept
     /// beside `events` rather than folded into it for the reason the two exist
-    /// at all: a catch and a graduation answer different questions, and a
-    /// `CatchEvent` with an optional "and it graduated" flag would have to be
+    /// at all: a catch and a milestone answer different questions, and a
+    /// `CatchEvent` with an optional "and it got to 50" flag would have to be
     /// rewritten in place, which this log does not do.
-    private(set) var graduations: [GraduationEvent] = []
+    private(set) var milestones: [MilestoneEvent] = []
 
     /// Which of the 2,368 ownable sprites have been filled.
     private(set) var filledSlots: Set<VariantSlot> = []
 
-    /// Derived on decode, like `filledSlots`, and for the same reason.
-    private(set) var graduatedSlots: Set<VariantSlot> = []
-    private(set) var graduatedEntryIDs: Set<Int> = []
+    /// Derived on decode, like `filledSlots`, and for the same reason. Each map
+    /// holds the *highest* level reached, so a sprite that graduated does not
+    /// also report as merely halfway.
+    private(set) var milestoneBySlot: [VariantSlot: Int] = [:]
+    private(set) var milestoneByEntry: [Int: Int] = [:]
 
-    init(events: [CatchEvent] = [], graduations: [GraduationEvent] = []) {
+    init(events: [CatchEvent] = [], milestones: [MilestoneEvent] = []) {
         self.events = events
         self.filledSlots = Set(events.map(\.slot))
-        self.graduations = graduations
-        self.graduatedSlots = Set(graduations.map(\.slot))
-        self.graduatedEntryIDs = Set(graduations.map(\.entryID))
+        self.milestones = milestones
+        for milestone in milestones {
+            milestoneBySlot[milestone.slot] = max(
+                milestoneBySlot[milestone.slot] ?? 0, milestone.level)
+            milestoneByEntry[milestone.entryID] = max(
+                milestoneByEntry[milestone.entryID] ?? 0, milestone.level)
+        }
     }
 
-    private enum CodingKeys: String, CodingKey { case events, graduations }
+    private enum CodingKeys: String, CodingKey { case events, milestones, graduations }
 
-    /// `graduations` decodes with `decodeIfPresent` and a default, which is not
-    /// optional politeness: every save written before this field existed omits
+    /// Both milestone keys decode with `decodeIfPresent` and a default, which is
+    /// not optional politeness: a save written before either field existed omits
     /// the key, the synthesized decoder would throw on it, and `GameMonitor`
     /// cannot tell "no save yet" from "save I could not read". See invariant 23.
+    ///
+    /// `graduations` is the field's first shipped name, from when level 100 was
+    /// the only marked level. Read, never written: records under it are level 100
+    /// milestones, and writing both would be two copies of one fact.
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        let milestones =
+            try container.decodeIfPresent([MilestoneEvent].self, forKey: .milestones)
+            ?? container.decodeIfPresent([MilestoneEvent].self, forKey: .graduations)
+            ?? []
         self.init(
             events: try container.decode([CatchEvent].self, forKey: .events),
-            graduations: try container.decodeIfPresent(
-                [GraduationEvent].self, forKey: .graduations) ?? [])
+            milestones: milestones)
     }
 
     func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(events, forKey: .events)
-        try container.encode(graduations, forKey: .graduations)
+        try container.encode(milestones, forKey: .milestones)
     }
 
     // MARK: - Writing
@@ -72,17 +85,19 @@ struct CatchLog: Codable, Sendable, Equatable {
         return isNew
     }
 
-    /// Appends, and reports whether this is the first time this exact sprite has
-    /// reached 100. The return value is the "new trophy" test, and it is the
-    /// same shape as `append`'s duplicate test for the same reason: graduation
-    /// is per sprite, not per species, so a shiny Pikachu at 100 is a first even
+    /// Appends, and reports whether this sprite has just gone higher than it
+    /// ever had. The return value is the "new mark" test, and it is the same
+    /// shape as `append`'s duplicate test for the same reason: a milestone is
+    /// per sprite, not per species, so a shiny Pikachu at 100 is a first even
     /// when a plain one already did it.
     @discardableResult
-    mutating func recordGraduation(_ event: GraduationEvent) -> Bool {
-        let isFirst = graduatedSlots.insert(event.slot).inserted
-        graduatedEntryIDs.insert(event.entryID)
-        graduations.append(event)
-        return isFirst
+    mutating func recordMilestone(_ event: MilestoneEvent) -> Bool {
+        let isHigher = event.level > (milestoneBySlot[event.slot] ?? 0)
+        milestoneBySlot[event.slot] = max(milestoneBySlot[event.slot] ?? 0, event.level)
+        milestoneByEntry[event.entryID] = max(
+            milestoneByEntry[event.entryID] ?? 0, event.level)
+        milestones.append(event)
+        return isHigher
     }
 
     // MARK: - Derived views
@@ -107,19 +122,26 @@ struct CatchLog: Codable, Sendable, Equatable {
         return (filledSlots.count, total)
     }
 
-    /// Has anything of this species finished the climb, in any variant. What the
-    /// Dex grid asks, once per tile.
-    func hasGraduated(entryID: Int) -> Bool { graduatedEntryIDs.contains(entryID) }
+    /// The highest level anything of this species has reached, in any variant.
+    /// What the Dex grid asks, once per tile, to pick a ring colour. `nil` for a
+    /// species nothing has taken past the first mark.
+    func milestone(entryID: Int) -> Int? { milestoneByEntry[entryID] }
 
-    /// Has *this sprite* finished it. What the detail pane's variant row asks.
-    func hasGraduated(entryID: Int, variant: SpriteVariant = .normal) -> Bool {
-        graduatedSlots.contains(VariantSlot(entryID: entryID, variant: variant))
+    /// The same question about *this sprite*. What the detail pane's variant row
+    /// asks.
+    func milestone(entryID: Int, variant: SpriteVariant = .normal) -> Int? {
+        milestoneBySlot[VariantSlot(entryID: entryID, variant: variant)]
     }
 
-    /// How many individuals of this species reached 100. Two Pikachu raised the
-    /// whole way are two, and the detail pane says so rather than flattening it.
-    func graduationCount(entryID: Int) -> Int {
-        graduations.count { $0.entryID == entryID }
+    func hasGraduated(entryID: Int) -> Bool {
+        (milestoneByEntry[entryID] ?? 0) >= XPCurve.maxLevel
+    }
+
+    /// How many individuals of this species reached a given level. Two Pikachu
+    /// raised the whole way are two, and the detail pane says so rather than
+    /// flattening it to a boolean.
+    func milestoneCount(entryID: Int, level: Int) -> Int {
+        milestones.count { $0.entryID == entryID && $0.level == level }
     }
 
     func firstCaught(entryID: Int) -> Date? {

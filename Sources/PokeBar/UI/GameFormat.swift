@@ -129,21 +129,29 @@ enum GameFormat {
 
     // MARK: Currency
 
-    /// The Dex tile's screen-reader label. Graduation is drawn as a ring, and a
-    /// ring is exactly the kind of thing a screen reader cannot see, so it has
-    /// to be said out loud instead.
-    static func dexTileLabel(name: String, id: Int, seen: Bool, graduated: Bool) -> String {
+    /// The Dex tile's screen-reader label. A milestone is drawn as a coloured
+    /// ring, and a ring is exactly the kind of thing a screen reader cannot see,
+    /// so it has to be said out loud instead.
+    static func dexTileLabel(name: String, id: Int, seen: Bool, milestone: Int?) -> String {
         guard seen else { return "Number \(id), not caught" }
-        return graduated ? "\(name), reached level 100" : name
+        guard let milestone else { return name }
+        return "\(name), reached level \(milestone)"
     }
 
-    /// The detail pane's graduation line. Counted rather than flattened to a
-    /// boolean: raising a second one the whole way is a real thing to have done.
-    static func graduationLine(count: Int) -> String {
+    /// The detail pane's milestone line.
+    ///
+    /// Graduations are counted rather than flattened to a boolean, because
+    /// raising a second one the whole way is a real thing to have done. The
+    /// halfway mark is not counted: it is a waypoint, and tallying waypoints
+    /// reads like a scoreboard for something nobody is competing at.
+    static func milestoneLine(level: Int, count: Int) -> String {
+        guard level >= XPCurve.maxLevel else {
+            return "Reached level \(level), halfway to graduation"
+        }
         switch count {
-        case ..<2: "Reached level 100"
-        case 2: "Reached level 100 twice"
-        default: "Reached level 100, \(UsageFormat.groupedInt(count)) times"
+        case ..<2: return "Reached level \(level)"
+        case 2: return "Reached level \(level) twice"
+        default: return "Reached level \(level), \(UsageFormat.groupedInt(count)) times"
         }
     }
 

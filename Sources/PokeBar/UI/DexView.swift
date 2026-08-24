@@ -111,7 +111,7 @@ struct DexView: View {
 
     private func tile(_ entry: DexEntry) -> some View {
         let seen = game.log.seenEntryIDs.contains(entry.id)
-        let graduated = game.log.hasGraduated(entryID: entry.id)
+        let milestone = game.log.milestone(entryID: entry.id)
         return Button {
             selected = entry
         } label: {
@@ -128,7 +128,7 @@ struct DexView: View {
             }
             .frame(height: 44)
             .overlay {
-                if graduated { GraduationRing() }
+                if let milestone { MilestoneRing(level: milestone) }
             }
             .overlay(alignment: .topTrailing) {
                 if game.log.owns(entryID: entry.id, variant: .shiny) {
@@ -142,31 +142,60 @@ struct DexView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(
             GameFormat.dexTileLabel(
-                name: entry.name, id: entry.id, seen: seen, graduated: graduated))
+                name: entry.name, id: entry.id, seen: seen, milestone: milestone))
     }
 }
 
-/// The level 100 mark on a Dex tile.
+/// The milestone mark on a Dex tile: silver at level 50, gold at 100.
 ///
-/// A ring rather than a fourth corner badge. The top trailing corner already
-/// belongs to the shiny sparkle, and graduation is a property of the whole tile
-/// rather than a detail hung off it: at 44pt across a grid of 1,083, a border
-/// reads at a glance where a 7pt glyph does not.
-struct GraduationRing: View {
+/// A ring rather than a corner badge. The top trailing corner already belongs to
+/// the shiny sparkle, and a milestone is a property of the whole tile rather than
+/// a detail hung off it: at 44pt across a grid of 1,083, a border reads at a
+/// glance where a 7pt glyph does not.
+///
+/// Only the highest mark is ever drawn, so gold replaces silver rather than
+/// stacking with it. Everything at 100 passed 50 on the way, and two rings would
+/// say the same thing twice.
+struct MilestoneRing: View {
+    let level: Int
     var cornerRadius: CGFloat = 7
+
+    /// Gold and silver, warm-to-cool within each so the ring reads as metal
+    /// rather than as a flat selection border.
+    private var colors: [Color] {
+        level >= XPCurve.maxLevel
+            ? [
+                Color(red: 1.00, green: 0.86, blue: 0.38),
+                Color(red: 0.94, green: 0.56, blue: 0.15),
+            ]
+            : [
+                Color(red: 0.93, green: 0.94, blue: 0.96),
+                Color(red: 0.58, green: 0.61, blue: 0.66),
+            ]
+    }
+
+    private var glow: Color {
+        level >= XPCurve.maxLevel ? .yellow : Color(white: 0.85)
+    }
 
     var body: some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .strokeBorder(
                 LinearGradient(
-                    colors: [
-                        Color(red: 1.00, green: 0.86, blue: 0.38),
-                        Color(red: 0.94, green: 0.56, blue: 0.15),
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing),
+                    colors: colors, startPoint: .topLeading, endPoint: .bottomTrailing),
                 lineWidth: 1.5)
-            .shadow(color: .yellow.opacity(0.5), radius: 3)
+            .shadow(color: glow.opacity(level >= XPCurve.maxLevel ? 0.5 : 0.35), radius: 3)
+    }
+}
+
+/// The per-sprite counterpart of the ring, for the detail pane's variant row.
+struct MilestoneBadge: View {
+    let level: Int
+
+    var body: some View {
+        Image(systemName: level >= XPCurve.maxLevel ? "trophy.fill" : "circle.lefthalf.filled")
+            .font(.system(size: 8))
+            .foregroundStyle(level >= XPCurve.maxLevel ? Color.yellow : Color(white: 0.82))
     }
 }
 
@@ -212,13 +241,17 @@ struct DexDetailView: View {
                 )
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
-                if game.log.hasGraduated(entryID: entry.id) {
+                if let milestone = game.log.milestone(entryID: entry.id) {
                     Label(
-                        GameFormat.graduationLine(
-                            count: game.log.graduationCount(entryID: entry.id)),
-                        systemImage: "trophy.fill")
+                        GameFormat.milestoneLine(
+                            level: milestone,
+                            count: game.log.milestoneCount(
+                                entryID: entry.id, level: milestone)),
+                        systemImage: milestone >= XPCurve.maxLevel
+                            ? "trophy.fill" : "circle.lefthalf.filled")
                         .font(.caption2.weight(.medium))
-                        .foregroundStyle(.yellow)
+                        .foregroundStyle(
+                            milestone >= XPCurve.maxLevel ? Color.yellow : Color(white: 0.82))
                 }
             }
             Spacer()
@@ -247,11 +280,9 @@ struct DexDetailView: View {
                             SpriteTile(
                                 entry: entry, variant: variant, dex: dex, store: store, height: 36)
                                 .overlay(alignment: .topTrailing) {
-                                    if game.log.hasGraduated(
+                                    if let reached = game.log.milestone(
                                         entryID: entry.id, variant: variant) {
-                                        Image(systemName: "trophy.fill")
-                                            .font(.system(size: 8))
-                                            .foregroundStyle(.yellow)
+                                        MilestoneBadge(level: reached)
                                     }
                                 }
                         } else {

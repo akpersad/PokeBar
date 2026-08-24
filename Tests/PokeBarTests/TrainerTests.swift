@@ -80,31 +80,80 @@ final class TrainerTests: XCTestCase {
     }
 
     /// The event alone is not enough. `Raise` holds the level of the *active*
-    /// Pokemon only, so without a written record the fact that this one reached
-    /// 100 disappears the moment the player switches, and the Dex ring has
+    /// Pokemon only, so without a written record the fact that this one got
+    /// there disappears the moment the player switches, and the Dex ring has
     /// nothing to derive itself from.
-    func testGraduationIsWrittenToTheLogOncePerIndividual() throws {
+    func testMilestonesAreWrittenToTheLog() throws {
         let lapras = try entry("lapras")
         var trainer = try raising("lapras")
-        XCTAssertFalse(trainer.log.hasGraduated(entryID: lapras.id))
+        XCTAssertNil(trainer.log.milestone(entryID: lapras.id))
 
         trainer.credit(weightedTokens: 1e12, dex: dex)
+        XCTAssertEqual(trainer.log.milestone(entryID: lapras.id), 100)
         XCTAssertTrue(trainer.log.hasGraduated(entryID: lapras.id))
-        XCTAssertEqual(trainer.log.graduationCount(entryID: lapras.id), 1)
 
-        let recorded = try XCTUnwrap(trainer.log.graduations.first)
+        let recorded = try XCTUnwrap(trainer.log.milestones.last)
         XCTAssertEqual(recorded.entryID, lapras.id)
         XCTAssertEqual(recorded.raiseID, trainer.active?.id)
-        XCTAssertTrue(trainer.log.hasGraduated(entryID: lapras.id, variant: recorded.variant))
+        XCTAssertEqual(trainer.log.milestoneCount(entryID: lapras.id, level: 100), 1)
 
-        // Crediting a graduate again must not write a second trophy.
+        // Crediting a graduate again must not write a second mark.
         trainer.credit(weightedTokens: 1e12, dex: dex)
-        XCTAssertEqual(trainer.log.graduationCount(entryID: lapras.id), 1)
+        XCTAssertEqual(trainer.log.milestoneCount(entryID: lapras.id, level: 100), 1)
     }
 
-    /// It graduates as whatever it is *now*. A Charmander that climbed all the
+    /// The silver ring. Halfway is its own recorded fact, not something inferred
+    /// from a level the log does not keep.
+    func testHalfwayIsRecordedOnItsOwn() throws {
+        let lapras = try entry("lapras")
+        var trainer = try raising("lapras")
+
+        // Level 50 starts at 250,000 XP; level 1 already banks 100.
+        trainer.credit(weightedTokens: 249_900 * XPCurve.weightedTokensPerXP, dex: dex)
+        XCTAssertEqual(trainer.active?.level, 50)
+        XCTAssertEqual(trainer.log.milestone(entryID: lapras.id), 50)
+        XCTAssertFalse(trainer.log.hasGraduated(entryID: lapras.id))
+        XCTAssertEqual(trainer.log.milestones.count, 1)
+    }
+
+    /// Just short of the mark is not the mark.
+    func testLevel49LeavesNoRing() throws {
+        let lapras = try entry("lapras")
+        var trainer = try raising("lapras")
+        trainer.credit(weightedTokens: 239_900 * XPCurve.weightedTokensPerXP, dex: dex)
+        XCTAssertEqual(trainer.active?.level, 48)
+        XCTAssertNil(trainer.log.milestone(entryID: lapras.id))
+    }
+
+    /// One credit can clear both marks: a Rare Candy, or a quiet hour on a busy
+    /// machine. The log should say it passed 50 rather than skipping it, the
+    /// same way `resolveEvolutions` loops rather than firing once.
+    func testOneCreditCrossingBothMarksRecordsBoth() throws {
+        let lapras = try entry("lapras")
+        var trainer = try raising("lapras")
+
+        trainer.credit(weightedTokens: 1e12, dex: dex)
+
+        XCTAssertEqual(trainer.log.milestones.map(\.level), [50, 100])
+        XCTAssertEqual(trainer.log.milestone(entryID: lapras.id), 100, "gold, not silver")
+    }
+
+    /// Gold replaces silver. Everything at 100 passed 50 on the way, and the
+    /// grid draws only the highest mark.
+    func testGraduationSupersedesHalfway() throws {
+        let lapras = try entry("lapras")
+        var trainer = try raising("lapras")
+        trainer.credit(weightedTokens: 249_900 * XPCurve.weightedTokensPerXP, dex: dex)
+        XCTAssertEqual(trainer.log.milestone(entryID: lapras.id), 50)
+
+        trainer.credit(weightedTokens: 1e12, dex: dex)
+        XCTAssertEqual(trainer.log.milestone(entryID: lapras.id), 100)
+        XCTAssertEqual(trainer.log.milestoneCount(entryID: lapras.id, level: 50), 1)
+    }
+
+    /// It reaches the mark as whatever it is *now*. A Charmander raised all the
     /// way is a Charizard at the top, and the ring belongs on Charizard's tile.
-    func testGraduationIsCreditedToTheEvolvedForm() throws {
+    func testMilestoneIsCreditedToTheEvolvedForm() throws {
         let charmander = try entry("charmander")
         let charizard = try entry("charizard")
         var trainer = try raising("charmander")
@@ -113,50 +162,68 @@ final class TrainerTests: XCTestCase {
 
         XCTAssertEqual(trainer.active?.entryID, charizard.id)
         XCTAssertTrue(trainer.log.hasGraduated(entryID: charizard.id))
-        XCTAssertFalse(
-            trainer.log.hasGraduated(entryID: charmander.id),
+        XCTAssertNil(
+            trainer.log.milestone(entryID: charmander.id),
             "the origin did not finish the climb, the evolved form did")
     }
 
-    /// Graduation is per sprite, the same way ownership is. A shiny at 100 is a
-    /// separate trophy from a plain one, and the species-level question stays
-    /// true for both.
-    func testGraduationIsPerSpriteNotPerSpecies() throws {
+    /// Per sprite, the same way ownership is. A shiny at 100 is a separate mark
+    /// from a plain one, and the species-level question stays true for both.
+    func testMilestonesArePerSpriteNotPerSpecies() throws {
         let lapras = try entry("lapras")
         var trainer = try raising("lapras", shiny: true)
         trainer.credit(weightedTokens: 1e12, dex: dex)
 
         let gender = HatchRoll.canonicalGender(for: lapras)
-        let shinySlot = gender.spriteVariant(shiny: true, for: lapras)
-        let plainSlot = gender.spriteVariant(shiny: false, for: lapras)
-        XCTAssertTrue(trainer.log.hasGraduated(entryID: lapras.id, variant: shinySlot))
-        XCTAssertFalse(trainer.log.hasGraduated(entryID: lapras.id, variant: plainSlot))
+        XCTAssertEqual(
+            trainer.log.milestone(
+                entryID: lapras.id, variant: gender.spriteVariant(shiny: true, for: lapras)),
+            100)
+        XCTAssertNil(
+            trainer.log.milestone(
+                entryID: lapras.id, variant: gender.spriteVariant(shiny: false, for: lapras)))
         XCTAssertTrue(trainer.log.hasGraduated(entryID: lapras.id))
     }
 
-    /// Invariant 23. Every save written before graduations existed omits the
-    /// key, and a throwing decode there means `GameMonitor` cannot tell "no save
-    /// yet" from "save I could not read" and writes an empty log over a real
+    /// Invariant 23. Every save written before milestones existed omits the key,
+    /// and a throwing decode there means `GameMonitor` cannot tell "no save yet"
+    /// from "save I could not read" and writes an empty log over a real
     /// collection.
-    func testALogSavedBeforeGraduationsExistedStillDecodes() throws {
+    func testALogSavedBeforeMilestonesExistedStillDecodes() throws {
         let legacy = Data(#"{"events":[]}"#.utf8)
         let log = try JSONDecoder().decode(CatchLog.self, from: legacy)
-        XCTAssertTrue(log.graduations.isEmpty)
-        XCTAssertTrue(log.graduatedSlots.isEmpty)
-        XCTAssertFalse(log.hasGraduated(entryID: 25))
+        XCTAssertTrue(log.milestones.isEmpty)
+        XCTAssertNil(log.milestone(entryID: 25))
     }
 
-    /// The derived sets are rebuilt on decode rather than stored, the same bet
-    /// `filledSlots` makes. A round trip has to reproduce them.
-    func testGraduationIndexIsRebuiltOnDecode() throws {
+    /// The field shipped once as `graduations`, holding records with no `level`,
+    /// from when 100 was the only marked level. Both the old key and the old
+    /// record shape have to read back as level 100.
+    func testTheFirstShippedGraduationShapeReadsBackAsLevel100() throws {
+        let json =
+            #"{"events":[],"graduations":[{"id":"E1B7A0B0-0000-4000-8000-000000000001","#
+            + #""entryID":131,"variant":{"shiny":false,"female":false},"#
+            + #""raiseID":"E1B7A0B0-0000-4000-8000-000000000002","date":809232069.3}]}"#
+        let log = try JSONDecoder().decode(CatchLog.self, from: Data(json.utf8))
+        XCTAssertEqual(log.milestones.count, 1)
+        XCTAssertEqual(log.milestone(entryID: 131), 100)
+        XCTAssertTrue(log.hasGraduated(entryID: 131))
+    }
+
+    /// The derived maps are rebuilt on decode rather than stored, the same bet
+    /// `filledSlots` makes. A round trip has to reproduce them, and the encoded
+    /// form must use the current key.
+    func testMilestoneIndexIsRebuiltOnDecode() throws {
         var trainer = try raising("lapras")
         trainer.credit(weightedTokens: 1e12, dex: dex)
 
         let data = try JSONEncoder().encode(trainer.log)
+        XCTAssertTrue(
+            try XCTUnwrap(String(data: data, encoding: .utf8)).contains("milestones"))
         let restored = try JSONDecoder().decode(CatchLog.self, from: data)
-        XCTAssertEqual(restored.graduations, trainer.log.graduations)
-        XCTAssertEqual(restored.graduatedSlots, trainer.log.graduatedSlots)
-        XCTAssertEqual(restored.graduatedEntryIDs, trainer.log.graduatedEntryIDs)
+        XCTAssertEqual(restored.milestones, trainer.log.milestones)
+        XCTAssertEqual(restored.milestoneBySlot, trainer.log.milestoneBySlot)
+        XCTAssertEqual(restored.milestoneByEntry, trainer.log.milestoneByEntry)
     }
 
     // MARK: - Evolution

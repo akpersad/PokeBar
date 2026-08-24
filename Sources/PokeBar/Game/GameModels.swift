@@ -61,37 +61,64 @@ struct CatchEvent: Codable, Sendable, Hashable, Identifiable {
     var slot: VariantSlot { VariantSlot(entryID: entryID, variant: variant) }
 }
 
-/// One individual reaching level 100, appended and never rewritten.
+/// One individual crossing a level worth marking, appended and never rewritten.
 ///
 /// Separate from `CatchEvent` because it records a different fact about a
-/// different thing: a catch is a sprite arriving in the collection, a graduation
-/// is an individual finishing a climb. It has to be recorded *somewhere* because
+/// different thing: a catch is a sprite arriving in the collection, a milestone
+/// is an individual getting somewhere. It has to be recorded *somewhere* because
 /// nothing else in the game remembers it. `Raise` holds the level of the active
-/// Pokemon only, so the moment you switch, "that one made it to 100" is gone,
-/// and the Dex has no way to show a mark it cannot derive.
-struct GraduationEvent: Codable, Sendable, Hashable, Identifiable {
+/// Pokemon only, so the moment you switch, "that one made it" is gone, and the
+/// Dex has no way to show a mark it cannot derive.
+///
+/// Carries the level rather than being a graduation flag. Level 50 and level 100
+/// are the same kind of fact at different heights, and a boolean would have
+/// needed a second list the first time a second height mattered. It did, one
+/// request later.
+struct MilestoneEvent: Codable, Sendable, Hashable, Identifiable {
     let id: UUID
-    /// The entry it *was* at level 100, which is the evolved form rather than
-    /// whatever came out of the egg. A Charizard graduated; a Charmander did not.
+    /// The entry it *was* at that level, which is the evolved form rather than
+    /// whatever came out of the egg. A Charizard got there; a Charmander did not.
     let entryID: Int
     let variant: SpriteVariant
-    /// Which individual did it. Two Pikachu each raised to 100 are two
-    /// graduations, and the log should be able to say so.
+    /// Which individual did it. Two Pikachu each raised the whole way are two
+    /// milestones, and the log should be able to say so.
     let raiseID: UUID
+    /// The level crossed. One of `Trainer.milestoneLevels`.
+    let level: Int
     let date: Date
 
     init(
         id: UUID = UUID(), entryID: Int, variant: SpriteVariant, raiseID: UUID,
-        date: Date = Date()
+        level: Int, date: Date = Date()
     ) {
         self.id = id
         self.entryID = entryID
         self.variant = variant
         self.raiseID = raiseID
+        self.level = level
         self.date = date
     }
 
+    private enum CodingKeys: String, CodingKey {
+        case id, entryID, variant, raiseID, level, date
+    }
+
+    /// Hand-written for the reason invariant 23 exists. The first shipped shape
+    /// of this record had no `level` at all, because the only milestone was
+    /// graduation; anything written then is a level 100 record.
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decode(UUID.self, forKey: .id)
+        self.entryID = try c.decode(Int.self, forKey: .entryID)
+        self.variant = try c.decode(SpriteVariant.self, forKey: .variant)
+        self.raiseID = try c.decode(UUID.self, forKey: .raiseID)
+        self.level = try c.decodeIfPresent(Int.self, forKey: .level) ?? XPCurve.maxLevel
+        self.date = try c.decode(Date.self, forKey: .date)
+    }
+
     var slot: VariantSlot { VariantSlot(entryID: entryID, variant: variant) }
+
+    var isGraduation: Bool { level >= XPCurve.maxLevel }
 }
 
 /// The individual currently being raised.

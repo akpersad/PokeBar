@@ -143,20 +143,31 @@ final class GameFormatTests: XCTestCase {
 
     func testDexTileLabelSaysOutLoudWhatTheRingShows() {
         XCTAssertEqual(
-            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: true, graduated: true),
+            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: true, milestone: 100),
             "Lapras, reached level 100")
         XCTAssertEqual(
-            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: true, graduated: false),
+            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: true, milestone: 50),
+            "Lapras, reached level 50")
+        XCTAssertEqual(
+            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: true, milestone: nil),
             "Lapras")
         XCTAssertEqual(
-            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: false, graduated: false),
+            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: false, milestone: nil),
             "Number 131, not caught")
     }
 
-    func testGraduationLineCountsIndividuals() {
-        XCTAssertEqual(GameFormat.graduationLine(count: 1), "Reached level 100")
-        XCTAssertEqual(GameFormat.graduationLine(count: 2), "Reached level 100 twice")
-        XCTAssertEqual(GameFormat.graduationLine(count: 3), "Reached level 100, 3 times")
+    func testMilestoneLineCountsGraduationsAndNotWaypoints() {
+        XCTAssertEqual(GameFormat.milestoneLine(level: 100, count: 1), "Reached level 100")
+        XCTAssertEqual(GameFormat.milestoneLine(level: 100, count: 2), "Reached level 100 twice")
+        XCTAssertEqual(
+            GameFormat.milestoneLine(level: 100, count: 3), "Reached level 100, 3 times")
+        XCTAssertEqual(
+            GameFormat.milestoneLine(level: 50, count: 1),
+            "Reached level 50, halfway to graduation")
+        XCTAssertEqual(
+            GameFormat.milestoneLine(level: 50, count: 4),
+            "Reached level 50, halfway to graduation",
+            "waypoints are not tallied")
     }
 
     /// Every user-facing string in this project avoids em dashes, including the
@@ -170,11 +181,13 @@ final class GameFormatTests: XCTestCase {
             GameFormat.describe(Trainer.GameError.notEnoughDust(needed: 5, have: 1)),
             GameFormat.describe(Trainer.GameError.missingItem("thunder-stone")),
             GameFormat.duration(days: 3),
-            GameFormat.graduationLine(count: 1),
-            GameFormat.graduationLine(count: 2),
-            GameFormat.graduationLine(count: 7),
-            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: true, graduated: true),
-            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: false, graduated: false),
+            GameFormat.milestoneLine(level: 100, count: 1),
+            GameFormat.milestoneLine(level: 100, count: 2),
+            GameFormat.milestoneLine(level: 100, count: 7),
+            GameFormat.milestoneLine(level: 50, count: 1),
+            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: true, milestone: 100),
+            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: true, milestone: 50),
+            GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: false, milestone: nil),
         ]
         strings += [
             GameFormat.describe(.evolutionChoice(from: pikachu.id, options: [26]), dex: dex),
