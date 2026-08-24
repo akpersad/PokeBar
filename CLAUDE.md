@@ -499,37 +499,43 @@ writing, which a fixture cannot reproduce.
 
 ## State
 
-**Phases 1 through 4: complete.** 353 tests, 0 failures (354 with
+**Phases 1 through 4: complete.** 354 tests, 0 failures (355 with
 `POKEBAR_CORPUS=1`).
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
 
-**Next action, in one sentence: ask the user to look at the rebuilt Raise pane and
-at Charizard's Dex tile, because steps 1 to 4 are code-complete and what is left on
-them is the one kind of verification that cannot be done from here.**
+**Next action, in one sentence: implement step 6 of [PLAN-v2.md](PLAN-v2.md),
+per-project usage attribution, because steps 0 to 5 are done and approved on screen
+and step 6 is the last substantial thing left in the plan.**
 
-v2 was scoped 2026-08-24. **Steps 0 to 4 are done**: the dated save backup
+v2 was scoped 2026-08-24 and **steps 0 to 5 are done**: the dated save backup
 (invariant 29), the roster (invariants 30 and 31), the team gaining XP together
-(invariants 32 to 34), the Exp Share, and the UI for all of it. Steps 6 and 7,
-per-project attribution and the LaunchAgent, are not started; step 5 is these docs.
-The plan carries the ordering and the reasoning; DECISIONS.md carries the
-decisions.
+(invariants 32 to 34), the Exp Share, the UI for all of it, and these docs. Steps 6
+and 7, per-project attribution and the LaunchAgent, are not started. The plan
+carries the ordering and the reasoning; DECISIONS.md carries the decisions.
+
+**Approved on screen by the user 2026-08-24**, across two rounds of feedback that
+produced the hatch celebration, the "nothing conjures a Pokemon out of nothing"
+rule, the Hatch another purchase, the 2 x 3 team grid, the PC rename, and three
+attempts at drag-to-swap. The **silver halo** on the Dex tile is confirmed too,
+which closes the one visual thing this project had never been able to check: the
+live Charizard passed level 50 that day and its tile reads correctly.
 
 **The transitional shims are gone**, which is the thing to know before reading the
-game layer cold. `Trainer.switchTo`, `evolveActive`, the lead-only `useRareCandy`
-and `setEverstone`, and `Trainer.active` were all deleted in step 4: every verb now
-names the individual it acts on, and `lead` is the only word for team slot 1. The
-Dex button goes through `raiseAction` / `raiseOrResume`, which resume a stored
-individual rather than starting a new one.
+game layer cold. `Trainer.switchTo`, `evolveActive`, `startRaising`, `raiseAction`,
+`raiseOrResume`, the lead-only `useRareCandy` and `setEverstone`, and
+`Trainer.active` were all deleted: every verb names the individual it acts on, and
+`lead` is the only word for team slot 1. The Dex goes through
+`Trainer.dexOptions(entryID:dex:)`, which offers stored individuals by name and
+prices a new one, and every acquisition creates its individual through
+`beginRaising`.
 
-**Now reachable and still unverified: the Dex silver ring.** The live Charizard is
-level 51 with a recorded level 50 milestone, so its tile should draw a silver ring
-against the dark grid. Nobody has looked at it, because rendered pixels here can be
-confirmed only by asking the user. Nothing is half-built. The Dust prices were
-deliberately deferred by the user on 2026-08-24 rather than left pending, so do
-not treat them as the next step.
+**Not yet seen, and the only visual thing outstanding:** the `CelebrationCard` that
+fires on a hatch. The user has not hatched since it shipped. Nothing depends on it,
+and nothing is half-built. The Dust prices were deliberately deferred by the user on
+2026-08-24 rather than left pending, so do not treat them as the next step.
 
 What the game does now:
 

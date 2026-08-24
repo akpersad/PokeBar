@@ -125,8 +125,10 @@ writes a row, never modifies one, and never deletes anything there.
 It writes its own files under `~/Library/Application Support/PokeBar/`:
 `usage-state.json`, the token ledger and scan cursors; `game-state.json`, the
 collection; `model-pricing.json`, the cached pricing snapshot; a `sprites/` cache;
-and, only if a save ever fails to decode, `game-state.unreadable.json`, which is a
-copy kept so a collection cannot be lost to a schema change. None of them is ever
+`backups/game-state-<date>.json`, a dated copy of the collection taken on launch
+before the save is read, ten kept; and, only if a save ever fails to decode,
+`game-state.unreadable.json`. The last two exist for the same reason: the token
+ledger can be rebuilt by rescanning, and a collection cannot. None of them is ever
 sent anywhere. Local notifications are posted through
 `UNUserNotificationCenter`, which does not involve a server: PokeBar has no push
 entitlement and no remote registration.

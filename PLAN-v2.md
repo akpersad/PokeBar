@@ -1,6 +1,7 @@
 # PokeBar v2 work plan
 
-Written 2026-08-24. **Steps 0 to 5 are built; steps 6 and 7 are not started.**
+Written 2026-08-24. **Steps 0 to 5 are built and approved on screen; steps 6 and 7
+are not started.**
 Priority order is the user's, set in the brainstorm that produced this file:
 **the team comes first.**
 
@@ -355,8 +356,11 @@ DECISIONS.md under "the feedback round":
 Plus the thing all of that exposed: **an acquisition now fills an empty slot**,
 which is what the user expected when they hatched an egg into a team of one.
 
-**Awaiting the user's eyes** on the rebuilt pane. Rendered pixels can only be
-confirmed by asking.
+**Approved on screen 2026-08-24**, along with the halo, after one further round:
+the drag needed three attempts (`.draggable` on a `Button`, then `.draggable`
+alone, then a plain `DragGesture`, which is the one that works in a `MenuBarExtra`
+panel), "bench" became "your PC" throughout, and `.levelledUp` gained an `entryID`
+so the feed can say *who* reached level 21.
 
 ---
 
