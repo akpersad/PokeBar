@@ -73,9 +73,11 @@ final class TrainerTests: XCTestCase {
             weightedTokens: 25_500 * XPCurve.weightedTokensPerXP, dex: dex)
         let raise = try XCTUnwrap(trainer.lead)
         XCTAssertEqual(raise.level, 16)
+        // Ivysaur, not Bulbasaur: the edge is at 16, so at level 16 it is an
+        // Ivysaur. "Reached level 16" is a statement about what it is at 16.
         XCTAssertTrue(
             events.contains(
-                .levelledUp(raiseID: raise.id, entryID: try entry("bulbasaur").id, to: 16)),
+                .levelledUp(raiseID: raise.id, entryID: try entry("ivysaur").id, to: 16)),
             "and the event names which individual did it, and what it was at the time")
     }
 
@@ -133,6 +135,95 @@ final class TrainerTests: XCTestCase {
         XCTAssertEqual(trainer.log.milestone(entryID: lapras.id), 50)
         XCTAssertFalse(trainer.log.hasGraduated(entryID: lapras.id))
         XCTAssertEqual(trainer.log.milestones.count, 1)
+    }
+
+    // MARK: - Marks across an evolution
+
+    /// **The Dragonite case.** Dragonair evolves at 55, so on the normal path no
+    /// Dragonite ever *crosses* level 50: the mark is recorded against Dragonair
+    /// and the Dragonite tile would sit blank from 55 to 99 and then jump to gold.
+    /// A level 60 Dragonite is plainly a Pokemon that has reached level 50, so the
+    /// tile reads the roster as well as the log.
+    func testALineThatEvolvesAboveFiftyStillShowsSilverOnTheEvolvedForm() throws {
+        var trainer = try raising("dratini")
+        let dragonair = try entry("dragonair"), dragonite = try entry("dragonite")
+
+        // Level 60: past 50 as a Dragonair, then past the 55 edge.
+        trainer.credit(weightedTokens: 360_000 * XPCurve.weightedTokensPerXP, dex: dex)
+        XCTAssertEqual(trainer.lead?.level, 60)
+        XCTAssertEqual(trainer.lead?.entryID, dragonite.id)
+
+        XCTAssertEqual(
+            trainer.log.milestone(entryID: dragonair.id), 50,
+            "it crossed 50 while it was a Dragonair, and the log says so")
+        XCTAssertNil(
+            trainer.log.milestone(entryID: dragonite.id),
+            "and no Dragonite has ever crossed 50, which is the whole problem")
+
+        XCTAssertEqual(trainer.milestone(entryID: dragonair.id), 50, "the mark it earned")
+        XCTAssertEqual(
+            trainer.milestone(entryID: dragonite.id), 50,
+            "and the one it plainly qualifies for, from the roster")
+        XCTAssertEqual(trainer.milestoneCount(entryID: dragonite.id, level: 50), 1)
+    }
+
+    /// One credit can carry an individual past a mark, past an evolution, and
+    /// past a second mark. Each has to land on what it was at the time, and the
+    /// answer must not depend on how the XP happened to arrive.
+    func testMarksAcrossOneHugeCreditLandOnTheRightForms() throws {
+        let dragonair = try entry("dragonair"), dragonite = try entry("dragonite")
+
+        // Incrementally: 50 first, then past 55, then 100.
+        var slow = try raising("dratini")
+        slow.credit(weightedTokens: 250_000 * XPCurve.weightedTokensPerXP, dex: dex)
+        slow.credit(weightedTokens: 1e9, dex: dex)
+
+        // All at once, from level 1. This is a cold first scan, not an exotic case.
+        var fast = try raising("dratini")
+        fast.credit(weightedTokens: 1e9, dex: dex)
+
+        for (name, trainer) in [("incremental", slow), ("one credit", fast)] {
+            XCTAssertEqual(
+                trainer.log.milestone(entryID: dragonair.id), 50,
+                "\(name): 50 belongs to the Dragonair that crossed it")
+            XCTAssertEqual(
+                trainer.log.milestone(entryID: dragonite.id), 100,
+                "\(name): and 100 to the Dragonite that graduated")
+            XCTAssertEqual(trainer.lead?.entryID, dragonite.id, "\(name)")
+        }
+    }
+
+    /// The union is by individual, so one that crossed the line *and* is still
+    /// that form is one Pokemon, not two.
+    func testTheMarkCountDoesNotDoubleCountOneIndividual() throws {
+        var trainer = try raising("lapras")
+        let lapras = try entry("lapras")
+        trainer.credit(weightedTokens: 250_000 * XPCurve.weightedTokensPerXP, dex: dex)
+
+        XCTAssertEqual(trainer.log.milestone(entryID: lapras.id), 50, "crossed it as a Lapras")
+        XCTAssertEqual(
+            trainer.milestoneCount(entryID: lapras.id, level: 50), 1,
+            "and is still a Lapras, which is the same Pokemon")
+        XCTAssertFalse(trainer.hasGraduated(entryID: lapras.id))
+    }
+
+    /// A stone used on a graduate opens the same gap above 100: the Vaporeon
+    /// never crossed anything, the Eevee did.
+    func testAnItemEvolutionAfterGraduationCarriesTheMark() throws {
+        var trainer = try raising("eevee")
+        trainer.credit(weightedTokens: 1e9, dex: dex)
+        let eevee = try entry("eevee"), vaporeon = try entry("vaporeon")
+        XCTAssertEqual(trainer.lead?.level, 100)
+
+        trainer.inventory["water-stone"] = 1
+        _ = try trainer.evolve(leadID(trainer), into: vaporeon.id, dex: dex)
+
+        XCTAssertEqual(trainer.log.milestone(entryID: eevee.id), 100, "the Eevee graduated")
+        XCTAssertNil(trainer.log.milestone(entryID: vaporeon.id), "the Vaporeon never crossed")
+        XCTAssertEqual(
+            trainer.milestone(entryID: vaporeon.id), 100,
+            "but it is a level 100 Vaporeon and the tile should say so")
+        XCTAssertTrue(trainer.hasGraduated(entryID: vaporeon.id))
     }
 
     /// Just short of the mark is not the mark.
@@ -1235,7 +1326,7 @@ final class TrainerTests: XCTestCase {
         XCTAssertEqual(trainer.lead?.level, 16)
         XCTAssertTrue(
             events.contains(
-                .levelledUp(raiseID: raise.id, entryID: try entry("bulbasaur").id, to: 16)))
+                .levelledUp(raiseID: raise.id, entryID: try entry("ivysaur").id, to: 16)))
     }
 
     /// **A capped member's share is not redistributed.** Redistribution would

@@ -162,6 +162,70 @@ struct Trainer: Codable, Sendable, Equatable {
     /// halfway point in *levels*, which is what the player watches.
     static let milestoneLevels = [50, XPCurve.maxLevel]
 
+    /// The highest mark a level has passed, or nil below the first one.
+    static func milestone(atLevel level: Int) -> Int? {
+        milestoneLevels.filter { level >= $0 }.max()
+    }
+
+    // MARK: - What the Dex draws
+
+    /// Which individuals count as having reached `level` **as this entry**.
+    ///
+    /// Two sources, unioned by `Raise.id`, because they answer different halves
+    /// of the same question and neither is sufficient:
+    ///
+    /// - The **log** says which forms *crossed* the line while they were that
+    ///   form. It is the only record of a Dragonair that passed 50 and is now a
+    ///   Dragonite, because nothing is a Dragonair any more.
+    /// - The **roster** says which forms are *currently held* at that level. It
+    ///   is the only record of a Dragonite at level 60, because a Dragonair
+    ///   evolves at 55 and so a Dragonite can never cross 50 on the normal path.
+    ///   The same gap opens above 100 for any item evolution used on a graduate.
+    ///
+    /// The log-only version shipped first, and its stated reason ("`Raise` holds
+    /// the active Pokemon's level alone, so switching erased it") expired the day
+    /// the roster landed and kept every individual forever. Unioning on `id`
+    /// rather than counting both is what stops an individual that did both from
+    /// being two.
+    func milestoneRaiseIDs(entryID: Int, level: Int) -> Set<UUID> {
+        var ids = Set(
+            log.milestones
+                .filter { $0.entryID == entryID && $0.level >= level }
+                .map(\.raiseID))
+        ids.formUnion(
+            roster.filter { $0.entryID == entryID && $0.level >= level }.map(\.id))
+        return ids
+    }
+
+    /// The ring an entry's tile draws: silver, gold, or nothing.
+    func milestone(entryID: Int) -> Int? {
+        Self.milestoneLevels
+            .filter { !milestoneRaiseIDs(entryID: entryID, level: $0).isEmpty }
+            .max()
+    }
+
+    /// The same question per sprite, for the detail pane's variant row. A shiny
+    /// at 100 is a separate mark from a plain one, per invariant 18.
+    func milestone(entryID: Int, variant: SpriteVariant, dex: Pokedex) -> Int? {
+        let slot = VariantSlot(entryID: entryID, variant: variant)
+        let held = roster
+            .filter { $0.entryID == entryID && $0.variant(in: dex) == variant }
+            .compactMap { Self.milestone(atLevel: $0.level) }
+            .max()
+        return [log.milestone(entryID: entryID, variant: variant), held]
+            .compactMap { $0 }.max()
+    }
+
+    /// How many individuals reached `level` as this entry. Unioned, so one that
+    /// crossed the line *and* is still that form counts once.
+    func milestoneCount(entryID: Int, level: Int) -> Int {
+        milestoneRaiseIDs(entryID: entryID, level: level).count
+    }
+
+    func hasGraduated(entryID: Int) -> Bool {
+        !milestoneRaiseIDs(entryID: entryID, level: XPCurve.maxLevel).isEmpty
+    }
+
     // MARK: - XP
 
     /// Credits the tokens' worth of XP to whatever is being raised.
@@ -221,37 +285,43 @@ struct Trainer: Codable, Sendable, Equatable {
         let after = roster[index].level
 
         var events: [GameEvent] = []
-        if after > before {
-            // Read the entry before `resolveEvolutions` runs: it levelled up as
-            // whatever it was, and may not be that a line later.
-            events.append(
-                .levelledUp(raiseID: raiseID, entryID: roster[index].entryID, to: after))
-        }
-        events += resolveEvolutions(of: raiseID, dex: dex, now: now)
-        // Read the roster again rather than reusing a copy from above: an
-        // evolution resolved just now may have changed what this individual is,
-        // and it reaches the mark as whatever it is now.
+
+        // **The credit is replayed in level order**, not applied and then
+        // inspected. One credit can carry an individual past a mark, past an
+        // evolution, and past a second mark, and each of those has to be
+        // attributed to what it was at the time. A Dragonair from 49 to 100
+        // crosses 50 as a Dragonair, evolves at 55, and graduates as a Dragonite.
+        // Resolving the chain first and then asking "what is it" put both marks
+        // on the Dragonite; resolving it last put both on the Dragonair. Neither
+        // is what happened.
         //
-        // Every level crossed, not just the highest. One credit can clear both
-        // marks at once (a Rare Candy, or a quiet hour on a busy machine), and
-        // the log should say it passed 50 rather than silently skipping it. Same
-        // reason `resolveEvolutions` loops.
-        if let climber = raise(id: raiseID) {
-            for level in Self.milestoneLevels where before < level && after >= level {
-                if let entry = dex.entry(id: climber.entryID) {
-                    log.recordMilestone(
-                        MilestoneEvent(
-                            entryID: climber.entryID,
-                            variant: climber.gender.spriteVariant(
-                                shiny: climber.shiny, for: entry),
-                            raiseID: climber.id,
-                            level: level,
-                            date: now))
-                }
-                if level >= XPCurve.maxLevel {
-                    events.append(.graduated(raiseID: raiseID, entryID: climber.entryID))
-                }
+        // Every mark crossed, not just the highest, for the same reason
+        // `resolveEvolutions` loops: a Rare Candy or a quiet hour on a busy
+        // machine can clear both at once and the log should say so.
+        for level in Self.milestoneLevels where before < level && after >= level {
+            events += resolveEvolutions(of: raiseID, dex: dex, now: now, upToLevel: level)
+            guard let climber = raise(id: raiseID),
+                  let entry = dex.entry(id: climber.entryID)
+            else { continue }
+            log.recordMilestone(
+                MilestoneEvent(
+                    entryID: climber.entryID,
+                    variant: climber.gender.spriteVariant(shiny: climber.shiny, for: entry),
+                    raiseID: climber.id,
+                    level: level,
+                    date: now))
+            if level >= XPCurve.maxLevel {
+                events.append(.graduated(raiseID: raiseID, entryID: climber.entryID))
             }
+        }
+        // Then everything above the last mark.
+        events += resolveEvolutions(of: raiseID, dex: dex, now: now)
+
+        // Last, and with the form it ended as: "reached level 36" is a statement
+        // about what it is at 36, which is the evolved one when the edge is at 36.
+        if after > before, let climber = raise(id: raiseID) {
+            events.append(
+                .levelledUp(raiseID: raiseID, entryID: climber.entryID, to: after))
         }
         return events
     }
@@ -305,15 +375,21 @@ struct Trainer: Codable, Sendable, Equatable {
     ///
     /// Loops because one credit can cross several thresholds. A Rare Candy at
     /// level 5 takes a Caterpie past both 7 and 10.
+    /// `upToLevel` resolves the chain **as of** a level rather than as of now,
+    /// which is what lets one credit be replayed in order. A credit that carries
+    /// a Dragonair from 49 to 60 crossed level 50 while it was still a Dragonair,
+    /// and only became a Dragonite at 55; resolving the whole chain first and then
+    /// asking "what is it" would credit level 50 to the Dragonite.
     private mutating func resolveEvolutions(
-        of raiseID: UUID, dex: Pokedex, now: Date
+        of raiseID: UUID, dex: Pokedex, now: Date, upToLevel cap: Int? = nil
     ) -> [GameEvent] {
         var events: [GameEvent] = []
         while let raise = raise(id: raiseID), !raise.everstone,
               let entry = dex.entry(id: raise.entryID)
         {
+            let level = min(raise.level, cap ?? raise.level)
             let itemFree = entry.evolutions.filter { $0.item == nil }
-            let ready = itemFree.filter { raise.level >= $0.minLevel }
+            let ready = itemFree.filter { level >= $0.minLevel }
             guard itemFree.count == 1, let edge = ready.first else {
                 if !ready.isEmpty, itemFree.count > 1 {
                     events.append(

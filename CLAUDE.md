@@ -388,6 +388,21 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     behalf for the one item whose whole point is choosing. The Raise pane aims it
     at the selected member.
 
+37. **A milestone is credited to the form that crossed it, and the Dex tile reads
+    the roster as well as the log.** Two halves of one rule, both silent when
+    broken. `Trainer.grant` **replays a credit in level order**: for each mark
+    crossed it resolves evolutions only `upToLevel` that mark, then records. The
+    first version resolved the whole chain and then asked what the individual was,
+    so a Dragonair going 49 to 60 in one credit filed its level 50 mark under
+    *Dragonite*, while the same climb across two credits filed it under Dragonair.
+    A cold first scan credits a month at once, so the big-credit path is normal,
+    not exotic. Separately, `Trainer.milestone(entryID:)` unions the log with the
+    roster, **by `Raise.id`**: the log knows which forms *crossed* a line, the
+    roster knows which forms are *held* at that level now, and Dragonair evolving
+    at 55 means no Dragonite can ever cross 50 on the normal path. Views must call
+    `GameMonitor.milestone(...)`, never `log.milestone(...)`, or the ring goes
+    missing on exactly the lines that take longest to raise.
+
 35. **An acquisition always produces an individual, and fills an empty team slot
     if there is one.** Every path (hatch, starter, targeted pick, re-roll, hatch
     another) goes through `Trainer.beginRaising`, which appends to the roster and
@@ -499,7 +514,7 @@ writing, which a fixture cannot reproduce.
 
 ## State
 
-**Phases 1 through 4: complete.** 354 tests, 0 failures (355 with
+**Phases 1 through 4: complete.** 358 tests, 0 failures (359 with
 `POKEBAR_CORPUS=1`).
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female

@@ -111,7 +111,7 @@ struct DexView: View {
 
     private func tile(_ entry: DexEntry) -> some View {
         let seen = game.log.seenEntryIDs.contains(entry.id)
-        let milestone = game.log.milestone(entryID: entry.id)
+        let milestone = game.milestone(entryID: entry.id)
         return Button {
             selected = entry
         } label: {
@@ -263,11 +263,11 @@ struct DexDetailView: View {
                 )
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
-                if let milestone = game.log.milestone(entryID: entry.id) {
+                if let milestone = game.milestone(entryID: entry.id) {
                     Label(
                         GameFormat.milestoneLine(
                             level: milestone,
-                            count: game.log.milestoneCount(
+                            count: game.milestoneCount(
                                 entryID: entry.id, level: milestone)),
                         systemImage: milestone >= XPCurve.maxLevel
                             ? "trophy.fill" : "circle.lefthalf.filled")
@@ -302,7 +302,7 @@ struct DexDetailView: View {
                             SpriteTile(
                                 entry: entry, variant: variant, dex: dex, store: store, height: 36)
                                 .overlay(alignment: .topTrailing) {
-                                    if let reached = game.log.milestone(
+                                    if let reached = game.milestone(
                                         entryID: entry.id, variant: variant) {
                                         MilestoneBadge(level: reached)
                                     }

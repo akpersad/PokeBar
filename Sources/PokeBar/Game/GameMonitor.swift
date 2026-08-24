@@ -127,6 +127,20 @@ final class GameMonitor {
 
     func canAfford(_ item: Trainer.ShopItem) -> Bool { coins >= item.priceInCoins }
 
+    /// The ring an entry's Dex tile draws. Goes through `Trainer`, never through
+    /// `log` directly, because the log alone cannot see a Dragonite that is level
+    /// 60 without ever having crossed 50 as one.
+    func milestone(entryID: Int) -> Int? { trainer.milestone(entryID: entryID) }
+
+    func milestone(entryID: Int, variant: SpriteVariant) -> Int? {
+        guard let dex else { return nil }
+        return trainer.milestone(entryID: entryID, variant: variant, dex: dex)
+    }
+
+    func milestoneCount(entryID: Int, level: Int) -> Int {
+        trainer.milestoneCount(entryID: entryID, level: level)
+    }
+
     /// Every team member with an evolution waiting, in slot order, resolved.
     ///
     /// A list rather than a single prompt, because one credit can leave several

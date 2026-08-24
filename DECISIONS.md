@@ -1271,6 +1271,41 @@ both marks at once, from a Rare Candy or a quiet hour on a busy machine, and the
 log should say it passed 50 rather than silently skipping it. Same shape as the
 evolution loop in invariant 20, and for the same reason.
 
+**Amended 2026-08-24, from a question the user asked: "will Dragonite ever have a
+silver halo?"** It would not have, and two separate faults were behind that.
+
+*The credit is now replayed in level order.* A single credit can carry an
+individual past a mark, past an evolution, and past a second mark. The first
+implementation resolved the whole evolution chain and *then* asked what the
+individual was, so a Dragonair going 49 to 60 in one credit had its level 50 mark
+recorded against the **Dragonite**, for a level it passed as a Dragonair. The same
+climb spread over two credits recorded it against the Dragonair. Attribution that
+depends on how the XP happened to arrive is not attribution, and one credit
+crossing the whole curve is not exotic: a cold first scan credits a month at once.
+`resolveEvolutions` now takes an `upToLevel` cap and each mark is recorded after
+resolving only as far as that mark. A test raises the same Dratini both ways and
+asserts the two agree: 50 to Dragonair, 100 to Dragonite.
+
+*And the tile now reads the roster as well as the log.* The paragraph above says
+marks must be written events because "`Raise` carries the level of the active
+Pokemon only, so the moment you switch, that one made it is gone". **That
+reasoning expired when the roster landed** and began keeping every individual
+forever with its level and its current form. The log answers "which forms crossed
+this line while they were that form"; the roster answers "which forms are held at
+this level right now". Neither is sufficient alone:
+
+- Dragonair evolves at **55**, so no Dragonite can ever cross 50 on the normal
+  path. Log-only leaves a level 60 Dragonite with no ring at all until it
+  graduates. The same gap opens above 100 for any stone used on a graduate: a
+  Vaporeon made from a level 100 Eevee never crossed anything.
+- A Charmander that became a Charizard is one roster row saying "Charizard".
+  Roster-only would strip Charmeleon of a mark it genuinely earned.
+
+So the tile is the union, taken over `Raise.id` rather than by counting both, or
+an individual that crossed the line *and* is still that form would count twice.
+The events are still the durable record and are still never derived; what changed
+is that they are no longer the *only* source the display reads.
+
 Drawn as a ring rather than a corner badge. The top trailing corner is already
 the shiny sparkle's, and at 44pt across a grid of 1,083 tiles a border reads at a
 glance where a 7pt glyph does not. Gold replaces silver rather than stacking:
