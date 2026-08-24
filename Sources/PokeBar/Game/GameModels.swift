@@ -1,0 +1,198 @@
+import Foundation
+
+/// One filled slot in the collection: an entry plus which of its sprites.
+///
+/// Completion is defined over these, and there are 2,368 of them rather than
+/// 1,083 x 4, because a variant is ownable only if its sprite file exists.
+struct VariantSlot: Codable, Sendable, Hashable {
+    let entryID: Int
+    let variant: SpriteVariant
+}
+
+/// Where a Pokemon came from. Recorded because the log is the only record, and
+/// "what is my actual shiny rate" is a question about eggs, not about evolutions
+/// the game handed you.
+enum CatchSource: Codable, Sendable, Hashable {
+    /// An egg, drawn from the hatchable pool. The only source that mints Dust.
+    case hatch
+    /// The active Pokemon crossed a threshold. Carries what it evolved from.
+    case evolution(from: Int)
+    /// Bought outright with Dust. The path that makes completion reachable.
+    case targetedPick
+    /// A paid re-hatch of a species already owned, for a variant not yet owned.
+    case reroll
+}
+
+/// One catch, appended and never rewritten.
+///
+/// The per-species view is derived from these rather than stored, which is the
+/// same bet `UsageLedger` makes and it pays off for the same reason: a boolean
+/// set answers one question and loses everything else, a per-species struct needs
+/// a migration for every question nobody thought of yet, and a log can answer
+/// "what did I catch in July", "what is my actual shiny rate" and "how long
+/// between duplicates" without changing the stored shape. See DECISIONS.md.
+struct CatchEvent: Codable, Sendable, Hashable, Identifiable {
+    let id: UUID
+    let entryID: Int
+    let variant: SpriteVariant
+    /// Recorded on every event even though it usually fills no slot. In an
+    /// append-only log it costs nothing, and it keeps "I hatched a female
+    /// Bulbasaur" answerable.
+    let gender: Gender
+    let date: Date
+    let source: CatchSource
+
+    init(
+        id: UUID = UUID(), entryID: Int, variant: SpriteVariant, gender: Gender,
+        date: Date = Date(), source: CatchSource
+    ) {
+        self.id = id
+        self.entryID = entryID
+        self.variant = variant
+        self.gender = gender
+        self.date = date
+        self.source = source
+    }
+
+    var slot: VariantSlot { VariantSlot(entryID: entryID, variant: variant) }
+}
+
+/// The individual currently being raised.
+///
+/// One at a time, which is the real constraint in this game: raising time caps
+/// throughput at roughly 1.7 raises/day no matter how many coins are banked, so
+/// coins accumulate faster than eggs can consume them. Switching is free and
+/// ungated; the cost is losing this individual's levels, and that is cost enough
+/// (DECISIONS.md). Whatever it reached stays in the log.
+struct Raise: Codable, Sendable, Identifiable, Equatable {
+    let id: UUID
+    /// The entry it is *now*. Changes as it evolves.
+    var entryID: Int
+    /// What came out of the egg. Kept so the log can answer "how far did this
+    /// one get" after three evolutions.
+    let originEntryID: Int
+    let shiny: Bool
+    let gender: Gender
+    /// Total XP including the level-1 baseline of 100. See `XPCurve`.
+    var totalXP: Double
+    let startedAt: Date
+
+    init(
+        id: UUID = UUID(), entryID: Int, originEntryID: Int? = nil, shiny: Bool,
+        gender: Gender, totalXP: Double = Double(XPCurve.totalXP(forLevel: 1)),
+        startedAt: Date = Date()
+    ) {
+        self.id = id
+        self.entryID = entryID
+        self.originEntryID = originEntryID ?? entryID
+        self.shiny = shiny
+        self.gender = gender
+        self.totalXP = totalXP
+        self.startedAt = startedAt
+    }
+
+    var level: Int { XPCurve.level(forTotalXP: totalXP) }
+    var isGraduated: Bool { level >= XPCurve.maxLevel }
+
+    /// The sprite to draw for this individual, given what its current entry has.
+    func variant(in dex: Pokedex) -> SpriteVariant {
+        guard let entry = dex.entry(id: entryID) else { return SpriteVariant(shiny: shiny) }
+        return gender.spriteVariant(shiny: shiny, for: entry)
+    }
+}
+
+/// Something worth telling the player about. Returned rather than posted, so the
+/// game logic stays testable and the notification decision lives at the edge.
+enum GameEvent: Sendable, Equatable {
+    case levelledUp(to: Int)
+    case evolved(from: Int, to: Int)
+    /// Several edges are satisfied at once and the choice is the player's, which
+    /// is the honest answer for Eevee at level 36 and for Wurmple at 7.
+    case evolutionChoice(from: Int, options: [Int])
+    case graduated(entryID: Int)
+    case caught(CatchEvent)
+    /// A hatch that filled no new slot. Pays Dust instead.
+    case duplicate(entryID: Int, dust: Int)
+}
+
+/// Every price in the game, in one place, so the economy can be read at a glance
+/// and tuned without hunting through call sites.
+///
+/// Two currencies, and the split is the point. **Coins accrue passively** from
+/// token usage at ~1,080/day and buy volume: eggs, candy, stones, the charm.
+/// **Dust is minted only by duplicate hatches** and buys choice: the targeted
+/// pick and the targeted re-roll. They never substitute for each other, so a
+/// quiet week cannot be bought out of and a lucky one cannot be idled through.
+///
+/// Values are v1 and expected to move once the loop has been played. The one
+/// flagged as most likely wrong is the pick price. See DECISIONS.md.
+enum Prices {
+
+    // MARK: Coins
+
+    /// ~6.7 h of usage. Cheap on purpose: eggs must never be the bottleneck,
+    /// because raising time already is.
+    static let egg = 300
+    /// 10,000 XP. 1 coin of accrual is worth 200 XP, so this is a 5x markup and
+    /// a luxury. Naturally strong early (+4.1 levels at L10) and weak late
+    /// (+0.6 at L90), like the games.
+    static let rareCandy = 250
+    static let rareCandyXP: Double = 10_000
+    /// 23 distinct stones, gating 69 edges.
+    static let evolutionStone = 400
+    /// Gates the 26 trade edges.
+    static let linkingCord = 400
+    /// ~28 days of accrual. Passive and permanent, so it should be a genuine
+    /// commitment rather than an early purchase.
+    static let shinyCharm = 30_000
+
+    // MARK: Dust
+
+    /// What a duplicate pays, on the raw capture rate rather than the band: 1 for
+    /// a Caterpie, 6 at the median, 85 for a capture-rate-3 legendary. Expected
+    /// yield is **1.97 Dust per duplicate**, because the weighting that makes
+    /// rare things rare also makes them rare in the duplicate stream.
+    static func dust(forCaptureRate captureRate: Int) -> Int {
+        max(1, Int((255.0 / Double(max(captureRate, 1))).rounded()))
+    }
+
+    /// Dust to name an entry and be given it.
+    ///
+    /// Priced on the *band*, not on the raw rate, which is the opposite of the
+    /// hatch weighting and deliberately so. The raw rate spans 85x, and pricing
+    /// on it would put a legendary at ~85 days of duplicates against a common's
+    /// one. The band compresses that to a shape a player can hold in their head,
+    /// and a price is a thing you read rather than a weight you sample.
+    ///
+    /// Against the measured ~7 Dust/day: a common is a day and a half, a rare
+    /// (the median band, 493 of 1,083 entries) about a week, a legendary about
+    /// five. Deliberately generous for v1: it is easier to make this harsher once
+    /// the loop is playable than to find out a year in that completion was never
+    /// reachable.
+    static func targetedPick(_ rarity: Rarity) -> Int {
+        switch rarity {
+        case .common: 10
+        case .uncommon: 20
+        case .rare: 50
+        case .epic: 100
+        case .legendary: 250
+        case .mythical: 300
+        }
+    }
+
+    /// Dust to hatch a species you already own again, for a shot at a variant you
+    /// do not. A tenth of the pick, so a 1/64 shiny hunt on a rare species is
+    /// ~320 Dust: a long project rather than an afternoon, which is what a shiny
+    /// should be.
+    static func reroll(_ rarity: Rarity) -> Int {
+        max(1, targetedPick(rarity) / 10)
+    }
+
+    // MARK: Odds
+
+    /// Upstream's rates, kept. The mainline 1/4096 would mean never seeing a
+    /// shiny in a desktop app's lifetime, which upstream says in as many words
+    /// and which holds here.
+    static let shinyOdds = 64
+    static let shinyOddsWithCharm = 48
+}

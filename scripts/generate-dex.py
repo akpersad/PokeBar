@@ -157,6 +157,10 @@ EXPECT_EVOLUTION_ITEMS = 23  # distinct stones etc. 24 shop lines with the Cord
 # Ownable variants. A variant exists iff its sprite file does, so completion is
 # defined over these 2,368 sprites and not over 1,083 x 4: only 102 entries look
 # different by gender, and two have no shiny at all.
+# Gender, in eighths female. -1 is genderless, 0 male-only, 8 female-only. Needed
+# because a catch event records gender, and rolling one without this would hand a
+# Magnemite a sex it does not have.
+EXPECT_GENDER_RATES = {-1: 155, 0: 26, 1: 131, 2: 19, 4: 630, 6: 25, 7: 2, 8: 37}
 EXPECT_FEMALE_FORMS = 102
 EXPECT_OWNABLE_SPRITES = 2368
 
@@ -245,7 +249,7 @@ def sprite_manifest(commit: str) -> dict[str, set[int]]:
 def fetch_species() -> list[dict]:
     data = graphql(
         f"""{{ pokemonspecies(where: {{id: {{_lte: {MAX_SPECIES}}}}}, order_by: {{id: asc}}) {{
-                 id name capture_rate is_legendary is_mythical generation_id
+                 id name capture_rate is_legendary is_mythical generation_id gender_rate
                  pokemonspeciesnames(where: {{language_id: {{_eq: 9}}}}) {{ name }}
                }} }}"""
     )
@@ -420,6 +424,7 @@ def build(repin: bool = False) -> dict:
                 "region": None,
                 "generation": s["generation_id"],
                 "captureRate": s["capture_rate"],
+                "genderRate": s["gender_rate"],
                 "legendary": s["is_legendary"],
                 "mythical": s["is_mythical"],
             }
@@ -444,6 +449,7 @@ def build(repin: bool = False) -> dict:
                 "region": region,
                 "generation": parent["generation_id"],
                 "captureRate": parent["capture_rate"],
+                "genderRate": parent["gender_rate"],
                 "legendary": parent["is_legendary"],
                 "mythical": parent["is_mythical"],
             }
@@ -584,6 +590,26 @@ def build(repin: bool = False) -> dict:
     if unreachable:
         raise SystemExit(f"unreachable entries: {sorted(unreachable)}")
 
+    rates = Counter(s["gender_rate"] for s in species)
+    if dict(rates) != EXPECT_GENDER_RATES:
+        raise SystemExit(f"gender rates drifted.\n  got:      {dict(rates)}\n"
+                         f"  expected: {EXPECT_GENDER_RATES}")
+    # A distinct female sprite on a species PokeAPI calls male-only is a
+    # contradiction, and the sprite wins. It is an artifact of how PokeAPI models
+    # Oinkologne: the female is a separate *variety* (`oinkologne-female`, 10254)
+    # rather than a gender, so the species row reports gender_rate 0 while the
+    # sprites repo happily ships a female sprite for 916. Oinkologne is 50/50 in
+    # the games. Repaired data-driven rather than by a hardcoded id, but asserted
+    # to be the only case, because a second one means something else is wrong.
+    contradictions = [e for e in pool if e["female"] and e["genderRate"] in (-1, 0)]
+    if [e["slug"] for e in contradictions] != ["oinkologne"]:
+        raise SystemExit(
+            "female sprite on a species with no females: "
+            f"{[e['slug'] for e in contradictions]}"
+        )
+    for e in contradictions:
+        e["genderRate"] = 4
+
     female_forms = sum(1 for e in pool if e["female"])
     ownable = sum(1 + e["shiny"] + 2 * e["female"] for e in pool)
     for label, actual, expected in (
@@ -604,6 +630,7 @@ def build(repin: bool = False) -> dict:
         print(f"  via {name:<13s} {n}")
     print(f"shiny available     {sum(1 for e in pool if e['shiny'])}")
     print(f"female sprite       {female_forms}")
+    print(f"genderless          {rates[-1]}, male-only {rates[0]}, female-only {rates[8]}")
     print(f"ownable variants    {ownable}")
     print(f"with evolution      {sum(1 for e in pool if e['evolutions'])}")
     print(f"evolution edges     {len(all_edges)}")

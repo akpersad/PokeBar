@@ -29,6 +29,32 @@ enum SpriteSet: String, Codable, Sendable, CaseIterable {
     var fileExtension: String { self == .home ? "png" : "gif" }
 }
 
+/// An individual's sex.
+///
+/// Recorded on every catch event because in an append-only log it costs nothing
+/// and it keeps "I hatched a female Bulbasaur" answerable. It does **not** create
+/// a collection slot on its own: only the 102 entries with a distinct female
+/// sprite do that (DECISIONS.md).
+enum Gender: String, Codable, Sendable, CaseIterable {
+    case male
+    case female
+    case genderless
+
+    var label: String {
+        switch self {
+        case .male: "Male"
+        case .female: "Female"
+        case .genderless: "Unknown"
+        }
+    }
+
+    /// The sprite variant this gender should show for `entry`. Female only picks
+    /// the female sprite where one exists, which is the whole point of the rule.
+    func spriteVariant(shiny: Bool, for entry: DexEntry) -> SpriteVariant {
+        SpriteVariant(shiny: shiny, female: self == .female && entry.female)
+    }
+}
+
 /// Which of an entry's up to four sprites is meant.
 ///
 /// A variant is ownable **if and only if its sprite file exists**, which is the
@@ -167,6 +193,12 @@ struct DexEntry: Codable, Sendable, Identifiable, Hashable {
     let region: String?
     let generation: Int
     let captureRate: Int
+    /// Eighths female, PokeAPI's `gender_rate`: -1 genderless, 0 male-only,
+    /// 8 female-only, 4 the even split most species have. Recorded because a
+    /// catch event records gender, and rolling one without this hands a
+    /// Magnemite a sex it does not have. Measured over the 1,025 species:
+    /// 155 genderless, 26 male-only, 37 female-only, 630 even.
+    let genderRate: Int
     let legendary: Bool
     let mythical: Bool
     let spriteSet: SpriteSet
@@ -200,6 +232,17 @@ struct DexEntry: Codable, Sendable, Identifiable, Hashable {
             if shiny { out.append(.shinyFemale) }
         }
         return out
+    }
+
+    /// Genders this entry can hatch as. One element for 218 entries, two for the
+    /// rest.
+    var possibleGenders: [Gender] {
+        switch genderRate {
+        case ..<0: [.genderless]
+        case 0: [.male]
+        case 8...: [.female]
+        default: [.male, .female]
+        }
     }
 
     /// Clamps a requested variant to one this entry has, so a missing shiny
