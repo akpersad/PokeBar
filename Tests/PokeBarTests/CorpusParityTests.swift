@@ -2,7 +2,7 @@ import XCTest
 
 @testable import PokeBar
 
-/// Runs the real scanner over the real `~/.claude/projects` tree.
+/// Runs the real scanner over the real Claude Code and Codex trees.
 ///
 /// Opt-in via `POKEBAR_CORPUS=1` because it is not hermetic: it reads hundreds
 /// of megabytes and its numbers grow every time Claude Code is used. Its job is
@@ -67,6 +67,52 @@ final class CorpusParityTests: XCTestCase {
         XCTAssertGreaterThan(totals.total, 0)
         // Cache reads dominate agentic usage; if this inverts, dedup is broken.
         XCTAssertGreaterThan(totals.cacheRead, totals.input)
+    }
+
+    /// Independent parity check for Codex's cumulative session counters.
+    ///
+    /// The production parser sums per-response `last_token_usage`; this reference
+    /// instead takes the final `total_token_usage` snapshot from each rollout.
+    /// Agreement proves that responses are neither skipped nor double-counted.
+    func testCodexEntriesMatchCumulativeSessionTotals() throws {
+        try skipUnlessEnabled()
+
+        let codexRoot = UsageScanner.defaultRoots()[1]
+        try XCTSkipUnless(
+            FileManager.default.fileExists(atPath: codexRoot.path),
+            "no Codex corpus at \(codexRoot.path)")
+
+        var expected = TokenCounts.zero
+        var expectedEvents = 0
+        for file in UsageScanner.jsonlFiles(under: codexRoot) {
+            let text = try String(contentsOf: file, encoding: .utf8)
+            var latest: [String: Any]?
+            for line in text.split(separator: "\n") {
+                guard let data = String(line).data(using: .utf8),
+                      let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let payload = object["payload"] as? [String: Any],
+                      payload["type"] as? String == "token_count",
+                      let info = payload["info"] as? [String: Any],
+                      let total = info["total_token_usage"] as? [String: Any]
+                else { continue }
+                latest = total
+                expectedEvents += 1
+            }
+            guard let latest else { continue }
+            let input = latest["input_tokens"] as? Int ?? 0
+            let read = latest["cached_input_tokens"] as? Int ?? 0
+            let write = latest["cache_write_input_tokens"] as? Int ?? 0
+            expected += TokenCounts(
+                input: max(0, input - read - write),
+                output: latest["output_tokens"] as? Int ?? 0,
+                cacheWrite: write,
+                cacheRead: read)
+        }
+
+        let entries = UsageScanner(roots: [codexRoot]).scan().entries
+        let actual = entries.reduce(into: TokenCounts.zero) { $0 += $1.tokens }
+        XCTAssertGreaterThan(expectedEvents, 0)
+        XCTAssertEqual(actual, expected)
     }
 
     /// Prices the real corpus and reports the tier-weighted currency.

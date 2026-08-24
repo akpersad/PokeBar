@@ -76,7 +76,7 @@ enum UsageFormat {
 /// multiplier out of `ModelPricing`, never this, so a family that parses to
 /// `.unknown` costs nothing but a grey swatch.
 enum ModelFamily: String, Sendable, CaseIterable {
-    case fable, mythos, opus, sonnet, haiku, unknown
+    case fable, mythos, opus, sonnet, haiku, gpt, unknown
 }
 
 /// A model identifier split into something displayable.
@@ -93,6 +93,15 @@ struct ModelIdentity: Sendable, Equatable {
 
     init(_ raw: String) {
         self.raw = raw
+
+        if raw.hasPrefix("gpt-") {
+            family = .gpt
+            let parts = raw.dropFirst("gpt-".count).split(separator: "-").map(String.init)
+            displayName = "GPT " + parts.map { part in
+                part.first?.isNumber == true ? part : part.capitalized
+            }.joined(separator: " ")
+            return
+        }
 
         guard raw.hasPrefix("claude-") else {
             family = .unknown

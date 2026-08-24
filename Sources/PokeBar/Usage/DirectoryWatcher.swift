@@ -1,6 +1,6 @@
 import Foundation
 
-/// Recursive filesystem watcher over the Claude project tree, exposed as an
+/// Recursive filesystem watcher over the Claude and Codex usage trees, exposed as an
 /// `AsyncStream` of "something changed" ticks.
 ///
 /// This is the piece that replaces upstream's `Timer`. Upstream re-scanned every

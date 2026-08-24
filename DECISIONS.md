@@ -18,24 +18,27 @@ runtime from PokéAPI, nothing is redistributed, nothing is sold. The upstream
 project's legal exposure came from shipping a public product built on ripped
 game assets, which does not apply here.
 
-**Claude Code is the only usage source.** Dropped Codex, Copilot CLI, Cursor and
-the other seven upstream providers.
+**Claude Code and Codex are the usage sources.** Copilot CLI, Cursor and the
+other upstream providers remain out of scope.
 
 - Copilot: upstream expects `~/.copilot/session-store.db` with an
   `assistant_usage_events` table. That file does not exist on this machine; only
   `config.json`, IDE locks and process logs. Nothing to read.
-- Codex: this machine runs a newer SQLite build (`state_5.sqlite`,
-  `logs_2.sqlite`) with no `~/.codex/sessions/*.jsonl` at all, so the upstream
-  parser would report zero forever. Worse, `threads.tokens_used` is a single
-  cumulative integer with no input/output/cache split, so cost cannot be derived
-  honestly. Deliberately out of scope.
+- Codex was originally excluded because this machine had no rollout JSONL and
+  its SQLite `threads.tokens_used` field lacked an input/output/cache split.
+  Current Codex now persists `~/.codex/sessions/**/*.jsonl` with a `token_count`
+  event after each response. Its `last_token_usage` carries input, cached input,
+  cache-write input, output and reasoning output, so it can be integrated without
+  SQLite or estimates. `input_tokens` includes both cache classes and reasoning
+  is included in output; the parser subtracts the former and does not re-add the
+  latter, producing the same four non-overlapping classes as Claude usage.
 
-**No `UsageProvider` protocol.** With one source, a provider abstraction is
-speculative generality. Extracting a protocol later from one working
-implementation is easy and better informed than guessing its shape now.
+**No `UsageProvider` protocol.** Both sources are append-only JSONL and normalize
+directly into `UsageEntry`, so a provider abstraction would still add indirection
+without isolating different lifecycle behavior.
 
-**No SQLite dependency.** Claude Code usage is append-only JSONL. Upstream
-linked `libsqlite3` only for Codex, Cursor, Copilot and Kiro.
+**No SQLite dependency.** Claude Code and current Codex usage are both
+append-only JSONL. Cursor, Copilot and Kiro remain out of scope.
 
 **macOS 26 floor.** Upstream targets macOS 14 to serve strangers. This targets
 one machine (macOS 26.6, Swift 6.3.3), which buys native `MenuBarExtra`,

@@ -57,7 +57,8 @@ Sources/PokeBar/
     Notifier.swift              which events are worth interrupting for
   Usage/
     JSONLStreamer.swift         chunked reads, resumable byte offsets
-    ClaudeUsageParser.swift     one JSONL line -> UsageEntry, keep-max dedup
+    ClaudeUsageParser.swift     Claude JSONL line -> UsageEntry, keep-max dedup
+    CodexUsageParser.swift      Codex token_count event -> UsageEntry
     UsageScanner.swift          walks roots, inode-keyed cursors
     DirectoryWatcher.swift      FSEvents -> AsyncStream<Void>
     UsageLedger.swift           durable accumulation, growth-only credit
@@ -148,8 +149,9 @@ Each one is load-bearing and each was measured. Breaking any is silent.
    opens: without it, a quiet run across midnight keeps labelling yesterday's
    usage "Today". A test pins that re-publishing credits nothing.
 
-10. **Claude Code is the only usage source.** Codex and Copilot were ruled out with
-    reasons in DECISIONS.md. Do not propose re-adding providers unasked.
+10. **Claude Code and Codex are the usage sources.** Both are append-only JSONL
+    and share the cursor/watcher/ledger path. Copilot and other providers remain
+    out of scope. See DECISIONS.md.
 
 11. **The UI exists only inside an app bundle.** SwiftUI registers a
     `MenuBarExtra` status item only for a process that has a bundle identifier.

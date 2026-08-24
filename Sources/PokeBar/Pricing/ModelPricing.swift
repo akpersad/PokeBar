@@ -2,10 +2,8 @@ import Foundation
 
 /// Per-token USD rates for one model.
 ///
-/// All four classes are stored even though, across every current Claude model,
-/// they sit in a fixed ratio to input (output 5x, cache write 1.25x, cache read
-/// 0.1x). Storing the ratio instead of the rates would bake in an assumption
-/// that a future model is free to break.
+/// All four classes are stored explicitly because ratios vary by provider and
+/// model and can change independently.
 struct ModelRate: Sendable, Equatable, Codable {
     let input: Double
     let output: Double
@@ -67,6 +65,11 @@ struct ModelPricing: Sendable {
         "claude-haiku-4-5": .perMillion(input: 1, output: 5, cacheWrite: 1.25, cacheRead: 0.1),
         "claude-haiku-4-5-20251001":
             .perMillion(input: 1, output: 5, cacheWrite: 1.25, cacheRead: 0.1),
+        // OpenAI API pricing, verified 2026-08-23. Codex rollout input is
+        // decomposed into these non-overlapping classes before costing.
+        "gpt-5.6-sol":    .perMillion(input: 2.5, output: 15, cacheWrite: 3.125, cacheRead: 0.25),
+        "gpt-5.6-terra":  .perMillion(input: 1.25, output: 7.5, cacheWrite: 1.5625, cacheRead: 0.125),
+        "gpt-5.6-luna":   .perMillion(input: 0.5, output: 3, cacheWrite: 0.625, cacheRead: 0.05),
     ]
 
     /// The model whose input rate defines a tier multiplier of exactly 1.0.

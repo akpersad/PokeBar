@@ -96,6 +96,8 @@ final class UsageFormatTests: XCTestCase {
         XCTAssertEqual(ModelIdentity("claude-opus-5").displayName, "Opus 5")
         XCTAssertEqual(ModelIdentity("claude-opus-4-8").displayName, "Opus 4.8")
         XCTAssertEqual(ModelIdentity("claude-sonnet-5").displayName, "Sonnet 5")
+        XCTAssertEqual(ModelIdentity("gpt-5.6-sol").displayName, "GPT 5.6 Sol")
+        XCTAssertEqual(ModelIdentity("gpt-5.6-sol").family, .gpt)
     }
 
     /// Snapshot ids carry a trailing date that is not a version component.
@@ -122,8 +124,8 @@ final class UsageFormatTests: XCTestCase {
         XCTAssertEqual(identity.family, .unknown)
     }
 
-    func testNonClaudeIdentifiersFallBackToRaw() {
-        for raw in ["gpt-4o", "Other", "<synthetic>", "claude-", ""] {
+    func testUnknownProviderIdentifiersFallBackToRaw() {
+        for raw in ["Other", "<synthetic>", "claude-", ""] {
             let identity = ModelIdentity(raw)
             XCTAssertEqual(identity.displayName, raw)
             XCTAssertEqual(identity.family, .unknown)

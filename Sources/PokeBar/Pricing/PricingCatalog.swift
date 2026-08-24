@@ -86,7 +86,9 @@ actor PricingCatalog {
     /// `claude-opus-5` alone, including `au.anthropic.claude-opus-5` at a 10%
     /// markup and `azure_ai/` / `vertex_ai/` / `openrouter/` forms. Claude Code
     /// writes the bare id, so anything containing a `.` or `/` is discarded
-    /// rather than risking a marked-up regional rate.
+    /// rather than risking a marked-up regional rate. Codex GPT rates remain in
+    /// the official bundled table rather than being overridden by this
+    /// community-maintained source.
     static func parse(_ data: Data) -> [String: ModelRate]? {
         guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             return nil

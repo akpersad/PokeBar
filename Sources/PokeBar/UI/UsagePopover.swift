@@ -74,13 +74,13 @@ struct UsagePopover: View {
     private var placeholderSection: some View {
         VStack(alignment: .leading, spacing: 4) {
             if monitor.state == .scanning {
-                Text("Reading your Claude Code history")
+                Text("Reading your Claude Code and Codex history")
                     .font(.subheadline.weight(.medium))
                 Text("The first pass covers everything on disk and takes a few seconds.")
             } else {
                 Text("No usage yet")
                     .font(.subheadline.weight(.medium))
-                Text("Start a Claude Code session and it shows up here about a second after the turn finishes.")
+                Text("Start a Claude Code or Codex session and it shows up here about a second after the turn finishes.")
             }
         }
         .font(.caption)
@@ -202,6 +202,7 @@ private struct ModelRow: View {
         case .opus: .orange
         case .sonnet: .blue
         case .haiku: .green
+        case .gpt: .cyan
         case .unknown: .gray
         }
     }

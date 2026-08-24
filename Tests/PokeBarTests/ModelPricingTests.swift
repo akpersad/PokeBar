@@ -9,9 +9,20 @@ final class ModelPricingTests: XCTestCase {
     // MARK: - Rates
 
     func testBundledRatesForEveryModelInUseOnThisMachine() throws {
-        for model in ["claude-fable-5", "claude-opus-5", "claude-opus-4-8", "claude-sonnet-5"] {
+        for model in [
+            "claude-fable-5", "claude-opus-5", "claude-opus-4-8", "claude-sonnet-5",
+            "gpt-5.6-sol",
+        ] {
             XCTAssertNotNil(pricing.rate(for: model), "\(model) must be priced")
         }
+    }
+
+    func testCodexModelRates() throws {
+        let sol = try XCTUnwrap(pricing.rate(for: "gpt-5.6-sol"))
+        XCTAssertEqual(sol.input * 1_000_000, 2.5, accuracy: 0.001)
+        XCTAssertEqual(sol.output * 1_000_000, 15, accuracy: 0.001)
+        XCTAssertEqual(sol.cacheWrite * 1_000_000, 3.125, accuracy: 0.001)
+        XCTAssertEqual(sol.cacheRead * 1_000_000, 0.25, accuracy: 0.001)
     }
 
     /// The concrete upstream defect: no entry for the two newest models, so
@@ -61,7 +72,7 @@ final class ModelPricingTests: XCTestCase {
     /// per-missing-field fallback, but if it ever stops holding in the bundled
     /// table that is worth knowing about.
     func testWithinModelRatiosAreUniform() throws {
-        for (model, rate) in ModelPricing.bundled {
+        for (model, rate) in ModelPricing.bundled where model.hasPrefix("claude-") {
             XCTAssertEqual(rate.output / rate.input, 5.0, accuracy: 1e-9, "\(model) output")
             XCTAssertEqual(rate.cacheWrite / rate.input, 1.25, accuracy: 1e-9, "\(model) cacheWrite")
             XCTAssertEqual(rate.cacheRead / rate.input, 0.1, accuracy: 1e-9, "\(model) cacheRead")
