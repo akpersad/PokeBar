@@ -121,15 +121,14 @@ struct Pokedex: Sendable {
 
     /// Remote URL for an entry's sprite, pinned to the manifest's commit.
     ///
-    /// Falls back to the normal sprite when `shiny` is asked for and the entry
-    /// has none. Two entries in the pool have no shiny, and a missing shiny must
-    /// render as the ordinary Pokemon rather than as a blank tile.
-    func spriteURL(for entry: DexEntry, shiny: Bool = false) -> URL {
-        let useShiny = shiny && entry.shiny
+    /// Falls back to a variant the entry actually has. Two entries in the pool
+    /// have no shiny and 981 have no distinct female sprite, and a missing
+    /// variant must render as the ordinary Pokemon rather than as a blank tile.
+    func spriteURL(for entry: DexEntry, variant: SpriteVariant = .normal) -> URL {
         let set = entry.spriteSet
-        var path = "\(Self.spriteHost)/\(spritesCommit)/sprites/pokemon/\(set.directory)"
-        if useShiny { path += "/shiny" }
-        path += "/\(entry.id).\(set.fileExtension)"
+        let path = "\(Self.spriteHost)/\(spritesCommit)/sprites/pokemon/\(set.directory)"
+            + entry.resolve(variant).pathSuffix
+            + "/\(entry.id).\(set.fileExtension)"
         // Every component is either a fixed literal, a hex commit from the
         // manifest, or an integer id, so this cannot fail to parse.
         return URL(string: path)!
@@ -140,10 +139,10 @@ struct Pokedex: Sendable {
     /// Includes the sprite set because an entry's set could change when the
     /// manifest is regenerated, and a stale file under a reused name would render
     /// the wrong art forever.
-    func cacheKey(for entry: DexEntry, shiny: Bool = false) -> String {
-        let useShiny = shiny && entry.shiny
+    func cacheKey(for entry: DexEntry, variant: SpriteVariant = .normal) -> String {
         let set = entry.spriteSet
-        return "\(entry.id)-\(set.rawValue)\(useShiny ? "-shiny" : "").\(set.fileExtension)"
+        return "\(entry.id)-\(set.rawValue)\(entry.resolve(variant).keySuffix)"
+            + ".\(set.fileExtension)"
     }
 
     // MARK: - Featured pick

@@ -624,6 +624,15 @@ the pinned sprites commit and cross-checked against PokeAPI:
 
 Two independent sources agree on the 102: the `female/` sprite directories hold
 102-104 files, and PokeAPI reports `has_gender_differences` for exactly 102 species.
+
+**Confirmed against the manifest, 2026-08-23**, and it needed resolving per entry
+rather than per directory: the female directories disagree across sets (gen-v holds
+104 female and 98 shiny female, showdown 102 and 102, home 103 and 103), so the
+answer depends on which set an entry actually resolves to. Resolved that way the
+totals land exactly on the figures above: 102 entries with four variants, 979 with
+two, 2 with one, **2,368 ownable sprites**. No entry has a female sprite without a
+shiny female one, so the manifest carries a single `female` flag and the generator
+fails rather than guessing if that ever stops being true.
 Of 1,025 species, 155 are genderless outright, 26 are male-only and 37 female-only;
 807 have both genders but only 102 of those *look* different.
 

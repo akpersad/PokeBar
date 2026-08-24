@@ -12,6 +12,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 1,
    "legendary": false,
@@ -36,6 +37,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 2,
    "legendary": false,
@@ -52,6 +54,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 1,
    "id": 3,
    "legendary": false,
@@ -76,6 +79,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 4,
    "legendary": false,
@@ -100,6 +104,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 5,
    "legendary": false,
@@ -116,6 +121,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 6,
    "legendary": false,
@@ -140,6 +146,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 7,
    "legendary": false,
@@ -164,6 +171,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 8,
    "legendary": false,
@@ -180,6 +188,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 9,
    "legendary": false,
@@ -204,6 +213,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10,
    "legendary": false,
@@ -228,6 +238,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 11,
    "legendary": false,
@@ -244,6 +255,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 1,
    "id": 12,
    "legendary": false,
@@ -268,6 +280,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 13,
    "legendary": false,
@@ -292,6 +305,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 14,
    "legendary": false,
@@ -308,6 +322,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 15,
    "legendary": false,
@@ -332,6 +347,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 16,
    "legendary": false,
@@ -356,6 +372,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 17,
    "legendary": false,
@@ -372,6 +389,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 18,
    "legendary": false,
@@ -396,6 +414,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 1,
    "id": 19,
    "legendary": false,
@@ -412,6 +431,7 @@
    "animated": true,
    "captureRate": 127,
    "evolutions": [],
+   "female": true,
    "generation": 1,
    "id": 20,
    "legendary": false,
@@ -436,6 +456,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 21,
    "legendary": false,
@@ -452,6 +473,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 22,
    "legendary": false,
@@ -476,6 +498,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 23,
    "legendary": false,
@@ -492,6 +515,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 24,
    "legendary": false,
@@ -523,6 +547,7 @@
      "trigger": "item"
     }
    ],
+   "female": true,
    "generation": 1,
    "id": 25,
    "legendary": false,
@@ -539,6 +564,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": true,
    "generation": 1,
    "id": 26,
    "legendary": false,
@@ -563,6 +589,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 27,
    "legendary": false,
@@ -579,6 +606,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 28,
    "legendary": false,
@@ -603,6 +631,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 29,
    "legendary": false,
@@ -627,6 +656,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 30,
    "legendary": false,
@@ -643,6 +673,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 31,
    "legendary": false,
@@ -667,6 +698,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 32,
    "legendary": false,
@@ -691,6 +723,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 33,
    "legendary": false,
@@ -707,6 +740,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 34,
    "legendary": false,
@@ -731,6 +765,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 35,
    "legendary": false,
@@ -747,6 +782,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 36,
    "legendary": false,
@@ -771,6 +807,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 37,
    "legendary": false,
@@ -787,6 +824,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 38,
    "legendary": false,
@@ -811,6 +849,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 39,
    "legendary": false,
@@ -827,6 +866,7 @@
    "animated": true,
    "captureRate": 50,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 40,
    "legendary": false,
@@ -851,6 +891,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 1,
    "id": 41,
    "legendary": false,
@@ -875,6 +916,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": true,
    "generation": 1,
    "id": 42,
    "legendary": false,
@@ -899,6 +941,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 43,
    "legendary": false,
@@ -930,6 +973,7 @@
      "trigger": "item"
     }
    ],
+   "female": true,
    "generation": 1,
    "id": 44,
    "legendary": false,
@@ -946,6 +990,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 1,
    "id": 45,
    "legendary": false,
@@ -970,6 +1015,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 46,
    "legendary": false,
@@ -986,6 +1032,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 47,
    "legendary": false,
@@ -1010,6 +1057,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 48,
    "legendary": false,
@@ -1026,6 +1074,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 49,
    "legendary": false,
@@ -1050,6 +1099,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 50,
    "legendary": false,
@@ -1066,6 +1116,7 @@
    "animated": true,
    "captureRate": 50,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 51,
    "legendary": false,
@@ -1090,6 +1141,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 52,
    "legendary": false,
@@ -1106,6 +1158,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 53,
    "legendary": false,
@@ -1130,6 +1183,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 54,
    "legendary": false,
@@ -1146,6 +1200,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 55,
    "legendary": false,
@@ -1170,6 +1225,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 56,
    "legendary": false,
@@ -1194,6 +1250,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 57,
    "legendary": false,
@@ -1218,6 +1275,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 58,
    "legendary": false,
@@ -1234,6 +1292,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 59,
    "legendary": false,
@@ -1258,6 +1317,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 60,
    "legendary": false,
@@ -1289,6 +1349,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 61,
    "legendary": false,
@@ -1305,6 +1366,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 62,
    "legendary": false,
@@ -1329,6 +1391,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 63,
    "legendary": false,
@@ -1353,6 +1416,7 @@
      "trigger": "trade"
     }
    ],
+   "female": true,
    "generation": 1,
    "id": 64,
    "legendary": false,
@@ -1369,6 +1433,7 @@
    "animated": true,
    "captureRate": 50,
    "evolutions": [],
+   "female": true,
    "generation": 1,
    "id": 65,
    "legendary": false,
@@ -1393,6 +1458,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 66,
    "legendary": false,
@@ -1417,6 +1483,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 67,
    "legendary": false,
@@ -1433,6 +1500,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 68,
    "legendary": false,
@@ -1457,6 +1525,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 69,
    "legendary": false,
@@ -1481,6 +1550,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 70,
    "legendary": false,
@@ -1497,6 +1567,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 71,
    "legendary": false,
@@ -1521,6 +1592,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 72,
    "legendary": false,
@@ -1537,6 +1609,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 73,
    "legendary": false,
@@ -1561,6 +1634,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 74,
    "legendary": false,
@@ -1585,6 +1659,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 75,
    "legendary": false,
@@ -1601,6 +1676,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 76,
    "legendary": false,
@@ -1625,6 +1701,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 77,
    "legendary": false,
@@ -1641,6 +1718,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 78,
    "legendary": false,
@@ -1672,6 +1750,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 79,
    "legendary": false,
@@ -1688,6 +1767,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 80,
    "legendary": false,
@@ -1712,6 +1792,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 81,
    "legendary": false,
@@ -1736,6 +1817,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 82,
    "legendary": false,
@@ -1752,6 +1834,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 83,
    "legendary": false,
@@ -1776,6 +1859,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 1,
    "id": 84,
    "legendary": false,
@@ -1792,6 +1876,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 1,
    "id": 85,
    "legendary": false,
@@ -1816,6 +1901,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 86,
    "legendary": false,
@@ -1832,6 +1918,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 87,
    "legendary": false,
@@ -1856,6 +1943,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 88,
    "legendary": false,
@@ -1872,6 +1960,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 89,
    "legendary": false,
@@ -1896,6 +1985,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 90,
    "legendary": false,
@@ -1912,6 +2002,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 91,
    "legendary": false,
@@ -1936,6 +2027,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 92,
    "legendary": false,
@@ -1960,6 +2052,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 93,
    "legendary": false,
@@ -1976,6 +2069,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 94,
    "legendary": false,
@@ -2000,6 +2094,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 95,
    "legendary": false,
@@ -2024,6 +2119,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 96,
    "legendary": false,
@@ -2040,6 +2136,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": true,
    "generation": 1,
    "id": 97,
    "legendary": false,
@@ -2064,6 +2161,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 98,
    "legendary": false,
@@ -2080,6 +2178,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 99,
    "legendary": false,
@@ -2104,6 +2203,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 100,
    "legendary": false,
@@ -2120,6 +2220,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 101,
    "legendary": false,
@@ -2151,6 +2252,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 102,
    "legendary": false,
@@ -2167,6 +2269,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 103,
    "legendary": false,
@@ -2198,6 +2301,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 104,
    "legendary": false,
@@ -2214,6 +2318,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 105,
    "legendary": false,
@@ -2230,6 +2335,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 106,
    "legendary": false,
@@ -2246,6 +2352,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 107,
    "legendary": false,
@@ -2270,6 +2377,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 108,
    "legendary": false,
@@ -2301,6 +2409,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 109,
    "legendary": false,
@@ -2317,6 +2426,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 110,
    "legendary": false,
@@ -2341,6 +2451,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 1,
    "id": 111,
    "legendary": false,
@@ -2365,6 +2476,7 @@
      "trigger": "trade"
     }
    ],
+   "female": true,
    "generation": 1,
    "id": 112,
    "legendary": false,
@@ -2389,6 +2501,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 113,
    "legendary": false,
@@ -2413,6 +2526,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 114,
    "legendary": false,
@@ -2429,6 +2543,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 115,
    "legendary": false,
@@ -2453,6 +2568,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 116,
    "legendary": false,
@@ -2477,6 +2593,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 117,
    "legendary": false,
@@ -2501,6 +2618,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 1,
    "id": 118,
    "legendary": false,
@@ -2517,6 +2635,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": true,
    "generation": 1,
    "id": 119,
    "legendary": false,
@@ -2541,6 +2660,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 120,
    "legendary": false,
@@ -2557,6 +2677,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 121,
    "legendary": false,
@@ -2573,6 +2694,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 122,
    "legendary": false,
@@ -2604,6 +2726,7 @@
      "trigger": "item"
     }
    ],
+   "female": true,
    "generation": 1,
    "id": 123,
    "legendary": false,
@@ -2620,6 +2743,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 124,
    "legendary": false,
@@ -2644,6 +2768,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 125,
    "legendary": false,
@@ -2668,6 +2793,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 126,
    "legendary": false,
@@ -2684,6 +2810,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 127,
    "legendary": false,
@@ -2700,6 +2827,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 128,
    "legendary": false,
@@ -2724,6 +2852,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 1,
    "id": 129,
    "legendary": false,
@@ -2740,6 +2869,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 1,
    "id": 130,
    "legendary": false,
@@ -2756,6 +2886,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 131,
    "legendary": false,
@@ -2772,6 +2903,7 @@
    "animated": true,
    "captureRate": 35,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 132,
    "legendary": false,
@@ -2845,6 +2977,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 133,
    "legendary": false,
@@ -2861,6 +2994,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 134,
    "legendary": false,
@@ -2877,6 +3011,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 135,
    "legendary": false,
@@ -2893,6 +3028,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 136,
    "legendary": false,
@@ -2917,6 +3053,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 137,
    "legendary": false,
@@ -2941,6 +3078,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 138,
    "legendary": false,
@@ -2957,6 +3095,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 139,
    "legendary": false,
@@ -2981,6 +3120,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 140,
    "legendary": false,
@@ -2997,6 +3137,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 141,
    "legendary": false,
@@ -3013,6 +3154,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 142,
    "legendary": false,
@@ -3029,6 +3171,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 143,
    "legendary": false,
@@ -3045,6 +3188,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 144,
    "legendary": true,
@@ -3061,6 +3205,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 145,
    "legendary": true,
@@ -3077,6 +3222,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 146,
    "legendary": true,
@@ -3101,6 +3247,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 147,
    "legendary": false,
@@ -3125,6 +3272,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 148,
    "legendary": false,
@@ -3141,6 +3289,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 149,
    "legendary": false,
@@ -3157,6 +3306,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 150,
    "legendary": true,
@@ -3173,6 +3323,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 151,
    "legendary": false,
@@ -3197,6 +3348,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 152,
    "legendary": false,
@@ -3221,6 +3373,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 153,
    "legendary": false,
@@ -3237,6 +3390,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 2,
    "id": 154,
    "legendary": false,
@@ -3261,6 +3415,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 155,
    "legendary": false,
@@ -3292,6 +3447,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 156,
    "legendary": false,
@@ -3308,6 +3464,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 157,
    "legendary": false,
@@ -3332,6 +3489,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 158,
    "legendary": false,
@@ -3356,6 +3514,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 159,
    "legendary": false,
@@ -3372,6 +3531,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 160,
    "legendary": false,
@@ -3396,6 +3556,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 161,
    "legendary": false,
@@ -3412,6 +3573,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 162,
    "legendary": false,
@@ -3436,6 +3598,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 163,
    "legendary": false,
@@ -3452,6 +3615,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 164,
    "legendary": false,
@@ -3476,6 +3640,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 2,
    "id": 165,
    "legendary": false,
@@ -3492,6 +3657,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": true,
    "generation": 2,
    "id": 166,
    "legendary": false,
@@ -3516,6 +3682,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 167,
    "legendary": false,
@@ -3532,6 +3699,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 168,
    "legendary": false,
@@ -3548,6 +3716,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 169,
    "legendary": false,
@@ -3572,6 +3741,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 170,
    "legendary": false,
@@ -3588,6 +3758,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 171,
    "legendary": false,
@@ -3612,6 +3783,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 172,
    "legendary": false,
@@ -3636,6 +3808,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 173,
    "legendary": false,
@@ -3660,6 +3833,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 174,
    "legendary": false,
@@ -3684,6 +3858,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 175,
    "legendary": false,
@@ -3708,6 +3883,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 176,
    "legendary": false,
@@ -3732,6 +3908,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 177,
    "legendary": false,
@@ -3748,6 +3925,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": true,
    "generation": 2,
    "id": 178,
    "legendary": false,
@@ -3772,6 +3950,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 179,
    "legendary": false,
@@ -3796,6 +3975,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 180,
    "legendary": false,
@@ -3812,6 +3992,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 181,
    "legendary": false,
@@ -3828,6 +4009,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 182,
    "legendary": false,
@@ -3852,6 +4034,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 183,
    "legendary": false,
@@ -3868,6 +4051,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 184,
    "legendary": false,
@@ -3884,6 +4068,7 @@
    "animated": true,
    "captureRate": 65,
    "evolutions": [],
+   "female": true,
    "generation": 2,
    "id": 185,
    "legendary": false,
@@ -3900,6 +4085,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 2,
    "id": 186,
    "legendary": false,
@@ -3924,6 +4110,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 187,
    "legendary": false,
@@ -3948,6 +4135,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 188,
    "legendary": false,
@@ -3964,6 +4152,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 189,
    "legendary": false,
@@ -3988,6 +4177,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": true,
    "generation": 2,
    "id": 190,
    "legendary": false,
@@ -4012,6 +4202,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 191,
    "legendary": false,
@@ -4028,6 +4219,7 @@
    "animated": true,
    "captureRate": 120,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 192,
    "legendary": false,
@@ -4052,6 +4244,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 193,
    "legendary": false,
@@ -4076,6 +4269,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 2,
    "id": 194,
    "legendary": false,
@@ -4092,6 +4286,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": true,
    "generation": 2,
    "id": 195,
    "legendary": false,
@@ -4108,6 +4303,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 196,
    "legendary": false,
@@ -4124,6 +4320,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 197,
    "legendary": false,
@@ -4148,6 +4345,7 @@
      "trigger": "item"
     }
    ],
+   "female": true,
    "generation": 2,
    "id": 198,
    "legendary": false,
@@ -4164,6 +4362,7 @@
    "animated": true,
    "captureRate": 70,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 199,
    "legendary": false,
@@ -4188,6 +4387,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 200,
    "legendary": false,
@@ -4204,6 +4404,7 @@
    "animated": true,
    "captureRate": 225,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 201,
    "legendary": false,
@@ -4220,6 +4421,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 2,
    "id": 202,
    "legendary": false,
@@ -4244,6 +4446,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": true,
    "generation": 2,
    "id": 203,
    "legendary": false,
@@ -4268,6 +4471,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 204,
    "legendary": false,
@@ -4284,6 +4488,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 205,
    "legendary": false,
@@ -4308,6 +4513,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 206,
    "legendary": false,
@@ -4332,6 +4538,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": true,
    "generation": 2,
    "id": 207,
    "legendary": false,
@@ -4348,6 +4555,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": true,
    "generation": 2,
    "id": 208,
    "legendary": false,
@@ -4372,6 +4580,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 209,
    "legendary": false,
@@ -4388,6 +4597,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 210,
    "legendary": false,
@@ -4404,6 +4614,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 211,
    "legendary": false,
@@ -4420,6 +4631,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": true,
    "generation": 2,
    "id": 212,
    "legendary": false,
@@ -4436,6 +4648,7 @@
    "animated": true,
    "captureRate": 190,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 213,
    "legendary": false,
@@ -4452,6 +4665,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 2,
    "id": 214,
    "legendary": false,
@@ -4476,6 +4690,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": true,
    "generation": 2,
    "id": 215,
    "legendary": false,
@@ -4500,6 +4715,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 216,
    "legendary": false,
@@ -4524,6 +4740,7 @@
      "trigger": "item"
     }
    ],
+   "female": true,
    "generation": 2,
    "id": 217,
    "legendary": false,
@@ -4548,6 +4765,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 218,
    "legendary": false,
@@ -4564,6 +4782,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 219,
    "legendary": false,
@@ -4588,6 +4807,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 220,
    "legendary": false,
@@ -4612,6 +4832,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": true,
    "generation": 2,
    "id": 221,
    "legendary": false,
@@ -4628,6 +4849,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 222,
    "legendary": false,
@@ -4652,6 +4874,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 223,
    "legendary": false,
@@ -4668,6 +4891,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": true,
    "generation": 2,
    "id": 224,
    "legendary": false,
@@ -4684,6 +4908,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 225,
    "legendary": false,
@@ -4700,6 +4925,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 226,
    "legendary": false,
@@ -4716,6 +4942,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 227,
    "legendary": false,
@@ -4740,6 +4967,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 228,
    "legendary": false,
@@ -4756,6 +4984,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 2,
    "id": 229,
    "legendary": false,
@@ -4772,6 +5001,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 230,
    "legendary": false,
@@ -4796,6 +5026,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 231,
    "legendary": false,
@@ -4812,6 +5043,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": true,
    "generation": 2,
    "id": 232,
    "legendary": false,
@@ -4836,6 +5068,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 233,
    "legendary": false,
@@ -4860,6 +5093,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 234,
    "legendary": false,
@@ -4876,6 +5110,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 235,
    "legendary": false,
@@ -4914,6 +5149,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 236,
    "legendary": false,
@@ -4930,6 +5166,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 237,
    "legendary": false,
@@ -4954,6 +5191,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 238,
    "legendary": false,
@@ -4978,6 +5216,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 239,
    "legendary": false,
@@ -5002,6 +5241,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 240,
    "legendary": false,
@@ -5018,6 +5258,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 241,
    "legendary": false,
@@ -5034,6 +5275,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 242,
    "legendary": false,
@@ -5050,6 +5292,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 243,
    "legendary": true,
@@ -5066,6 +5309,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 244,
    "legendary": true,
@@ -5082,6 +5326,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 245,
    "legendary": true,
@@ -5106,6 +5351,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 246,
    "legendary": false,
@@ -5130,6 +5376,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 247,
    "legendary": false,
@@ -5146,6 +5393,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 248,
    "legendary": false,
@@ -5162,6 +5410,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 249,
    "legendary": true,
@@ -5178,6 +5427,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 250,
    "legendary": true,
@@ -5194,6 +5444,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 251,
    "legendary": false,
@@ -5218,6 +5469,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 252,
    "legendary": false,
@@ -5242,6 +5494,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 253,
    "legendary": false,
@@ -5258,6 +5511,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 254,
    "legendary": false,
@@ -5282,6 +5536,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 3,
    "id": 255,
    "legendary": false,
@@ -5306,6 +5561,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 3,
    "id": 256,
    "legendary": false,
@@ -5322,6 +5578,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 3,
    "id": 257,
    "legendary": false,
@@ -5346,6 +5603,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 258,
    "legendary": false,
@@ -5370,6 +5628,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 259,
    "legendary": false,
@@ -5386,6 +5645,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 260,
    "legendary": false,
@@ -5410,6 +5670,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 261,
    "legendary": false,
@@ -5426,6 +5687,7 @@
    "animated": true,
    "captureRate": 127,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 262,
    "legendary": false,
@@ -5450,6 +5712,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 263,
    "legendary": false,
@@ -5466,6 +5729,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 264,
    "legendary": false,
@@ -5497,6 +5761,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 265,
    "legendary": false,
@@ -5521,6 +5786,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 266,
    "legendary": false,
@@ -5537,6 +5803,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 3,
    "id": 267,
    "legendary": false,
@@ -5561,6 +5828,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 268,
    "legendary": false,
@@ -5577,6 +5845,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 3,
    "id": 269,
    "legendary": false,
@@ -5601,6 +5870,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 270,
    "legendary": false,
@@ -5625,6 +5895,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 271,
    "legendary": false,
@@ -5641,6 +5912,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 3,
    "id": 272,
    "legendary": false,
@@ -5665,6 +5937,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 273,
    "legendary": false,
@@ -5689,6 +5962,7 @@
      "trigger": "item"
     }
    ],
+   "female": true,
    "generation": 3,
    "id": 274,
    "legendary": false,
@@ -5705,6 +5979,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 3,
    "id": 275,
    "legendary": false,
@@ -5729,6 +6004,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 276,
    "legendary": false,
@@ -5745,6 +6021,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 277,
    "legendary": false,
@@ -5769,6 +6046,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 278,
    "legendary": false,
@@ -5785,6 +6063,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 279,
    "legendary": false,
@@ -5809,6 +6088,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 280,
    "legendary": false,
@@ -5840,6 +6120,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 281,
    "legendary": false,
@@ -5856,6 +6137,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 282,
    "legendary": false,
@@ -5880,6 +6162,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 283,
    "legendary": false,
@@ -5896,6 +6179,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 284,
    "legendary": false,
@@ -5920,6 +6204,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 285,
    "legendary": false,
@@ -5936,6 +6221,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 286,
    "legendary": false,
@@ -5960,6 +6246,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 287,
    "legendary": false,
@@ -5984,6 +6271,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 288,
    "legendary": false,
@@ -6000,6 +6288,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 289,
    "legendary": false,
@@ -6031,6 +6320,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 290,
    "legendary": false,
@@ -6047,6 +6337,7 @@
    "animated": true,
    "captureRate": 120,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 291,
    "legendary": false,
@@ -6063,6 +6354,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 292,
    "legendary": false,
@@ -6087,6 +6379,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 293,
    "legendary": false,
@@ -6111,6 +6404,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 294,
    "legendary": false,
@@ -6127,6 +6421,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 295,
    "legendary": false,
@@ -6151,6 +6446,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 296,
    "legendary": false,
@@ -6167,6 +6463,7 @@
    "animated": true,
    "captureRate": 200,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 297,
    "legendary": false,
@@ -6191,6 +6488,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 298,
    "legendary": false,
@@ -6215,6 +6513,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 299,
    "legendary": false,
@@ -6239,6 +6538,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 300,
    "legendary": false,
@@ -6255,6 +6555,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 301,
    "legendary": false,
@@ -6271,6 +6572,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 302,
    "legendary": false,
@@ -6287,6 +6589,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 303,
    "legendary": false,
@@ -6311,6 +6614,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 304,
    "legendary": false,
@@ -6335,6 +6639,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 305,
    "legendary": false,
@@ -6351,6 +6656,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 306,
    "legendary": false,
@@ -6375,6 +6681,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 3,
    "id": 307,
    "legendary": false,
@@ -6391,6 +6698,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": true,
    "generation": 3,
    "id": 308,
    "legendary": false,
@@ -6415,6 +6723,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 309,
    "legendary": false,
@@ -6431,6 +6740,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 310,
    "legendary": false,
@@ -6447,6 +6757,7 @@
    "animated": true,
    "captureRate": 200,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 311,
    "legendary": false,
@@ -6463,6 +6774,7 @@
    "animated": true,
    "captureRate": 200,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 312,
    "legendary": false,
@@ -6479,6 +6791,7 @@
    "animated": true,
    "captureRate": 150,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 313,
    "legendary": false,
@@ -6495,6 +6808,7 @@
    "animated": true,
    "captureRate": 150,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 314,
    "legendary": false,
@@ -6519,6 +6833,7 @@
      "trigger": "item"
     }
    ],
+   "female": true,
    "generation": 3,
    "id": 315,
    "legendary": false,
@@ -6543,6 +6858,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 3,
    "id": 316,
    "legendary": false,
@@ -6559,6 +6875,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": true,
    "generation": 3,
    "id": 317,
    "legendary": false,
@@ -6583,6 +6900,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 318,
    "legendary": false,
@@ -6599,6 +6917,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 319,
    "legendary": false,
@@ -6623,6 +6942,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 320,
    "legendary": false,
@@ -6639,6 +6959,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 321,
    "legendary": false,
@@ -6663,6 +6984,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 3,
    "id": 322,
    "legendary": false,
@@ -6679,6 +7001,7 @@
    "animated": true,
    "captureRate": 150,
    "evolutions": [],
+   "female": true,
    "generation": 3,
    "id": 323,
    "legendary": false,
@@ -6695,6 +7018,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 324,
    "legendary": false,
@@ -6719,6 +7043,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 325,
    "legendary": false,
@@ -6735,6 +7060,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 326,
    "legendary": false,
@@ -6751,6 +7077,7 @@
    "animated": true,
    "captureRate": 255,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 327,
    "legendary": false,
@@ -6775,6 +7102,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 328,
    "legendary": false,
@@ -6799,6 +7127,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 329,
    "legendary": false,
@@ -6815,6 +7144,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 330,
    "legendary": false,
@@ -6839,6 +7169,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 331,
    "legendary": false,
@@ -6855,6 +7186,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": true,
    "generation": 3,
    "id": 332,
    "legendary": false,
@@ -6879,6 +7211,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 333,
    "legendary": false,
@@ -6895,6 +7228,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 334,
    "legendary": false,
@@ -6911,6 +7245,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 335,
    "legendary": false,
@@ -6927,6 +7262,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 336,
    "legendary": false,
@@ -6943,6 +7279,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 337,
    "legendary": false,
@@ -6959,6 +7296,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 338,
    "legendary": false,
@@ -6983,6 +7321,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 339,
    "legendary": false,
@@ -6999,6 +7338,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 340,
    "legendary": false,
@@ -7023,6 +7363,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 341,
    "legendary": false,
@@ -7039,6 +7380,7 @@
    "animated": true,
    "captureRate": 155,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 342,
    "legendary": false,
@@ -7063,6 +7405,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 343,
    "legendary": false,
@@ -7079,6 +7422,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 344,
    "legendary": false,
@@ -7103,6 +7447,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 345,
    "legendary": false,
@@ -7119,6 +7464,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 346,
    "legendary": false,
@@ -7143,6 +7489,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 347,
    "legendary": false,
@@ -7159,6 +7506,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 348,
    "legendary": false,
@@ -7183,6 +7531,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 349,
    "legendary": false,
@@ -7199,6 +7548,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": true,
    "generation": 3,
    "id": 350,
    "legendary": false,
@@ -7215,6 +7565,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 351,
    "legendary": false,
@@ -7231,6 +7582,7 @@
    "animated": true,
    "captureRate": 200,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 352,
    "legendary": false,
@@ -7255,6 +7607,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 353,
    "legendary": false,
@@ -7271,6 +7624,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 354,
    "legendary": false,
@@ -7295,6 +7649,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 355,
    "legendary": false,
@@ -7319,6 +7674,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 356,
    "legendary": false,
@@ -7335,6 +7691,7 @@
    "animated": true,
    "captureRate": 200,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 357,
    "legendary": false,
@@ -7351,6 +7708,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 358,
    "legendary": false,
@@ -7367,6 +7725,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 359,
    "legendary": false,
@@ -7391,6 +7750,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 360,
    "legendary": false,
@@ -7422,6 +7782,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 361,
    "legendary": false,
@@ -7438,6 +7799,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 362,
    "legendary": false,
@@ -7462,6 +7824,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 363,
    "legendary": false,
@@ -7486,6 +7849,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 364,
    "legendary": false,
@@ -7502,6 +7866,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 365,
    "legendary": false,
@@ -7533,6 +7898,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 366,
    "legendary": false,
@@ -7549,6 +7915,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 367,
    "legendary": false,
@@ -7565,6 +7932,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 368,
    "legendary": false,
@@ -7581,6 +7949,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": true,
    "generation": 3,
    "id": 369,
    "legendary": false,
@@ -7597,6 +7966,7 @@
    "animated": true,
    "captureRate": 225,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 370,
    "legendary": false,
@@ -7621,6 +7991,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 371,
    "legendary": false,
@@ -7645,6 +8016,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 372,
    "legendary": false,
@@ -7661,6 +8033,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 373,
    "legendary": false,
@@ -7685,6 +8058,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 374,
    "legendary": false,
@@ -7709,6 +8083,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 375,
    "legendary": false,
@@ -7725,6 +8100,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 376,
    "legendary": false,
@@ -7741,6 +8117,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 377,
    "legendary": true,
@@ -7757,6 +8134,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 378,
    "legendary": true,
@@ -7773,6 +8151,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 379,
    "legendary": true,
@@ -7789,6 +8168,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 380,
    "legendary": true,
@@ -7805,6 +8185,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 381,
    "legendary": true,
@@ -7821,6 +8202,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 382,
    "legendary": true,
@@ -7837,6 +8219,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 383,
    "legendary": true,
@@ -7853,6 +8236,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 384,
    "legendary": true,
@@ -7869,6 +8253,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 385,
    "legendary": false,
@@ -7885,6 +8270,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 3,
    "id": 386,
    "legendary": false,
@@ -7909,6 +8295,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 387,
    "legendary": false,
@@ -7933,6 +8320,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 388,
    "legendary": false,
@@ -7949,6 +8337,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 389,
    "legendary": false,
@@ -7973,6 +8362,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 390,
    "legendary": false,
@@ -7997,6 +8387,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 391,
    "legendary": false,
@@ -8013,6 +8404,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 392,
    "legendary": false,
@@ -8037,6 +8429,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 393,
    "legendary": false,
@@ -8061,6 +8454,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 394,
    "legendary": false,
@@ -8077,6 +8471,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 395,
    "legendary": false,
@@ -8101,6 +8496,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 4,
    "id": 396,
    "legendary": false,
@@ -8125,6 +8521,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 4,
    "id": 397,
    "legendary": false,
@@ -8141,6 +8538,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 398,
    "legendary": false,
@@ -8165,6 +8563,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 4,
    "id": 399,
    "legendary": false,
@@ -8181,6 +8580,7 @@
    "animated": true,
    "captureRate": 127,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 400,
    "legendary": false,
@@ -8205,6 +8605,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 4,
    "id": 401,
    "legendary": false,
@@ -8221,6 +8622,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 402,
    "legendary": false,
@@ -8245,6 +8647,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 4,
    "id": 403,
    "legendary": false,
@@ -8269,6 +8672,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 4,
    "id": 404,
    "legendary": false,
@@ -8285,6 +8689,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 405,
    "legendary": false,
@@ -8309,6 +8714,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 406,
    "legendary": false,
@@ -8325,6 +8731,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 407,
    "legendary": false,
@@ -8349,6 +8756,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 408,
    "legendary": false,
@@ -8365,6 +8773,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 409,
    "legendary": false,
@@ -8389,6 +8798,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 410,
    "legendary": false,
@@ -8405,6 +8815,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 411,
    "legendary": false,
@@ -8436,6 +8847,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 412,
    "legendary": false,
@@ -8452,6 +8864,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 413,
    "legendary": false,
@@ -8468,6 +8881,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 414,
    "legendary": false,
@@ -8492,6 +8906,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 4,
    "id": 415,
    "legendary": false,
@@ -8508,6 +8923,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 416,
    "legendary": false,
@@ -8524,6 +8940,7 @@
    "animated": true,
    "captureRate": 200,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 417,
    "legendary": false,
@@ -8548,6 +8965,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 4,
    "id": 418,
    "legendary": false,
@@ -8564,6 +8982,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 419,
    "legendary": false,
@@ -8588,6 +9007,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 420,
    "legendary": false,
@@ -8604,6 +9024,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 421,
    "legendary": false,
@@ -8628,6 +9049,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 422,
    "legendary": false,
@@ -8644,6 +9066,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 423,
    "legendary": false,
@@ -8660,6 +9083,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 424,
    "legendary": false,
@@ -8684,6 +9108,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 425,
    "legendary": false,
@@ -8700,6 +9125,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 426,
    "legendary": false,
@@ -8724,6 +9150,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 427,
    "legendary": false,
@@ -8740,6 +9167,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 428,
    "legendary": false,
@@ -8756,6 +9184,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 429,
    "legendary": false,
@@ -8772,6 +9201,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 430,
    "legendary": false,
@@ -8796,6 +9226,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 431,
    "legendary": false,
@@ -8812,6 +9243,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 432,
    "legendary": false,
@@ -8836,6 +9268,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 433,
    "legendary": false,
@@ -8860,6 +9293,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 434,
    "legendary": false,
@@ -8876,6 +9310,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 435,
    "legendary": false,
@@ -8900,6 +9335,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 436,
    "legendary": false,
@@ -8916,6 +9352,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 437,
    "legendary": false,
@@ -8940,6 +9377,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 438,
    "legendary": false,
@@ -8971,6 +9409,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 439,
    "legendary": false,
@@ -8995,6 +9434,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 440,
    "legendary": false,
@@ -9011,6 +9451,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 441,
    "legendary": false,
@@ -9027,6 +9468,7 @@
    "animated": true,
    "captureRate": 100,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 442,
    "legendary": false,
@@ -9051,6 +9493,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 4,
    "id": 443,
    "legendary": false,
@@ -9075,6 +9518,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 4,
    "id": 444,
    "legendary": false,
@@ -9091,6 +9535,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 445,
    "legendary": false,
@@ -9115,6 +9560,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 446,
    "legendary": false,
@@ -9139,6 +9585,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 447,
    "legendary": false,
@@ -9155,6 +9602,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 448,
    "legendary": false,
@@ -9179,6 +9627,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 4,
    "id": 449,
    "legendary": false,
@@ -9195,6 +9644,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 450,
    "legendary": false,
@@ -9219,6 +9669,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 451,
    "legendary": false,
@@ -9235,6 +9686,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 452,
    "legendary": false,
@@ -9259,6 +9711,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 4,
    "id": 453,
    "legendary": false,
@@ -9275,6 +9728,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 454,
    "legendary": false,
@@ -9291,6 +9745,7 @@
    "animated": true,
    "captureRate": 200,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 455,
    "legendary": false,
@@ -9315,6 +9770,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 4,
    "id": 456,
    "legendary": false,
@@ -9331,6 +9787,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 457,
    "legendary": false,
@@ -9355,6 +9812,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 4,
    "id": 458,
    "legendary": false,
@@ -9379,6 +9837,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 4,
    "id": 459,
    "legendary": false,
@@ -9395,6 +9854,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 460,
    "legendary": false,
@@ -9411,6 +9871,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 461,
    "legendary": false,
@@ -9427,6 +9888,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 462,
    "legendary": false,
@@ -9443,6 +9905,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 463,
    "legendary": false,
@@ -9459,6 +9922,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 464,
    "legendary": false,
@@ -9475,6 +9939,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 465,
    "legendary": false,
@@ -9491,6 +9956,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 466,
    "legendary": false,
@@ -9507,6 +9973,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 467,
    "legendary": false,
@@ -9523,6 +9990,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 468,
    "legendary": false,
@@ -9539,6 +10007,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 469,
    "legendary": false,
@@ -9555,6 +10024,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 470,
    "legendary": false,
@@ -9571,6 +10041,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 471,
    "legendary": false,
@@ -9587,6 +10058,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 472,
    "legendary": false,
@@ -9603,6 +10075,7 @@
    "animated": true,
    "captureRate": 50,
    "evolutions": [],
+   "female": true,
    "generation": 4,
    "id": 473,
    "legendary": false,
@@ -9619,6 +10092,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 474,
    "legendary": false,
@@ -9635,6 +10109,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 475,
    "legendary": false,
@@ -9651,6 +10126,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 476,
    "legendary": false,
@@ -9667,6 +10143,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 477,
    "legendary": false,
@@ -9683,6 +10160,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 478,
    "legendary": false,
@@ -9699,6 +10177,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 479,
    "legendary": false,
@@ -9715,6 +10194,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 480,
    "legendary": true,
@@ -9731,6 +10211,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 481,
    "legendary": true,
@@ -9747,6 +10228,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 482,
    "legendary": true,
@@ -9763,6 +10245,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 483,
    "legendary": true,
@@ -9779,6 +10262,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 484,
    "legendary": true,
@@ -9795,6 +10279,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 485,
    "legendary": true,
@@ -9811,6 +10296,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 486,
    "legendary": true,
@@ -9827,6 +10313,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 487,
    "legendary": true,
@@ -9843,6 +10330,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 488,
    "legendary": true,
@@ -9859,6 +10347,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 489,
    "legendary": false,
@@ -9875,6 +10364,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 490,
    "legendary": false,
@@ -9891,6 +10381,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 491,
    "legendary": false,
@@ -9907,6 +10398,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 492,
    "legendary": false,
@@ -9923,6 +10415,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 4,
    "id": 493,
    "legendary": false,
@@ -9939,6 +10432,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 494,
    "legendary": false,
@@ -9963,6 +10457,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 495,
    "legendary": false,
@@ -9987,6 +10482,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 496,
    "legendary": false,
@@ -10003,6 +10499,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 497,
    "legendary": false,
@@ -10027,6 +10524,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 498,
    "legendary": false,
@@ -10051,6 +10549,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 499,
    "legendary": false,
@@ -10067,6 +10566,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 500,
    "legendary": false,
@@ -10091,6 +10591,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 501,
    "legendary": false,
@@ -10122,6 +10623,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 502,
    "legendary": false,
@@ -10138,6 +10640,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 503,
    "legendary": false,
@@ -10162,6 +10665,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 504,
    "legendary": false,
@@ -10178,6 +10682,7 @@
    "animated": true,
    "captureRate": 255,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 505,
    "legendary": false,
@@ -10202,6 +10707,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 506,
    "legendary": false,
@@ -10226,6 +10732,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 507,
    "legendary": false,
@@ -10242,6 +10749,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 508,
    "legendary": false,
@@ -10266,6 +10774,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 509,
    "legendary": false,
@@ -10282,6 +10791,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 510,
    "legendary": false,
@@ -10306,6 +10816,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 511,
    "legendary": false,
@@ -10322,6 +10833,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 512,
    "legendary": false,
@@ -10346,6 +10858,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 513,
    "legendary": false,
@@ -10362,6 +10875,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 514,
    "legendary": false,
@@ -10386,6 +10900,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 515,
    "legendary": false,
@@ -10402,6 +10917,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 516,
    "legendary": false,
@@ -10426,6 +10942,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 517,
    "legendary": false,
@@ -10442,6 +10959,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 518,
    "legendary": false,
@@ -10466,6 +10984,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 519,
    "legendary": false,
@@ -10490,6 +11009,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 520,
    "legendary": false,
@@ -10506,6 +11026,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": true,
    "generation": 5,
    "id": 521,
    "legendary": false,
@@ -10530,6 +11051,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 522,
    "legendary": false,
@@ -10546,6 +11068,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 523,
    "legendary": false,
@@ -10570,6 +11093,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 524,
    "legendary": false,
@@ -10594,6 +11118,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 525,
    "legendary": false,
@@ -10610,6 +11135,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 526,
    "legendary": false,
@@ -10634,6 +11160,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 527,
    "legendary": false,
@@ -10650,6 +11177,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 528,
    "legendary": false,
@@ -10674,6 +11202,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 529,
    "legendary": false,
@@ -10690,6 +11219,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 530,
    "legendary": false,
@@ -10706,6 +11236,7 @@
    "animated": true,
    "captureRate": 255,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 531,
    "legendary": false,
@@ -10730,6 +11261,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 532,
    "legendary": false,
@@ -10754,6 +11286,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 533,
    "legendary": false,
@@ -10770,6 +11303,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 534,
    "legendary": false,
@@ -10794,6 +11328,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 535,
    "legendary": false,
@@ -10818,6 +11353,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 536,
    "legendary": false,
@@ -10834,6 +11370,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 537,
    "legendary": false,
@@ -10850,6 +11387,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 538,
    "legendary": false,
@@ -10866,6 +11404,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 539,
    "legendary": false,
@@ -10890,6 +11429,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 540,
    "legendary": false,
@@ -10914,6 +11454,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 541,
    "legendary": false,
@@ -10930,6 +11471,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 542,
    "legendary": false,
@@ -10954,6 +11496,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 543,
    "legendary": false,
@@ -10978,6 +11521,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 544,
    "legendary": false,
@@ -10994,6 +11538,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 545,
    "legendary": false,
@@ -11018,6 +11563,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 546,
    "legendary": false,
@@ -11034,6 +11580,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 547,
    "legendary": false,
@@ -11065,6 +11612,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 548,
    "legendary": false,
@@ -11081,6 +11629,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 549,
    "legendary": false,
@@ -11097,6 +11646,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 550,
    "legendary": false,
@@ -11121,6 +11671,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 551,
    "legendary": false,
@@ -11145,6 +11696,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 552,
    "legendary": false,
@@ -11161,6 +11713,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 553,
    "legendary": false,
@@ -11185,6 +11738,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 554,
    "legendary": false,
@@ -11201,6 +11755,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 555,
    "legendary": false,
@@ -11217,6 +11772,7 @@
    "animated": true,
    "captureRate": 255,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 556,
    "legendary": false,
@@ -11241,6 +11797,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 557,
    "legendary": false,
@@ -11257,6 +11814,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 558,
    "legendary": false,
@@ -11281,6 +11839,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 559,
    "legendary": false,
@@ -11297,6 +11856,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 560,
    "legendary": false,
@@ -11313,6 +11873,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 561,
    "legendary": false,
@@ -11337,6 +11898,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 562,
    "legendary": false,
@@ -11353,6 +11915,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 563,
    "legendary": false,
@@ -11377,6 +11940,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 564,
    "legendary": false,
@@ -11393,6 +11957,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 565,
    "legendary": false,
@@ -11417,6 +11982,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 566,
    "legendary": false,
@@ -11433,6 +11999,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 567,
    "legendary": false,
@@ -11457,6 +12024,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 568,
    "legendary": false,
@@ -11473,6 +12041,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 569,
    "legendary": false,
@@ -11497,6 +12066,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 570,
    "legendary": false,
@@ -11513,6 +12083,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 571,
    "legendary": false,
@@ -11537,6 +12108,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 572,
    "legendary": false,
@@ -11553,6 +12125,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 573,
    "legendary": false,
@@ -11577,6 +12150,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 574,
    "legendary": false,
@@ -11601,6 +12175,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 575,
    "legendary": false,
@@ -11617,6 +12192,7 @@
    "animated": true,
    "captureRate": 50,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 576,
    "legendary": false,
@@ -11641,6 +12217,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 577,
    "legendary": false,
@@ -11665,6 +12242,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 578,
    "legendary": false,
@@ -11681,6 +12259,7 @@
    "animated": true,
    "captureRate": 50,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 579,
    "legendary": false,
@@ -11705,6 +12284,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 580,
    "legendary": false,
@@ -11721,6 +12301,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 581,
    "legendary": false,
@@ -11745,6 +12326,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 582,
    "legendary": false,
@@ -11769,6 +12351,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 583,
    "legendary": false,
@@ -11785,6 +12368,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 584,
    "legendary": false,
@@ -11809,6 +12393,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 585,
    "legendary": false,
@@ -11825,6 +12410,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 586,
    "legendary": false,
@@ -11841,6 +12427,7 @@
    "animated": true,
    "captureRate": 200,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 587,
    "legendary": false,
@@ -11865,6 +12452,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 588,
    "legendary": false,
@@ -11881,6 +12469,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 589,
    "legendary": false,
@@ -11905,6 +12494,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 590,
    "legendary": false,
@@ -11921,6 +12511,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 591,
    "legendary": false,
@@ -11945,6 +12536,7 @@
      "trigger": "level"
     }
    ],
+   "female": true,
    "generation": 5,
    "id": 592,
    "legendary": false,
@@ -11961,6 +12553,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": true,
    "generation": 5,
    "id": 593,
    "legendary": false,
@@ -11977,6 +12570,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 594,
    "legendary": false,
@@ -12001,6 +12595,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 595,
    "legendary": false,
@@ -12017,6 +12612,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 596,
    "legendary": false,
@@ -12041,6 +12637,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 597,
    "legendary": false,
@@ -12057,6 +12654,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 598,
    "legendary": false,
@@ -12081,6 +12679,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 599,
    "legendary": false,
@@ -12105,6 +12704,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 600,
    "legendary": false,
@@ -12121,6 +12721,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 601,
    "legendary": false,
@@ -12145,6 +12746,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 602,
    "legendary": false,
@@ -12169,6 +12771,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 603,
    "legendary": false,
@@ -12185,6 +12788,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 604,
    "legendary": false,
@@ -12209,6 +12813,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 605,
    "legendary": false,
@@ -12225,6 +12830,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 606,
    "legendary": false,
@@ -12249,6 +12855,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 607,
    "legendary": false,
@@ -12273,6 +12880,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 608,
    "legendary": false,
@@ -12289,6 +12897,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 609,
    "legendary": false,
@@ -12313,6 +12922,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 610,
    "legendary": false,
@@ -12337,6 +12947,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 611,
    "legendary": false,
@@ -12353,6 +12964,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 612,
    "legendary": false,
@@ -12377,6 +12989,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 613,
    "legendary": false,
@@ -12393,6 +13006,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 614,
    "legendary": false,
@@ -12409,6 +13023,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 615,
    "legendary": false,
@@ -12433,6 +13048,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 616,
    "legendary": false,
@@ -12449,6 +13065,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 617,
    "legendary": false,
@@ -12465,6 +13082,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 618,
    "legendary": false,
@@ -12489,6 +13107,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 619,
    "legendary": false,
@@ -12505,6 +13124,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 620,
    "legendary": false,
@@ -12521,6 +13141,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 621,
    "legendary": false,
@@ -12545,6 +13166,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 622,
    "legendary": false,
@@ -12561,6 +13183,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 623,
    "legendary": false,
@@ -12585,6 +13208,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 624,
    "legendary": false,
@@ -12609,6 +13233,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 625,
    "legendary": false,
@@ -12625,6 +13250,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 626,
    "legendary": false,
@@ -12656,6 +13282,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 627,
    "legendary": false,
@@ -12672,6 +13299,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 628,
    "legendary": false,
@@ -12696,6 +13324,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 629,
    "legendary": false,
@@ -12712,6 +13341,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 630,
    "legendary": false,
@@ -12728,6 +13358,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 631,
    "legendary": false,
@@ -12744,6 +13375,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 632,
    "legendary": false,
@@ -12768,6 +13400,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 633,
    "legendary": false,
@@ -12792,6 +13425,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 634,
    "legendary": false,
@@ -12808,6 +13442,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 635,
    "legendary": false,
@@ -12832,6 +13467,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 636,
    "legendary": false,
@@ -12848,6 +13484,7 @@
    "animated": true,
    "captureRate": 15,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 637,
    "legendary": false,
@@ -12864,6 +13501,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 638,
    "legendary": true,
@@ -12880,6 +13518,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 639,
    "legendary": true,
@@ -12896,6 +13535,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 640,
    "legendary": true,
@@ -12912,6 +13552,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 641,
    "legendary": true,
@@ -12928,6 +13569,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 642,
    "legendary": true,
@@ -12944,6 +13586,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 643,
    "legendary": true,
@@ -12960,6 +13603,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 644,
    "legendary": true,
@@ -12976,6 +13620,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 645,
    "legendary": true,
@@ -12992,6 +13637,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 646,
    "legendary": true,
@@ -13008,6 +13654,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 647,
    "legendary": false,
@@ -13024,6 +13671,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 648,
    "legendary": false,
@@ -13040,6 +13688,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 649,
    "legendary": false,
@@ -13064,6 +13713,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 650,
    "legendary": false,
@@ -13088,6 +13738,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 651,
    "legendary": false,
@@ -13104,6 +13755,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 652,
    "legendary": false,
@@ -13128,6 +13780,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 653,
    "legendary": false,
@@ -13152,6 +13805,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 654,
    "legendary": false,
@@ -13168,6 +13822,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 655,
    "legendary": false,
@@ -13192,6 +13847,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 656,
    "legendary": false,
@@ -13216,6 +13872,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 657,
    "legendary": false,
@@ -13232,6 +13889,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 658,
    "legendary": false,
@@ -13256,6 +13914,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 659,
    "legendary": false,
@@ -13272,6 +13931,7 @@
    "animated": true,
    "captureRate": 127,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 660,
    "legendary": false,
@@ -13296,6 +13956,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 661,
    "legendary": false,
@@ -13320,6 +13981,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 662,
    "legendary": false,
@@ -13336,6 +13998,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 663,
    "legendary": false,
@@ -13360,6 +14023,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 664,
    "legendary": false,
@@ -13384,6 +14048,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 665,
    "legendary": false,
@@ -13400,6 +14065,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 666,
    "legendary": false,
@@ -13424,6 +14090,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 667,
    "legendary": false,
@@ -13440,6 +14107,7 @@
    "animated": true,
    "captureRate": 65,
    "evolutions": [],
+   "female": true,
    "generation": 6,
    "id": 668,
    "legendary": false,
@@ -13464,6 +14132,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 669,
    "legendary": false,
@@ -13488,6 +14157,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 670,
    "legendary": false,
@@ -13504,6 +14174,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 671,
    "legendary": false,
@@ -13528,6 +14199,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 672,
    "legendary": false,
@@ -13544,6 +14216,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 673,
    "legendary": false,
@@ -13568,6 +14241,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 674,
    "legendary": false,
@@ -13584,6 +14258,7 @@
    "animated": true,
    "captureRate": 65,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 675,
    "legendary": false,
@@ -13600,6 +14275,7 @@
    "animated": true,
    "captureRate": 160,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 676,
    "legendary": false,
@@ -13624,6 +14300,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 677,
    "legendary": false,
@@ -13640,6 +14317,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": true,
    "generation": 6,
    "id": 678,
    "legendary": false,
@@ -13664,6 +14342,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 679,
    "legendary": false,
@@ -13688,6 +14367,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 680,
    "legendary": false,
@@ -13704,6 +14384,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 681,
    "legendary": false,
@@ -13728,6 +14409,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 682,
    "legendary": false,
@@ -13744,6 +14426,7 @@
    "animated": true,
    "captureRate": 140,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 683,
    "legendary": false,
@@ -13768,6 +14451,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 684,
    "legendary": false,
@@ -13784,6 +14468,7 @@
    "animated": true,
    "captureRate": 140,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 685,
    "legendary": false,
@@ -13808,6 +14493,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 686,
    "legendary": false,
@@ -13824,6 +14510,7 @@
    "animated": true,
    "captureRate": 80,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 687,
    "legendary": false,
@@ -13848,6 +14535,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 688,
    "legendary": false,
@@ -13864,6 +14552,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 689,
    "legendary": false,
@@ -13888,6 +14577,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 690,
    "legendary": false,
@@ -13904,6 +14594,7 @@
    "animated": true,
    "captureRate": 55,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 691,
    "legendary": false,
@@ -13928,6 +14619,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 692,
    "legendary": false,
@@ -13944,6 +14636,7 @@
    "animated": true,
    "captureRate": 55,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 693,
    "legendary": false,
@@ -13968,6 +14661,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 694,
    "legendary": false,
@@ -13984,6 +14678,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 695,
    "legendary": false,
@@ -14008,6 +14703,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 696,
    "legendary": false,
@@ -14024,6 +14720,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 697,
    "legendary": false,
@@ -14048,6 +14745,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 698,
    "legendary": false,
@@ -14064,6 +14762,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 699,
    "legendary": false,
@@ -14080,6 +14779,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 700,
    "legendary": false,
@@ -14096,6 +14796,7 @@
    "animated": true,
    "captureRate": 100,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 701,
    "legendary": false,
@@ -14112,6 +14813,7 @@
    "animated": true,
    "captureRate": 180,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 702,
    "legendary": false,
@@ -14128,6 +14830,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 703,
    "legendary": false,
@@ -14159,6 +14862,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 704,
    "legendary": false,
@@ -14183,6 +14887,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 705,
    "legendary": false,
@@ -14199,6 +14904,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 706,
    "legendary": false,
@@ -14215,6 +14921,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 707,
    "legendary": false,
@@ -14239,6 +14946,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 708,
    "legendary": false,
@@ -14255,6 +14963,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 709,
    "legendary": false,
@@ -14279,6 +14988,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 710,
    "legendary": false,
@@ -14295,6 +15005,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 711,
    "legendary": false,
@@ -14326,6 +15037,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 712,
    "legendary": false,
@@ -14342,6 +15054,7 @@
    "animated": true,
    "captureRate": 55,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 713,
    "legendary": false,
@@ -14366,6 +15079,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 714,
    "legendary": false,
@@ -14382,6 +15096,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 715,
    "legendary": false,
@@ -14398,6 +15113,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 716,
    "legendary": true,
@@ -14414,6 +15130,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 717,
    "legendary": true,
@@ -14430,6 +15147,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 718,
    "legendary": true,
@@ -14446,6 +15164,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 719,
    "legendary": false,
@@ -14462,6 +15181,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 720,
    "legendary": false,
@@ -14478,6 +15198,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 721,
    "legendary": false,
@@ -14502,6 +15223,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 722,
    "legendary": false,
@@ -14533,6 +15255,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 723,
    "legendary": false,
@@ -14549,6 +15272,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 724,
    "legendary": false,
@@ -14573,6 +15297,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 725,
    "legendary": false,
@@ -14597,6 +15322,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 726,
    "legendary": false,
@@ -14613,6 +15339,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 727,
    "legendary": false,
@@ -14637,6 +15364,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 728,
    "legendary": false,
@@ -14661,6 +15389,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 729,
    "legendary": false,
@@ -14677,6 +15406,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 730,
    "legendary": false,
@@ -14701,6 +15431,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 731,
    "legendary": false,
@@ -14725,6 +15456,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 732,
    "legendary": false,
@@ -14741,6 +15473,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 733,
    "legendary": false,
@@ -14765,6 +15498,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 734,
    "legendary": false,
@@ -14781,6 +15515,7 @@
    "animated": true,
    "captureRate": 127,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 735,
    "legendary": false,
@@ -14805,6 +15540,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 736,
    "legendary": false,
@@ -14829,6 +15565,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 737,
    "legendary": false,
@@ -14845,6 +15582,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 738,
    "legendary": false,
@@ -14869,6 +15607,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 739,
    "legendary": false,
@@ -14885,6 +15624,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 740,
    "legendary": false,
@@ -14901,6 +15641,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 741,
    "legendary": false,
@@ -14925,6 +15666,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 742,
    "legendary": false,
@@ -14941,6 +15683,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 743,
    "legendary": false,
@@ -14965,6 +15708,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 744,
    "legendary": false,
@@ -14981,6 +15725,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 745,
    "legendary": false,
@@ -14997,6 +15742,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 746,
    "legendary": false,
@@ -15021,6 +15767,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 747,
    "legendary": false,
@@ -15037,6 +15784,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 748,
    "legendary": false,
@@ -15061,6 +15809,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 749,
    "legendary": false,
@@ -15077,6 +15826,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 750,
    "legendary": false,
@@ -15101,6 +15851,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 751,
    "legendary": false,
@@ -15117,6 +15868,7 @@
    "animated": true,
    "captureRate": 100,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 752,
    "legendary": false,
@@ -15141,6 +15893,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 753,
    "legendary": false,
@@ -15157,6 +15910,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 754,
    "legendary": false,
@@ -15181,6 +15935,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 755,
    "legendary": false,
@@ -15197,6 +15952,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 756,
    "legendary": false,
@@ -15221,6 +15977,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 757,
    "legendary": false,
@@ -15237,6 +15994,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 758,
    "legendary": false,
@@ -15261,6 +16019,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 759,
    "legendary": false,
@@ -15277,6 +16036,7 @@
    "animated": true,
    "captureRate": 70,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 760,
    "legendary": false,
@@ -15301,6 +16061,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 761,
    "legendary": false,
@@ -15325,6 +16086,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 762,
    "legendary": false,
@@ -15341,6 +16103,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 763,
    "legendary": false,
@@ -15357,6 +16120,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 764,
    "legendary": false,
@@ -15373,6 +16137,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 765,
    "legendary": false,
@@ -15389,6 +16154,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 766,
    "legendary": false,
@@ -15413,6 +16179,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 767,
    "legendary": false,
@@ -15429,6 +16196,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 768,
    "legendary": false,
@@ -15453,6 +16221,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 769,
    "legendary": false,
@@ -15469,6 +16238,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 770,
    "legendary": false,
@@ -15485,6 +16255,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 771,
    "legendary": false,
@@ -15509,6 +16280,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 772,
    "legendary": true,
@@ -15525,6 +16297,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 773,
    "legendary": true,
@@ -15541,6 +16314,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 774,
    "legendary": false,
@@ -15557,6 +16331,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 775,
    "legendary": false,
@@ -15573,6 +16348,7 @@
    "animated": true,
    "captureRate": 70,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 776,
    "legendary": false,
@@ -15589,6 +16365,7 @@
    "animated": true,
    "captureRate": 180,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 777,
    "legendary": false,
@@ -15605,6 +16382,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 778,
    "legendary": false,
@@ -15621,6 +16399,7 @@
    "animated": true,
    "captureRate": 80,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 779,
    "legendary": false,
@@ -15637,6 +16416,7 @@
    "animated": true,
    "captureRate": 70,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 780,
    "legendary": false,
@@ -15653,6 +16433,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 781,
    "legendary": false,
@@ -15677,6 +16458,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 782,
    "legendary": false,
@@ -15701,6 +16483,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 783,
    "legendary": false,
@@ -15717,6 +16500,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 784,
    "legendary": false,
@@ -15733,6 +16517,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 785,
    "legendary": true,
@@ -15749,6 +16534,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 786,
    "legendary": true,
@@ -15765,6 +16551,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 787,
    "legendary": true,
@@ -15781,6 +16568,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 788,
    "legendary": true,
@@ -15805,6 +16593,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 789,
    "legendary": true,
@@ -15836,6 +16625,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 790,
    "legendary": true,
@@ -15852,6 +16642,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 791,
    "legendary": true,
@@ -15868,6 +16659,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 792,
    "legendary": true,
@@ -15884,6 +16676,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 793,
    "legendary": false,
@@ -15900,6 +16693,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 794,
    "legendary": false,
@@ -15916,6 +16710,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 795,
    "legendary": false,
@@ -15932,6 +16727,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 796,
    "legendary": false,
@@ -15948,6 +16744,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 797,
    "legendary": false,
@@ -15964,6 +16761,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 798,
    "legendary": false,
@@ -15980,6 +16778,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 799,
    "legendary": false,
@@ -15996,6 +16795,7 @@
    "animated": true,
    "captureRate": 255,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 800,
    "legendary": true,
@@ -16012,6 +16812,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 801,
    "legendary": false,
@@ -16028,6 +16829,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 802,
    "legendary": false,
@@ -16052,6 +16854,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 803,
    "legendary": false,
@@ -16068,6 +16871,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 804,
    "legendary": false,
@@ -16084,6 +16888,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 805,
    "legendary": false,
@@ -16100,6 +16905,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 806,
    "legendary": false,
@@ -16116,6 +16922,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 807,
    "legendary": false,
@@ -16140,6 +16947,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 7,
    "id": 808,
    "legendary": false,
@@ -16156,6 +16964,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 809,
    "legendary": false,
@@ -16180,6 +16989,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 810,
    "legendary": false,
@@ -16204,6 +17014,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 811,
    "legendary": false,
@@ -16220,6 +17031,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 812,
    "legendary": false,
@@ -16244,6 +17056,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 813,
    "legendary": false,
@@ -16268,6 +17081,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 814,
    "legendary": false,
@@ -16284,6 +17098,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 815,
    "legendary": false,
@@ -16308,6 +17123,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 816,
    "legendary": false,
@@ -16332,6 +17148,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 817,
    "legendary": false,
@@ -16348,6 +17165,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 818,
    "legendary": false,
@@ -16372,6 +17190,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 819,
    "legendary": false,
@@ -16388,6 +17207,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 820,
    "legendary": false,
@@ -16412,6 +17232,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 821,
    "legendary": false,
@@ -16436,6 +17257,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 822,
    "legendary": false,
@@ -16452,6 +17274,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 823,
    "legendary": false,
@@ -16476,6 +17299,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 824,
    "legendary": false,
@@ -16500,6 +17324,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 825,
    "legendary": false,
@@ -16516,6 +17341,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 826,
    "legendary": false,
@@ -16540,6 +17366,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 827,
    "legendary": false,
@@ -16556,6 +17383,7 @@
    "animated": true,
    "captureRate": 127,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 828,
    "legendary": false,
@@ -16580,6 +17408,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 829,
    "legendary": false,
@@ -16596,6 +17425,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 830,
    "legendary": false,
@@ -16620,6 +17450,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 831,
    "legendary": false,
@@ -16636,6 +17467,7 @@
    "animated": true,
    "captureRate": 127,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 832,
    "legendary": false,
@@ -16660,6 +17492,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 833,
    "legendary": false,
@@ -16676,6 +17509,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 834,
    "legendary": false,
@@ -16700,6 +17534,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 835,
    "legendary": false,
@@ -16716,6 +17551,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 836,
    "legendary": false,
@@ -16740,6 +17576,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 837,
    "legendary": false,
@@ -16764,6 +17601,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 838,
    "legendary": false,
@@ -16780,6 +17618,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 839,
    "legendary": false,
@@ -16818,6 +17657,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 840,
    "legendary": false,
@@ -16834,6 +17674,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 841,
    "legendary": false,
@@ -16850,6 +17691,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 842,
    "legendary": false,
@@ -16874,6 +17716,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 843,
    "legendary": false,
@@ -16890,6 +17733,7 @@
    "animated": true,
    "captureRate": 120,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 844,
    "legendary": false,
@@ -16906,6 +17750,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 845,
    "legendary": false,
@@ -16930,6 +17775,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 846,
    "legendary": false,
@@ -16946,6 +17792,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 847,
    "legendary": false,
@@ -16970,6 +17817,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 848,
    "legendary": false,
@@ -16986,6 +17834,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 849,
    "legendary": false,
@@ -17010,6 +17859,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 850,
    "legendary": false,
@@ -17026,6 +17876,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 851,
    "legendary": false,
@@ -17050,6 +17901,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 852,
    "legendary": false,
@@ -17066,6 +17918,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 853,
    "legendary": false,
@@ -17090,6 +17943,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 854,
    "legendary": false,
@@ -17106,6 +17960,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 855,
    "legendary": false,
@@ -17130,6 +17985,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 856,
    "legendary": false,
@@ -17154,6 +18010,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 857,
    "legendary": false,
@@ -17170,6 +18027,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 858,
    "legendary": false,
@@ -17194,6 +18052,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 859,
    "legendary": false,
@@ -17218,6 +18077,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 860,
    "legendary": false,
@@ -17234,6 +18094,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 861,
    "legendary": false,
@@ -17250,6 +18111,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 862,
    "legendary": false,
@@ -17266,6 +18128,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 863,
    "legendary": false,
@@ -17282,6 +18145,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 864,
    "legendary": false,
@@ -17298,6 +18162,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 865,
    "legendary": false,
@@ -17314,6 +18179,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 866,
    "legendary": false,
@@ -17330,6 +18196,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 867,
    "legendary": false,
@@ -17354,6 +18221,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 868,
    "legendary": false,
@@ -17370,6 +18238,7 @@
    "animated": true,
    "captureRate": 100,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 869,
    "legendary": false,
@@ -17386,6 +18255,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 870,
    "legendary": false,
@@ -17402,6 +18272,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 871,
    "legendary": false,
@@ -17426,6 +18297,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 872,
    "legendary": false,
@@ -17442,6 +18314,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 873,
    "legendary": false,
@@ -17458,6 +18331,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 874,
    "legendary": false,
@@ -17474,6 +18348,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 875,
    "legendary": false,
@@ -17490,6 +18365,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": true,
    "generation": 8,
    "id": 876,
    "legendary": false,
@@ -17506,6 +18382,7 @@
    "animated": true,
    "captureRate": 180,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 877,
    "legendary": false,
@@ -17530,6 +18407,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 878,
    "legendary": false,
@@ -17546,6 +18424,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 879,
    "legendary": false,
@@ -17562,6 +18441,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 880,
    "legendary": false,
@@ -17578,6 +18458,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 881,
    "legendary": false,
@@ -17594,6 +18475,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 882,
    "legendary": false,
@@ -17610,6 +18492,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 883,
    "legendary": false,
@@ -17634,6 +18517,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 884,
    "legendary": false,
@@ -17658,6 +18542,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 885,
    "legendary": false,
@@ -17682,6 +18567,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 886,
    "legendary": false,
@@ -17698,6 +18584,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 887,
    "legendary": false,
@@ -17714,6 +18601,7 @@
    "animated": true,
    "captureRate": 10,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 888,
    "legendary": true,
@@ -17730,6 +18618,7 @@
    "animated": true,
    "captureRate": 10,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 889,
    "legendary": true,
@@ -17746,6 +18635,7 @@
    "animated": true,
    "captureRate": 255,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 890,
    "legendary": true,
@@ -17770,6 +18660,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 8,
    "id": 891,
    "legendary": true,
@@ -17786,6 +18677,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 892,
    "legendary": true,
@@ -17802,6 +18694,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 893,
    "legendary": false,
@@ -17818,6 +18711,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 894,
    "legendary": true,
@@ -17834,6 +18728,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 895,
    "legendary": true,
@@ -17850,6 +18745,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 896,
    "legendary": true,
@@ -17866,6 +18762,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 897,
    "legendary": true,
@@ -17882,6 +18779,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 898,
    "legendary": true,
@@ -17898,6 +18796,7 @@
    "animated": true,
    "captureRate": 135,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 899,
    "legendary": false,
@@ -17914,6 +18813,7 @@
    "animated": true,
    "captureRate": 115,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 900,
    "legendary": false,
@@ -17930,6 +18830,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 901,
    "legendary": false,
@@ -17946,6 +18847,7 @@
    "animated": true,
    "captureRate": 135,
    "evolutions": [],
+   "female": true,
    "generation": 8,
    "id": 902,
    "legendary": false,
@@ -17962,6 +18864,7 @@
    "animated": true,
    "captureRate": 135,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 903,
    "legendary": false,
@@ -17978,6 +18881,7 @@
    "animated": true,
    "captureRate": 135,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 904,
    "legendary": false,
@@ -17994,6 +18898,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 8,
    "id": 905,
    "legendary": true,
@@ -18018,6 +18923,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 906,
    "legendary": false,
@@ -18042,6 +18948,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 907,
    "legendary": false,
@@ -18058,6 +18965,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 908,
    "legendary": false,
@@ -18082,6 +18990,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 909,
    "legendary": false,
@@ -18106,6 +19015,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 910,
    "legendary": false,
@@ -18122,6 +19032,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 911,
    "legendary": false,
@@ -18146,6 +19057,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 912,
    "legendary": false,
@@ -18170,6 +19082,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 913,
    "legendary": false,
@@ -18186,6 +19099,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 914,
    "legendary": false,
@@ -18210,6 +19124,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 915,
    "legendary": false,
@@ -18226,6 +19141,7 @@
    "animated": true,
    "captureRate": 100,
    "evolutions": [],
+   "female": true,
    "generation": 9,
    "id": 916,
    "legendary": false,
@@ -18250,6 +19166,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 917,
    "legendary": false,
@@ -18266,6 +19183,7 @@
    "animated": true,
    "captureRate": 120,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 918,
    "legendary": false,
@@ -18290,6 +19208,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 919,
    "legendary": false,
@@ -18306,6 +19225,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 920,
    "legendary": false,
@@ -18330,6 +19250,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 921,
    "legendary": false,
@@ -18354,6 +19275,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 922,
    "legendary": false,
@@ -18370,6 +19292,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 923,
    "legendary": false,
@@ -18394,6 +19317,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 924,
    "legendary": false,
@@ -18410,6 +19334,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 925,
    "legendary": false,
@@ -18434,6 +19359,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 926,
    "legendary": false,
@@ -18450,6 +19376,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 927,
    "legendary": false,
@@ -18474,6 +19401,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 928,
    "legendary": false,
@@ -18498,6 +19426,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 929,
    "legendary": false,
@@ -18514,6 +19443,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 930,
    "legendary": false,
@@ -18530,6 +19460,7 @@
    "animated": true,
    "captureRate": 190,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 931,
    "legendary": false,
@@ -18554,6 +19485,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 932,
    "legendary": false,
@@ -18578,6 +19510,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 933,
    "legendary": false,
@@ -18594,6 +19527,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 934,
    "legendary": false,
@@ -18625,6 +19559,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 935,
    "legendary": false,
@@ -18641,6 +19576,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 936,
    "legendary": false,
@@ -18657,6 +19593,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 937,
    "legendary": false,
@@ -18681,6 +19618,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 938,
    "legendary": false,
@@ -18697,6 +19635,7 @@
    "animated": true,
    "captureRate": 50,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 939,
    "legendary": false,
@@ -18721,6 +19660,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 940,
    "legendary": false,
@@ -18737,6 +19677,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 941,
    "legendary": false,
@@ -18761,6 +19702,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 942,
    "legendary": false,
@@ -18777,6 +19719,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 943,
    "legendary": false,
@@ -18801,6 +19744,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 944,
    "legendary": false,
@@ -18817,6 +19761,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 945,
    "legendary": false,
@@ -18841,6 +19786,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 946,
    "legendary": false,
@@ -18857,6 +19803,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 947,
    "legendary": false,
@@ -18881,6 +19828,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 948,
    "legendary": false,
@@ -18897,6 +19845,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 949,
    "legendary": false,
@@ -18913,6 +19862,7 @@
    "animated": true,
    "captureRate": 120,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 950,
    "legendary": false,
@@ -18937,6 +19887,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 951,
    "legendary": false,
@@ -18953,6 +19904,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 952,
    "legendary": false,
@@ -18977,6 +19929,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 953,
    "legendary": false,
@@ -18993,6 +19946,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 954,
    "legendary": false,
@@ -19017,6 +19971,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 955,
    "legendary": false,
@@ -19033,6 +19988,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 956,
    "legendary": false,
@@ -19057,6 +20013,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 957,
    "legendary": false,
@@ -19081,6 +20038,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 958,
    "legendary": false,
@@ -19097,6 +20055,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 959,
    "legendary": false,
@@ -19121,6 +20080,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 960,
    "legendary": false,
@@ -19137,6 +20097,7 @@
    "animated": true,
    "captureRate": 50,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 961,
    "legendary": false,
@@ -19153,6 +20114,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 962,
    "legendary": false,
@@ -19177,6 +20139,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 963,
    "legendary": false,
@@ -19193,6 +20156,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 964,
    "legendary": false,
@@ -19217,6 +20181,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 965,
    "legendary": false,
@@ -19233,6 +20198,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 966,
    "legendary": false,
@@ -19249,6 +20215,7 @@
    "animated": true,
    "captureRate": 190,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 967,
    "legendary": false,
@@ -19265,6 +20232,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 968,
    "legendary": false,
@@ -19289,6 +20257,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 969,
    "legendary": false,
@@ -19305,6 +20274,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 970,
    "legendary": false,
@@ -19329,6 +20299,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 971,
    "legendary": false,
@@ -19345,6 +20316,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 972,
    "legendary": false,
@@ -19361,6 +20333,7 @@
    "animated": true,
    "captureRate": 100,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 973,
    "legendary": false,
@@ -19385,6 +20358,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 974,
    "legendary": false,
@@ -19401,6 +20375,7 @@
    "animated": true,
    "captureRate": 50,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 975,
    "legendary": false,
@@ -19417,6 +20392,7 @@
    "animated": true,
    "captureRate": 100,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 976,
    "legendary": false,
@@ -19433,6 +20409,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 977,
    "legendary": false,
@@ -19449,6 +20426,7 @@
    "animated": true,
    "captureRate": 100,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 978,
    "legendary": false,
@@ -19465,6 +20443,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 979,
    "legendary": false,
@@ -19481,6 +20460,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 980,
    "legendary": false,
@@ -19497,6 +20477,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 981,
    "legendary": false,
@@ -19513,6 +20494,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 982,
    "legendary": false,
@@ -19529,6 +20511,7 @@
    "animated": true,
    "captureRate": 25,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 983,
    "legendary": false,
@@ -19545,6 +20528,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 984,
    "legendary": false,
@@ -19561,6 +20545,7 @@
    "animated": true,
    "captureRate": 50,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 985,
    "legendary": false,
@@ -19577,6 +20562,7 @@
    "animated": true,
    "captureRate": 50,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 986,
    "legendary": false,
@@ -19593,6 +20579,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 987,
    "legendary": false,
@@ -19609,6 +20596,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 988,
    "legendary": false,
@@ -19625,6 +20613,7 @@
    "animated": true,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 989,
    "legendary": false,
@@ -19641,6 +20630,7 @@
    "animated": false,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 990,
    "legendary": false,
@@ -19657,6 +20647,7 @@
    "animated": false,
    "captureRate": 50,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 991,
    "legendary": false,
@@ -19673,6 +20664,7 @@
    "animated": false,
    "captureRate": 50,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 992,
    "legendary": false,
@@ -19689,6 +20681,7 @@
    "animated": false,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 993,
    "legendary": false,
@@ -19705,6 +20698,7 @@
    "animated": false,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 994,
    "legendary": false,
@@ -19721,6 +20715,7 @@
    "animated": false,
    "captureRate": 30,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 995,
    "legendary": false,
@@ -19745,6 +20740,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 996,
    "legendary": false,
@@ -19769,6 +20765,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 997,
    "legendary": false,
@@ -19785,6 +20782,7 @@
    "animated": true,
    "captureRate": 10,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 998,
    "legendary": false,
@@ -19809,6 +20807,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 999,
    "legendary": false,
@@ -19825,6 +20824,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1000,
    "legendary": false,
@@ -19841,6 +20841,7 @@
    "animated": true,
    "captureRate": 6,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1001,
    "legendary": true,
@@ -19857,6 +20858,7 @@
    "animated": true,
    "captureRate": 6,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1002,
    "legendary": true,
@@ -19873,6 +20875,7 @@
    "animated": true,
    "captureRate": 6,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1003,
    "legendary": true,
@@ -19889,6 +20892,7 @@
    "animated": true,
    "captureRate": 6,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1004,
    "legendary": true,
@@ -19905,6 +20909,7 @@
    "animated": true,
    "captureRate": 10,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1005,
    "legendary": false,
@@ -19921,6 +20926,7 @@
    "animated": false,
    "captureRate": 10,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1006,
    "legendary": false,
@@ -19937,6 +20943,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1007,
    "legendary": true,
@@ -19953,6 +20960,7 @@
    "animated": false,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1008,
    "legendary": true,
@@ -19969,6 +20977,7 @@
    "animated": true,
    "captureRate": 5,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1009,
    "legendary": false,
@@ -19985,6 +20994,7 @@
    "animated": false,
    "captureRate": 5,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1010,
    "legendary": false,
@@ -20009,6 +21019,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 1011,
    "legendary": false,
@@ -20033,6 +21044,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 9,
    "id": 1012,
    "legendary": false,
@@ -20049,6 +21061,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1013,
    "legendary": false,
@@ -20065,6 +21078,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1014,
    "legendary": true,
@@ -20081,6 +21095,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1015,
    "legendary": true,
@@ -20097,6 +21112,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1016,
    "legendary": true,
@@ -20113,6 +21129,7 @@
    "animated": false,
    "captureRate": 5,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1017,
    "legendary": true,
@@ -20129,6 +21146,7 @@
    "animated": true,
    "captureRate": 10,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1018,
    "legendary": false,
@@ -20145,6 +21163,7 @@
    "animated": true,
    "captureRate": 10,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1019,
    "legendary": false,
@@ -20161,6 +21180,7 @@
    "animated": true,
    "captureRate": 10,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1020,
    "legendary": false,
@@ -20177,6 +21197,7 @@
    "animated": true,
    "captureRate": 10,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1021,
    "legendary": false,
@@ -20193,6 +21214,7 @@
    "animated": false,
    "captureRate": 10,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1022,
    "legendary": false,
@@ -20209,6 +21231,7 @@
    "animated": false,
    "captureRate": 10,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1023,
    "legendary": false,
@@ -20225,6 +21248,7 @@
    "animated": false,
    "captureRate": 255,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1024,
    "legendary": true,
@@ -20241,6 +21265,7 @@
    "animated": false,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 9,
    "id": 1025,
    "legendary": false,
@@ -20265,6 +21290,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10091,
    "legendary": false,
@@ -20281,6 +21307,7 @@
    "animated": true,
    "captureRate": 127,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10092,
    "legendary": false,
@@ -20297,6 +21324,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10100,
    "legendary": false,
@@ -20321,6 +21349,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10101,
    "legendary": false,
@@ -20337,6 +21366,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10102,
    "legendary": false,
@@ -20361,6 +21391,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10103,
    "legendary": false,
@@ -20377,6 +21408,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10104,
    "legendary": false,
@@ -20401,6 +21433,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10105,
    "legendary": false,
@@ -20417,6 +21450,7 @@
    "animated": true,
    "captureRate": 50,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10106,
    "legendary": false,
@@ -20441,6 +21475,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10107,
    "legendary": false,
@@ -20457,6 +21492,7 @@
    "animated": true,
    "captureRate": 90,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10108,
    "legendary": false,
@@ -20481,6 +21517,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10109,
    "legendary": false,
@@ -20505,6 +21542,7 @@
      "trigger": "trade"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10110,
    "legendary": false,
@@ -20521,6 +21559,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10111,
    "legendary": false,
@@ -20545,6 +21584,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10112,
    "legendary": false,
@@ -20561,6 +21601,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10113,
    "legendary": false,
@@ -20577,6 +21618,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10114,
    "legendary": false,
@@ -20593,6 +21635,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10115,
    "legendary": false,
@@ -20617,6 +21660,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10161,
    "legendary": false,
@@ -20641,6 +21685,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10162,
    "legendary": false,
@@ -20657,6 +21702,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10163,
    "legendary": false,
@@ -20688,6 +21734,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10164,
    "legendary": false,
@@ -20704,6 +21751,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10165,
    "legendary": false,
@@ -20728,6 +21776,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10166,
    "legendary": false,
@@ -20744,6 +21793,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10167,
    "legendary": false,
@@ -20768,6 +21818,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10168,
    "legendary": false,
@@ -20784,6 +21835,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10169,
    "legendary": true,
@@ -20800,6 +21852,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10170,
    "legendary": true,
@@ -20816,6 +21869,7 @@
    "animated": true,
    "captureRate": 3,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10171,
    "legendary": true,
@@ -20832,6 +21886,7 @@
    "animated": true,
    "captureRate": 70,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 10172,
    "legendary": false,
@@ -20856,6 +21911,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 10173,
    "legendary": false,
@@ -20880,6 +21936,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 10174,
    "legendary": false,
@@ -20904,6 +21961,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 3,
    "id": 10175,
    "legendary": false,
@@ -20928,6 +21986,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 10176,
    "legendary": false,
@@ -20944,6 +22003,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 10177,
    "legendary": false,
@@ -20968,6 +22028,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 10179,
    "legendary": false,
@@ -20984,6 +22045,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 10180,
    "legendary": false,
@@ -21008,6 +22070,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10229,
    "legendary": false,
@@ -21024,6 +22087,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10230,
    "legendary": false,
@@ -21048,6 +22112,7 @@
      "trigger": "item"
     }
    ],
+   "female": false,
    "generation": 1,
    "id": 10231,
    "legendary": false,
@@ -21064,6 +22129,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10232,
    "legendary": false,
@@ -21080,6 +22146,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 2,
    "id": 10233,
    "legendary": false,
@@ -21104,6 +22171,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 10234,
    "legendary": false,
@@ -21128,6 +22196,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": true,
    "generation": 2,
    "id": 10235,
    "legendary": false,
@@ -21144,6 +22213,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 10236,
    "legendary": false,
@@ -21160,6 +22230,7 @@
    "animated": true,
    "captureRate": 75,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 10237,
    "legendary": false,
@@ -21184,6 +22255,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 10238,
    "legendary": false,
@@ -21200,6 +22272,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 10239,
    "legendary": false,
@@ -21216,6 +22289,7 @@
    "animated": true,
    "captureRate": 60,
    "evolutions": [],
+   "female": false,
    "generation": 5,
    "id": 10240,
    "legendary": false,
@@ -21240,6 +22314,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 6,
    "id": 10241,
    "legendary": false,
@@ -21256,6 +22331,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 10242,
    "legendary": false,
@@ -21272,6 +22348,7 @@
    "animated": true,
    "captureRate": 55,
    "evolutions": [],
+   "female": false,
    "generation": 6,
    "id": 10243,
    "legendary": false,
@@ -21288,6 +22365,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 7,
    "id": 10244,
    "legendary": false,
@@ -21312,6 +22390,7 @@
      "trigger": "substituted"
     }
    ],
+   "female": false,
    "generation": 5,
    "id": 10247,
    "legendary": false,
@@ -21328,6 +22407,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10250,
    "legendary": false,
@@ -21344,6 +22424,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10251,
    "legendary": false,
@@ -21360,6 +22441,7 @@
    "animated": true,
    "captureRate": 45,
    "evolutions": [],
+   "female": false,
    "generation": 1,
    "id": 10252,
    "legendary": false,
@@ -21384,6 +22466,7 @@
      "trigger": "level"
     }
    ],
+   "female": false,
    "generation": 2,
    "id": 10253,
    "legendary": false,

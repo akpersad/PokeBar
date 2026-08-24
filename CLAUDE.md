@@ -218,6 +218,7 @@ Pokédex, measured 2026-08-22 and asserted by `scripts/generate-dex.py`:
 | Animated | 1,069 (98.7%). 816 via gen-v, 253 via showdown, 14 static via home |
 | No animated sprite | `990-995, 1006, 1008, 1010, 1017, 1022-1025` |
 | No shiny sprite | 2 entries |
+| Distinct female sprite | 102 entries. Ownable variants total **2,368**, not 1,083 x 4 |
 | With an evolution | 477. 513 edges: 364 level, 69 item, 26 trade, 54 substituted |
 | Hatchable (no incoming edge) | 570. The other 513 are evolution-gated |
 | Rarity bands | rare 493, common 238, uncommon 187, legendary 74, epic 68, mythical 23 |

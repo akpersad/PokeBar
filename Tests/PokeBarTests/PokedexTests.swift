@@ -333,7 +333,7 @@ final class PokedexTests: XCTestCase {
             "https://raw.githubusercontent.com/PokeAPI/sprites/\(commit)"
                 + "/sprites/pokemon/versions/generation-v/black-white/animated/1.gif")
         XCTAssertEqual(
-            dex.spriteURL(for: bulbasaur, shiny: true).absoluteString,
+            dex.spriteURL(for: bulbasaur, variant: .shiny).absoluteString,
             "https://raw.githubusercontent.com/PokeAPI/sprites/\(commit)"
                 + "/sprites/pokemon/versions/generation-v/black-white/animated/shiny/1.gif")
     }
@@ -360,20 +360,58 @@ final class PokedexTests: XCTestCase {
         XCTAssertEqual(withoutShiny.count, 2)
         for entry in withoutShiny {
             XCTAssertEqual(
-                dex.spriteURL(for: entry, shiny: true),
-                dex.spriteURL(for: entry, shiny: false),
+                dex.spriteURL(for: entry, variant: .shiny),
+                dex.spriteURL(for: entry),
                 entry.slug)
-            XCTAssertFalse(dex.cacheKey(for: entry, shiny: true).contains("shiny"), entry.slug)
+            XCTAssertFalse(dex.cacheKey(for: entry, variant: .shiny).contains("shiny"), entry.slug)
         }
     }
 
     /// The cache key carries the sprite set, so regenerating the manifest and
     /// moving an entry between sets cannot leave the old art cached under a
     /// reused name in a cache that never expires.
+    /// Completion is defined over the sprites that exist, not over 1,083 x 4.
+    /// If this drifts, the dex advertises a target no play can reach, or quietly
+    /// stops counting tiles it should.
+    func testOwnableVariantsAre2368() {
+        let total = dex.entries.reduce(0) { $0 + $1.ownableVariants.count }
+        XCTAssertEqual(total, 2368)
+        XCTAssertEqual(dex.entries.filter(\.female).count, 102)
+        XCTAssertEqual(dex.entries.filter { $0.ownableVariants.count == 4 }.count, 102)
+        XCTAssertEqual(dex.entries.filter { $0.ownableVariants.count == 2 }.count, 979)
+        XCTAssertEqual(dex.entries.filter { $0.ownableVariants.count == 1 }.count, 2)
+    }
+
+    /// Asking for a variant an entry does not have must fall back rather than
+    /// point at a 404, which would render as a blank tile forever given the cache
+    /// never expires.
+    func testMissingVariantsFallBack() throws {
+        let venusaur = try XCTUnwrap(dex.entry(slug: "venusaur"))  // has a female sprite
+        XCTAssertTrue(venusaur.female)
+        XCTAssertTrue(dex.spriteURL(for: venusaur, variant: .female).path.contains("/female/"))
+
+        let bulbasaur = try XCTUnwrap(dex.entry(slug: "bulbasaur"))  // does not
+        XCTAssertFalse(bulbasaur.female)
+        XCTAssertEqual(
+            dex.spriteURL(for: bulbasaur, variant: .shinyFemale),
+            dex.spriteURL(for: bulbasaur, variant: .shiny))
+        XCTAssertEqual(dex.cacheKey(for: bulbasaur, variant: .female), "1-gen5.gif")
+    }
+
+    /// The repo nests female inside shiny. Getting the order backwards is a 404
+    /// on 102 entries and silent everywhere else.
+    func testShinyFemalePathOrder() throws {
+        let venusaur = try XCTUnwrap(dex.entry(slug: "venusaur"))
+        XCTAssertTrue(
+            dex.spriteURL(for: venusaur, variant: .shinyFemale).path.hasSuffix(
+                "/shiny/female/3.gif"))
+        XCTAssertEqual(dex.cacheKey(for: venusaur, variant: .shinyFemale), "3-gen5-shiny-female.gif")
+    }
+
     func testCacheKeyIncludesSpriteSet() throws {
         let bulbasaur = try XCTUnwrap(dex.entry(id: 1))
         XCTAssertEqual(dex.cacheKey(for: bulbasaur), "1-gen5.gif")
-        XCTAssertEqual(dex.cacheKey(for: bulbasaur, shiny: true), "1-gen5-shiny.gif")
+        XCTAssertEqual(dex.cacheKey(for: bulbasaur, variant: .shiny), "1-gen5-shiny.gif")
         XCTAssertEqual(dex.cacheKey(for: try XCTUnwrap(dex.entry(id: 1025))), "1025-home.png")
     }
 
@@ -382,7 +420,7 @@ final class PokedexTests: XCTestCase {
         for entry in dex.entries {
             XCTAssertTrue(keys.insert(dex.cacheKey(for: entry)).inserted, entry.slug)
             if entry.shiny {
-                XCTAssertTrue(keys.insert(dex.cacheKey(for: entry, shiny: true)).inserted, entry.slug)
+                XCTAssertTrue(keys.insert(dex.cacheKey(for: entry, variant: .shiny)).inserted, entry.slug)
             }
         }
         XCTAssertEqual(keys.count, 1083 + 1081)

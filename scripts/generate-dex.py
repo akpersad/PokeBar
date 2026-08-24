@@ -154,6 +154,11 @@ EXPECT_WITH_EVOLUTION = 477
 EXPECT_TRIGGERS = {"level": 364, "item": 69, "trade": 26, "substituted": 54}
 EXPECT_LEVEL_RANGE = (7, 64)
 EXPECT_EVOLUTION_ITEMS = 23  # distinct stones etc. 24 shop lines with the Cord
+# Ownable variants. A variant exists iff its sprite file does, so completion is
+# defined over these 2,368 sprites and not over 1,083 x 4: only 102 entries look
+# different by gender, and two have no shiny at all.
+EXPECT_FEMALE_FORMS = 102
+EXPECT_OWNABLE_SPRITES = 2368
 
 
 def _curl(args: list[str]) -> dict:
@@ -203,7 +208,14 @@ def github_json(url: str) -> dict:
 
 
 def sprite_manifest(commit: str) -> dict[str, set[int]]:
-    """Which ids exist in which sprite set, normal and shiny.
+    """Which ids exist in which sprite set, per variant.
+
+    Four variants per set, because a variant is ownable if and only if its sprite
+    file exists (DECISIONS.md). Female is the interesting one: only about a tenth
+    of the pool *looks* different by gender, and the per-set counts disagree
+    (gen-v has 104 female and 98 shiny female, showdown 102 and 102, home 103 and
+    103), so this has to be resolved per entry against the set that entry actually
+    uses rather than assumed from any one directory listing.
 
     Fetched per directory, deliberately. The recursive whole-repo tree is 62,142
     blobs and comes back `truncated: true`, which would silently drop sprites and
@@ -211,7 +223,10 @@ def sprite_manifest(commit: str) -> dict[str, set[int]]:
     """
     ids: dict[str, set[int]] = {}
     for name, path, ext in SPRITE_SETS:
-        for variant, sub in (("", ""), ("-shiny", "/shiny")):
+        for variant, sub in (
+            ("", ""), ("-shiny", "/shiny"), ("-female", "/female"),
+            ("-shiny-female", "/shiny/female"),
+        ):
             tree = github_json(f"{GITHUB}/git/trees/{commit}:{path}{sub}")
             if tree.get("truncated"):
                 raise SystemExit(f"subtree {path}{sub} came back truncated; cannot trust it")
@@ -511,6 +526,13 @@ def build(repin: bool = False) -> dict:
             raise SystemExit(f"no sprite in any set for {entry['slug']} ({pid})")
         entry["spriteSet"] = chosen[0]
         entry["shiny"] = pid in sprites[chosen[0] + "-shiny"]
+        female = pid in sprites[chosen[0] + "-female"]
+        if female != (pid in sprites[chosen[0] + "-shiny-female"]):
+            raise SystemExit(
+                f"{entry['slug']} has a female sprite in {chosen[0]} but not a shiny one, "
+                "or the reverse. The manifest stores one flag for both; split it."
+            )
+        entry["female"] = female
         entry["animated"] = chosen[0] != "home"
         if not entry["animated"]:
             static_only.append(pid)
@@ -562,6 +584,15 @@ def build(repin: bool = False) -> dict:
     if unreachable:
         raise SystemExit(f"unreachable entries: {sorted(unreachable)}")
 
+    female_forms = sum(1 for e in pool if e["female"])
+    ownable = sum(1 + e["shiny"] + 2 * e["female"] for e in pool)
+    for label, actual, expected in (
+        ("entries with a distinct female sprite", female_forms, EXPECT_FEMALE_FORMS),
+        ("ownable sprites", ownable, EXPECT_OWNABLE_SPRITES),
+    ):
+        if actual != expected:
+            raise SystemExit(f"{label}: {actual}, expected {expected}")
+
     animated = len(pool) - len(static_only)
     print(f"pool                {len(pool)}")
     print(f"  base species      {EXPECT_SPECIES}")
@@ -572,6 +603,8 @@ def build(repin: bool = False) -> dict:
         n = sum(1 for e in pool if e["spriteSet"] == name)
         print(f"  via {name:<13s} {n}")
     print(f"shiny available     {sum(1 for e in pool if e['shiny'])}")
+    print(f"female sprite       {female_forms}")
+    print(f"ownable variants    {ownable}")
     print(f"with evolution      {sum(1 for e in pool if e['evolutions'])}")
     print(f"evolution edges     {len(all_edges)}")
     print(f"  triggers          {dict(triggers)}")
