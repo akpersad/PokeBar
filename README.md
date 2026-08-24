@@ -79,7 +79,7 @@ Then [DECISIONS.md](DECISIONS.md). Every directional call is recorded there with
 the measurement or evidence behind it, including the ones that differ from
 upstream and why.
 
-Three worth knowing up front:
+Five worth knowing up front:
 
 - **Dedup is load-bearing.** Claude Code logs the same turn repeatedly while
   streaming. No dedup over-counts tokens by 2.22x; keeping the first copy
