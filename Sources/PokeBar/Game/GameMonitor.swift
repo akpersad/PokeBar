@@ -170,6 +170,12 @@ final class GameMonitor {
         persist()
     }
 
+    func setEverstone(_ held: Bool) {
+        guard let dex else { return }
+        record(trainer.setEverstone(held, dex: dex))
+        persist()
+    }
+
     func setActive(entryID: Int, shiny: Bool = false, gender: Gender? = nil) throws {
         guard let dex else { return }
         try trainer.setActive(entryID: entryID, shiny: shiny, gender: gender, dex: dex)
@@ -188,11 +194,28 @@ final class GameMonitor {
 
     // MARK: - Persistence
 
+    /// Restores the collection, and **refuses to quietly start over**.
+    ///
+    /// The obvious version, `try? decode` falling through to an empty `Trainer`,
+    /// cannot tell "no save yet" from "save I could not read", and the next
+    /// `persist()` writes the empty one straight over the real one. Every schema
+    /// change would then be one field away from deleting a collection that
+    /// nothing can rebuild: the usage ledger can be recovered by rescanning
+    /// `~/.claude`, a Pokemon caught last week cannot.
+    ///
+    /// So an unreadable save is copied aside before anything overwrites it, and
+    /// the reason is printed rather than swallowed.
     private func load() {
-        guard let data = try? Data(contentsOf: stateURL),
-              let decoded = try? JSONDecoder().decode(Trainer.self, from: data)
-        else { return }
-        trainer = decoded
+        guard let data = try? Data(contentsOf: stateURL) else { return }
+        do {
+            trainer = try JSONDecoder().decode(Trainer.self, from: data)
+        } catch {
+            let quarantine = stateURL.deletingPathExtension()
+                .appendingPathExtension("unreadable.json")
+            try? data.write(to: quarantine, options: .atomic)
+            print("PokeBar: could not read \(stateURL.lastPathComponent): \(error)")
+            print("PokeBar: the previous contents are at \(quarantine.path)")
+        }
     }
 
     private func persist() {

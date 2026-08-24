@@ -168,6 +168,85 @@ final class TrainerTests: XCTestCase {
         XCTAssertTrue(events.contains { if case .evolved = $0 { true } else { false } })
     }
 
+    // MARK: - Everstone
+
+    /// The games' item, doing the games' job: no automatic evolution while held.
+    func testEverstoneStopsAutomaticEvolution() throws {
+        var trainer = try raising("charmander")
+        trainer.setEverstone(true, dex: dex)
+
+        trainer.credit(weightedTokens: 1e12, dex: dex)
+        XCTAssertEqual(trainer.active?.entryID, try entry("charmander").id)
+        XCTAssertEqual(trainer.active?.level, 100, "it still levels, it just does not evolve")
+    }
+
+    /// A hold **queues** rather than cancels, which is what makes it safe to use
+    /// and why there is no point of no return. A Caterpie held past both 7 and 10
+    /// becomes a Butterfree the moment the stone comes off, in order.
+    func testRemovingTheEverstoneFiresEverythingItPassed() throws {
+        var trainer = try raising("caterpie")
+        trainer.setEverstone(true, dex: dex)
+        trainer.credit(weightedTokens: 1e9, dex: dex)
+        XCTAssertEqual(trainer.active?.entryID, try entry("caterpie").id)
+
+        let events = trainer.setEverstone(false, dex: dex)
+        XCTAssertEqual(trainer.active?.entryID, try entry("butterfree").id)
+        XCTAssertEqual(events.filter { if case .evolved = $0 { true } else { false } }.count, 2)
+        XCTAssertTrue(trainer.log.owns(entryID: try entry("metapod").id), "the middle stage counts")
+    }
+
+    /// Pressing an evolve button while holding one is an unambiguous instruction.
+    func testEverstoneDoesNotBlockAnExplicitEvolution() throws {
+        var trainer = try raising("charmander")
+        trainer.setEverstone(true, dex: dex)
+        trainer.credit(weightedTokens: 1e9, dex: dex)
+
+        try trainer.evolveActive(into: try entry("charmeleon").id, dex: dex)
+        XCTAssertEqual(trainer.active?.entryID, try entry("charmeleon").id)
+    }
+
+    /// It is held by the individual, so the next one starts without it.
+    func testEverstoneDoesNotFollowASwitch() throws {
+        var trainer = try raising("charmander")
+        trainer.setEverstone(true, dex: dex)
+        let pikachu = try entry("pikachu")
+        trainer.log.append(CatchEvent(
+            entryID: pikachu.id, variant: .normal, gender: .male, source: .hatch))
+        try trainer.setActive(entryID: pikachu.id, dex: dex)
+        XCTAssertEqual(trainer.active?.everstone, false)
+    }
+
+    // MARK: - Save compatibility
+
+    /// **A new field must never destroy a saved game.** The synthesized decoder
+    /// throws on a missing key even where the property has a default, and the
+    /// collection is the one thing in this app that cannot be re-derived: the
+    /// usage ledger can be rebuilt by rescanning, a Pokemon caught last week
+    /// cannot. This is a real save written before `everstone` existed.
+    func testASaveWrittenBeforeEverstoneStillLoads() throws {
+        let json = """
+            {"coinsSpent":30000,"inventory":{},"hasShinyCharm":true,
+             "active":{"originEntryID":4,"shiny":false,"totalXP":2360.546,
+                       "gender":"female","id":"2C6F0687-6264-48A2-AD07-EDB508169BB8",
+                       "startedAt":809232069.327612,"entryID":4},
+             "dust":0,
+             "log":{"events":[{"source":{"starter":{}},"gender":"female","entryID":4,
+                               "variant":{"female":false,"shiny":false},
+                               "id":"EE118714-DB61-4975-90CA-2761F1B79779",
+                               "date":809232069.327612}]}}
+            """
+        let trainer = try JSONDecoder().decode(Trainer.self, from: Data(json.utf8))
+
+        XCTAssertEqual(trainer.active?.entryID, 4)
+        XCTAssertEqual(trainer.active?.totalXP, 2360.546)
+        XCTAssertEqual(trainer.active?.everstone, false, "absent means not held")
+        XCTAssertTrue(trainer.hasShinyCharm)
+        XCTAssertEqual(trainer.coinsSpent, 30_000)
+        XCTAssertEqual(trainer.log.events.count, 1)
+        XCTAssertEqual(trainer.log.events.first?.source, .starter)
+        XCTAssertTrue(trainer.log.owns(entryID: 4), "the slot index rebuilt on decode")
+    }
+
     // MARK: - Hatching and currency
 
     func testHatchingCostsCoinsAndFillsASlot() throws {

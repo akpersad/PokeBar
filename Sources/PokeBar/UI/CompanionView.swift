@@ -21,6 +21,7 @@ struct CompanionView: View {
             } else {
                 if let entry = game.activeEntry, let raise = game.active {
                     card(entry: entry, raise: raise)
+                    everstoneToggle(raise: raise, entry: entry)
                     evolutionActions
                 } else {
                     emptyState
@@ -86,6 +87,34 @@ struct CompanionView: View {
         .accessibilityLabel(
             "\(entry.name), \(GameFormat.level(raise.level)), "
                 + GameFormat.xpLine(totalXP: raise.totalXP))
+    }
+
+    /// The Everstone: the games' item for keeping a Pokemon as it is.
+    ///
+    /// Shown only for a line that evolves on its own, because on a Pikachu or an
+    /// Eevee it would promise to prevent something that never happens unasked.
+    @ViewBuilder
+    private func everstoneToggle(raise: Raise, entry: DexEntry) -> some View {
+        if entry.evolutions.contains(where: { $0.item == nil }) {
+            VStack(alignment: .leading, spacing: 1) {
+                Toggle(isOn: Binding(
+                    get: { raise.everstone },
+                    set: { game.setEverstone($0) })
+                ) {
+                    Text("Everstone")
+                        .font(.caption)
+                }
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+
+                Text(raise.everstone
+                     ? "Holding \(entry.name) as it is. Take it off and any evolution it has passed happens at once."
+                     : "Hold to stop \(entry.name) evolving. Nothing is lost by waiting.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 
     /// Buttons for evolutions that are ready. Item edges appear here because a

@@ -81,10 +81,21 @@ struct Raise: Codable, Sendable, Identifiable, Equatable {
     var totalXP: Double
     let startedAt: Date
 
+    /// Holding an Everstone: this individual does not evolve on its own.
+    ///
+    /// The games' item, doing the games' job. Per individual rather than per
+    /// player, because it is a thing this Pokemon is holding: switching to
+    /// another one starts it without.
+    ///
+    /// It blocks only *automatic* evolution. Pressing an evolve button while
+    /// holding one is an unambiguous instruction and overrides it, which is also
+    /// how a stone behaves in the games.
+    var everstone: Bool
+
     init(
         id: UUID = UUID(), entryID: Int, originEntryID: Int? = nil, shiny: Bool,
         gender: Gender, totalXP: Double = Double(XPCurve.totalXP(forLevel: 1)),
-        startedAt: Date = Date()
+        startedAt: Date = Date(), everstone: Bool = false
     ) {
         self.id = id
         self.entryID = entryID
@@ -93,6 +104,35 @@ struct Raise: Codable, Sendable, Identifiable, Equatable {
         self.gender = gender
         self.totalXP = totalXP
         self.startedAt = startedAt
+        self.everstone = everstone
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, entryID, originEntryID, shiny, gender, totalXP, startedAt, everstone
+    }
+
+    /// Hand-written so a **new field cannot destroy a saved game**.
+    ///
+    /// The synthesized decoder throws on a missing key even when the property has
+    /// a default, and `GameMonitor` cannot distinguish "no save yet" from "save I
+    /// failed to read" without help. Adding `everstone` to the synthesized version
+    /// would therefore have made every existing collection unreadable, and the
+    /// collection is the one thing in this app that cannot be re-derived from
+    /// anything: the usage ledger can be rebuilt by rescanning, a Pokemon caught
+    /// last week cannot.
+    ///
+    /// Every field added from here on wants `decodeIfPresent` and a default, for
+    /// the same reason.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        entryID = try container.decode(Int.self, forKey: .entryID)
+        originEntryID = try container.decode(Int.self, forKey: .originEntryID)
+        shiny = try container.decode(Bool.self, forKey: .shiny)
+        gender = try container.decode(Gender.self, forKey: .gender)
+        totalXP = try container.decode(Double.self, forKey: .totalXP)
+        startedAt = try container.decode(Date.self, forKey: .startedAt)
+        everstone = try container.decodeIfPresent(Bool.self, forKey: .everstone) ?? false
     }
 
     var level: Int { XPCurve.level(forTotalXP: totalXP) }

@@ -228,6 +228,15 @@ Each one is load-bearing and each was measured. Breaking any is silent.
 22. **`CatchLog` persists events only.** The slot index is rebuilt on decode. Two
     copies of one fact on disk is two things that can drift.
 
+23. **A new field on a persisted game type must decode with `decodeIfPresent` and a
+    default.** The synthesized decoder throws on a missing key even where the
+    property has one, and `GameMonitor.load()` cannot tell "no save yet" from "save
+    I could not read", so the next `persist()` writes an empty collection over the
+    real one. The asymmetry is the point: the usage ledger can be rebuilt by
+    rescanning `~/.claude`, a Pokemon caught last week cannot. An unreadable save is
+    now copied to `game-state.unreadable.json` before anything overwrites it, and a
+    test decodes a real pre-`everstone` save.
+
 ---
 
 ## UI copy rules
@@ -293,7 +302,7 @@ prints live totals under `POKEBAR_CORPUS=1`.
 
 ## State
 
-**Phases 1 through 4: complete.** 222 tests, 0 failures.
+**Phases 1 through 4: complete.** 227 tests, 0 failures.
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
@@ -315,7 +324,9 @@ What the game does now:
   a coin in the ledger, in parallel, never from a shared pool. Level 100 is 4.63
   days at this machine's throughput.
 - **Evolve.** Item-free edges fire on their own and chain; item edges wait for the
-  stone; branching waits for the player. Shininess carries through.
+  stone; branching waits for the player. Shininess carries through. An **Everstone**
+  toggle holds a Pokemon as it is, and queues rather than cancels: take it off and
+  everything the level passed happens at once, so late is always allowed.
 - **Two currencies.** Coins buy volume, Dust buys choice, and duplicates are the
   only source of Dust. See DECISIONS.md for why, and for what was rejected.
 - **Browse** 1,083 tiles in the Dex tab, with per-variant slots and the evolution

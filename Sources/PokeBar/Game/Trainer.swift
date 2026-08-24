@@ -142,7 +142,7 @@ struct Trainer: Codable, Sendable, Equatable {
     /// level 5 takes a Caterpie past both 7 and 10.
     private mutating func resolveEvolutions(dex: Pokedex, now: Date) -> [GameEvent] {
         var events: [GameEvent] = []
-        while let raise = active, let entry = dex.entry(id: raise.entryID) {
+        while let raise = active, !raise.everstone, let entry = dex.entry(id: raise.entryID) {
             let itemFree = entry.evolutions.filter { $0.item == nil }
             let ready = itemFree.filter { raise.level >= $0.minLevel }
             guard itemFree.count == 1, let edge = ready.first else {
@@ -179,6 +179,20 @@ struct Trainer: Codable, Sendable, Equatable {
         // moment the edge was taken.
         log.append(event)
         return [.evolved(from: entry.id, to: target.id), .caught(event)]
+    }
+
+    /// Puts an Everstone on the active Pokemon, or takes it off.
+    ///
+    /// Taking it off resolves immediately, and that is the whole design: a hold
+    /// **queues** evolutions rather than cancelling them. A Caterpie held past 7
+    /// and 10 becomes a Butterfree the moment the stone comes off, in order, so
+    /// nothing is ever lost by waiting and there is no point of no return.
+    @discardableResult
+    mutating func setEverstone(_ held: Bool, dex: Pokedex, now: Date = Date()) -> [GameEvent] {
+        guard var raise = active, raise.everstone != held else { return [] }
+        raise.everstone = held
+        active = raise
+        return held ? [] : resolveEvolutions(dex: dex, now: now)
     }
 
     /// Edges the player could take right now by spending an item they hold, plus

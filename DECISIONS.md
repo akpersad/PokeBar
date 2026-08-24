@@ -1013,6 +1013,74 @@ is the base of a three-stage line.
 owns.** Everywhere else an unseen entry draws a glyph. Here the choice is the
 content, so 27 sprites are worth fetching.
 
+### The Everstone
+
+Added 2026-08-23, from the user's question: does a Charmander at 16 evolve on its
+own, and if you postpone it, is there a point of no return?
+
+The answer to the first was yes, automatically, with no way to say no. Single
+item-free edges fire on the credit that crosses the threshold, so for the common
+case there was no equivalent of pressing B in the games. That was a gap rather than
+a decision: nothing had ruled it out, it simply had not been thought about.
+
+**The toggle is called the Everstone**, the user's call, and correctly: it is the
+item that does exactly this job in the mainline games, so the name carries its own
+explanation.
+
+**It is free, not shop stock.** The other items are all coin sinks, so this is the
+odd one out and worth saying why. An Everstone gates *taste*, not power: it makes a
+Pokemon stay the shape you like, which changes nothing about progression, the dex,
+or the economy. The recorded principle is that useful sinks buy time or certainty;
+charging for a preference buys neither, and it would put a price on the one feature
+whose whole purpose is attachment.
+
+**It is held by the individual, not set by the player.** Switching starts the next
+Pokemon without one, which is what "held item" means and also the behaviour that
+needs no explaining.
+
+**A hold queues, it does not cancel, so there is no point of no return.** Taking
+the stone off resolves immediately and fires everything the level passed, in order:
+a Caterpie held to 20 becomes a Butterfree at once, and Metapod is registered in the
+dex on the way through. This is deliberately *more* forgiving than the games, where
+declining an evolution simply re-offers it next level. Nothing is ever lost by
+waiting, which is the property that makes the toggle safe to touch.
+
+Consistent with that, every level check in the game is `>=` rather than `==`, so a
+level-100 Nincada can still become Shedinja and a level-100 Pikachu still takes a
+Thunder Stone. Late is always allowed.
+
+**It blocks automatic evolution only.** Pressing an evolve button while holding one
+is an unambiguous instruction and overrides it, which is also roughly how a stone
+behaves in the games. The toggle is hidden entirely for a line that never evolves
+on its own, because on a Pikachu it would promise to prevent something that does
+not happen unasked.
+
+### Saved games must survive a new field
+
+Found while adding the Everstone, and worth more than the feature that found it.
+
+`Raise` gained a field, and the synthesized `Codable` decoder **throws on a missing
+key even where the property has a default**. `GameMonitor.load()` was
+`try? JSONDecoder().decode(...)`, falling through to an empty `Trainer`, which
+cannot distinguish "no save yet" from "save I could not read". The next `persist()`
+would then write the empty collection straight over the real one.
+
+So every schema change was one field away from silently deleting a collection. That
+matters more here than it would elsewhere because of an asymmetry: **the usage
+ledger can be rebuilt by rescanning `~/.claude`, and the collection cannot.** A
+Pokemon caught last week exists in exactly one file.
+
+Two fixes, both cheap:
+
+- `Raise` decodes by hand, with `decodeIfPresent` and a default for the new field.
+  Every field added from here on wants the same.
+- An unreadable save is copied to `game-state.unreadable.json` before anything can
+  overwrite it, and the decoding error is printed rather than swallowed.
+
+A test decodes a real save written before the field existed, taken verbatim from
+the live app, and asserts the collection, the charm, the coins spent and the
+rebuilt slot index all survive.
+
 ### Still open
 
 - **Whether the pick prices are right.** They are deliberately generous and the
