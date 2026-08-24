@@ -648,8 +648,9 @@ wrapping the card (whose press gesture also beats a drag), then without it. A
 `DragGesture` is mouse-down, translation, mouse-up, entirely inside SwiftUI, so the
 window cannot refuse it. The price is that the drop target is resolved by hand:
 each card reports its rect through `onGeometryChange` into a named coordinate
-space, and the drop is whichever rect held the cursor on mouse-up. Do not
-"modernise" this back to `.draggable`. Every card also carries a right-click menu
+space, and the drop is whichever rect held the cursor on mouse-up. **Confirmed
+working on screen by the user 2026-08-24**, after two attempts that failed
+silently. Do not "modernise" this back to `.draggable`. Every card also carries a right-click menu
 with the same actions, because drag-only is no route for anyone who cannot drag.
 
 **The stored Pokemon are "your PC", never "the bench".** The games' word, and the

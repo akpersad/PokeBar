@@ -1626,6 +1626,7 @@ identical from the outside.
    session off the window, and this window is a `MenuBarExtra` panel that never
    becomes key. A `DragGesture` needs none of that machinery: mouse down, a
    translation, mouse up, all inside SwiftUI, so the window cannot refuse it.
+   **This one works, confirmed on screen by the user 2026-08-24.**
 
 The cost is that the drop target has to be worked out by hand instead of by
 AppKit. Each card reports its rectangle in a named coordinate space
