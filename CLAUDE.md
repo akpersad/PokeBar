@@ -441,6 +441,11 @@ that came out of the original plan, is in DECISIONS.md.
   deliberately generous with the user's agreement, on the grounds that harsher is
   an easy change and "completion was never reachable" is not. Tune after playing.
 - **Whether level 100 needs a reward.** Graduation is currently its own trophy.
+- **Re-check `gpt-5.6-sol`'s rate around 2026-11-21.** It is bundled at OpenAI's
+  promotional $4/$20 because no list price is published, and `PricingCatalog`
+  filters to `claude-` keys so nothing will ever refresh it. When the promo
+  lapses the tier multiplier goes stale silently. This is the one dated item on
+  the list; everything else here waits on play.
 - `_audit_poketokenbar/` still sits in the parent directory. Phase 3 took what it
   needed from it and Phase 4 took the floating pet and the shop's shape. Safe to
   delete now; left in place only because deleting a directory outside this repo is
