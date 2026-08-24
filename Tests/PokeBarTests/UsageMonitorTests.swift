@@ -24,15 +24,35 @@ final class UsageMonitorTests: XCTestCase {
         return (root, base.appendingPathComponent("usage-state.json"))
     }
 
+    /// Fixture timestamps have to be **relative to now**, not literals.
+    ///
+    /// `UsageLedger` prunes its in-flight dedup table by the *log* timestamp
+    /// against a 2 day `growthWindow`, so a hardcoded date stops working exactly
+    /// 48 hours after it is written: the first copy of a turn is inserted and
+    /// pruned in the same call, the rewrite then looks like a brand new id, and
+    /// the growth-only rule appears to be broken when it is working perfectly.
+    /// This file shipped with `2026-08-22T12:00:00.000Z` and went red on
+    /// 2026-08-24, which is the whole lesson.
+    private static let iso: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        return formatter
+    }()
+
+    private func recentTimestamp(minutesAgo: Double = 1) -> String {
+        Self.iso.string(from: Date(timeIntervalSinceNow: -minutesAgo * 60))
+    }
+
     private func assistantLine(
         messageID: String, requestID: String,
         model: String = "claude-opus-5",
         input: Int = 0, output: Int = 0, cacheWrite: Int = 0, cacheRead: Int = 0,
-        timestamp: String = "2026-08-22T12:00:00.000Z"
+        timestamp: String? = nil
     ) -> String {
         let object: [String: Any] = [
             "type": "assistant",
-            "timestamp": timestamp,
+            "timestamp": timestamp ?? recentTimestamp(),
             "requestId": requestID,
             "message": [
                 "id": messageID, "role": "assistant", "model": model,
@@ -113,6 +133,19 @@ final class UsageMonitorTests: XCTestCase {
 
         await waitFor({ monitor.allTimeTokens.total == 500 }, label: "appended turn credited")
         XCTAssertNotNil(monitor.lastUpdated)
+    }
+
+    /// The guard against this file's own time bomb. A fixture timestamp must
+    /// sit inside the ledger's growth window, or the streaming-rewrite tests
+    /// below silently stop testing anything and start failing instead.
+    func testFixtureTimestampsSitInsideTheGrowthWindow() throws {
+        let line = assistantLine(messageID: "m1", requestID: "r1", output: 1)
+        let object = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any])
+        let date = try XCTUnwrap(ClaudeUsageParser.parseTimestamp(object["timestamp"]))
+        XCTAssertLessThan(
+            Date().timeIntervalSince(date), UsageLedger.growthWindow,
+            "a fixture older than the growth window is pruned before the rewrite arrives")
     }
 
     /// The straddling-scan case end to end: a turn observed mid-stream, then

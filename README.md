@@ -24,10 +24,11 @@ layer, and the game. Live plan limits were considered and rejected, with reasons
 - [x] Choose your first partner from the 27 starters, free and once
 - [x] Pokédex view, browse and claim from the popover
 - [x] Shop, notifications, and a floating desktop pet
+- [x] Milestone rings in the Dex: silver at level 50, gold at 100
 
-What is left is tuning rather than building. The Dust prices are deliberately
-generous and want a few days of real play; see "Still open" in
-[DECISIONS.md](DECISIONS.md).
+What is left is tuning rather than building, and the tuning is deliberately not
+scheduled: the Dust prices are generous on purpose and will be adjusted on hitting
+the wall, not before. See "Still open" in [DECISIONS.md](DECISIONS.md).
 
 ### The loop
 
@@ -103,9 +104,9 @@ to extract token counts. It holds no credentials and reads no Keychain item.
 
 It writes its own files under `~/Library/Application Support/PokeBar/`:
 `usage-state.json`, the token ledger and scan cursors; `game-state.json`, the
-collection; a `sprites/` cache; and, only if a save ever fails to decode,
-`game-state.unreadable.json`, which is a copy kept so a collection cannot be lost
-to a schema change. None of them is ever sent anywhere. Local notifications are posted through
+collection; `model-pricing.json`, the cached pricing snapshot; a `sprites/` cache;
+and, only if a save ever fails to decode, `game-state.unreadable.json`, which is a
+copy kept so a collection cannot be lost to a schema change. None of them is ever sent anywhere. Local notifications are posted through
 `UNUserNotificationCenter`, which does not involve a server: PokeBar has no push
 entitlement and no remote registration.
 

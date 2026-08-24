@@ -39,6 +39,15 @@ points at CommandLineTools, which ships no test framework. `scripts/check.sh` se
 
 XCTest, not swift-testing. `import Testing` does not resolve in this toolchain.
 
+**A usage-test fixture's timestamp must be relative to `Date()`, never a literal.**
+`UsageLedger` prunes its in-flight dedup table by the *log* timestamp against a
+2 day `growthWindow`, so a hardcoded date stops working exactly 48 hours after it
+is written: the first copy of a turn is inserted and pruned in the same call, the
+rewrite then looks like a new id, and invariant 2 appears broken when it is
+working perfectly. `UsageMonitorTests` shipped with `2026-08-22T12:00:00.000Z` and
+went red on 2026-08-24 for this reason and no other. There is now a test that
+asserts the fixtures sit inside the window.
+
 ## Workflow
 
 - Remote `git@github.com-personal:akpersad/PokeBar.git`, authenticates as `akpersad`.
@@ -271,8 +280,9 @@ comma, colon, or two sentences. Code comments and commit messages are exempt.
 
 ## Reference figures
 
-Measured 2026-08-22 against the live corpus. These grow with use; the *properties*
-are what matter, not the exact numbers.
+Measured 2026-08-22 against the live corpus, except the two Codex rows and the
+Codex model row, measured 2026-08-24 when that source was added. These grow with
+use; the *properties* are what matter, not the exact numbers.
 
 | Quantity | Value |
 |---|---|
@@ -329,16 +339,18 @@ prints live totals under `POKEBAR_CORPUS=1`.
 
 ## State
 
-**Phases 1 through 4: complete.** 265 tests, 0 failures.
+**Phases 1 through 4: complete.** 266 tests, 0 failures.
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
 
-**Next action, in one sentence: play it for a few days and tune the prices,
-starting with the targeted pick, which is deliberately generous.** Nothing is
-half-built. What remains is judgement that only real play can supply, plus the two
-items still listed under "Still open" in DECISIONS.md.
+**Next action, in one sentence: look at the Dex when the active Pokemon crosses
+level 50 and confirm the silver ring reads against the dark grid.** That is the
+only unverified thing in the build, because rendered pixels here can be confirmed
+only by asking the user to look. Nothing is half-built. The Dust prices were
+deliberately deferred by the user on 2026-08-24 rather than left pending, so do
+not treat them as the next step.
 
 What the game does now:
 

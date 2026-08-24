@@ -1190,10 +1190,13 @@ second payout before answering the first would make it harder to answer. Nothing
 keys off `milestoneLevels` but the ring colour.
 
 Not yet seen on screen. Nothing in the live collection has reached either mark:
-the active individual is level 28 of 100. Silver is roughly a day away at this
-machine's throughput, gold about 3.5 days. The logic is covered by tests; the
-pixels are not, and by the rule this project already learned the hard way, that
-means it is unverified.
+the active individual is level 29 of 100, needing another 162,000 XP for silver.
+How long that takes is entirely a function of use, and the spread is wide enough
+to be worth writing down: a heavy day like 2026-08-23 moves roughly 216,000 XP,
+while the idle overnight rate measured here is about 25,000. So silver is a day of
+real work away, or a week of leaving the machine alone. The logic is covered by
+tests; the pixels are not, and by the rule this project already learned the hard
+way, that means it is unverified.
 
 ### Still open
 
@@ -1276,6 +1279,22 @@ the app now deliberately holds no credentials at all.
 ## Tooling
 
 **XCTest, not swift-testing.** `Testing` is not present in this toolchain.
+
+**Usage-test fixtures date from `Date()`, not from a literal. Learned the hard way
+2026-08-24.** `UsageMonitorTests` pinned `2026-08-22T12:00:00.000Z` and passed
+every run for two days, then failed with two assertions that both pointed at
+invariant 2 being broken. It was not. `UsageLedger.pruneInFlight` drops in-flight
+entries by the **log** timestamp against a 2 day `growthWindow`, so once the
+fixture aged past the window the first copy of a turn was inserted and pruned in
+the same `credit` call, the streaming rewrite arrived looking like an id nobody
+had seen, and the full 700 output tokens were credited on top of the partial 5.
+
+The finding, not just the fix: a hardcoded timestamp in a test that runs through
+the ledger is a **timer**, and it fails in the most misleading direction
+available, accusing the one rule in the file that is working. The fix is a
+relative timestamp plus a test that asserts the fixtures sit inside the window, so
+the next person gets "your fixture is too old" instead of "growth crediting is
+broken.
 
 **`DEVELOPER_DIR` must point at Xcode.app to run tests.** `xcode-select -p` here
 returns `/Library/Developer/CommandLineTools`, which has no XCTest. Scoped per
