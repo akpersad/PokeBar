@@ -21,6 +21,10 @@ enum CatchSource: Codable, Sendable, Hashable {
     case targetedPick
     /// A paid re-hatch of a species already owned, for a variant not yet owned.
     case reroll
+    /// The free first pick. Exists once per collection, and is a distinct source
+    /// rather than a `hatch` because "what did my first egg give me" and "who did
+    /// I start with" are different questions and the log should answer both.
+    case starter
 }
 
 /// One catch, appended and never rewritten.

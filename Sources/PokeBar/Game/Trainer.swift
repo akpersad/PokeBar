@@ -34,6 +34,7 @@ struct Trainer: Codable, Sendable, Equatable {
         case missingItem(String)
         case evolutionNotAvailable
         case emptyPool
+        case notStartingOut
 
         var description: String {
             switch self {
@@ -46,6 +47,7 @@ struct Trainer: Codable, Sendable, Equatable {
             case .missingItem(let slug): "missing \(slug)"
             case .evolutionNotAvailable: "that evolution is not available"
             case .emptyPool: "the hatch pool is empty"
+            case .notStartingOut: "the first pick has already been made"
             }
         }
     }
@@ -119,21 +121,32 @@ struct Trainer: Codable, Sendable, Equatable {
     /// Fires every evolution the current level has unlocked, in a chain.
     ///
     /// Only edges that need **no item** fire on their own, which is the games'
-    /// behaviour and also the only safe rule: a stone is a thing you choose to
-    /// use. Where several item-free edges are satisfied at once the choice is the
-    /// player's and nothing fires. That is not an edge case worth glossing over:
-    /// Eevee has three at level 36, Wurmple two at 7, Tyrogue three at 20.
+    /// behaviour and also the only safe rule: a stone is a thing you choose to use.
+    ///
+    /// **An entry that branches never auto-evolves, even when only one branch is
+    /// currently satisfied.** The narrower rule, "fire when exactly one branch is
+    /// *ready*", looks equivalent and silently locks targets out. Two entries prove
+    /// it: Nincada offers Ninjask at 20 and Shedinja at 36, and Dartrix offers
+    /// Decidueye at 34 and Hisuian Decidueye at 36. Under the narrower rule the
+    /// earlier edge fires the moment it is reached, the individual stops being a
+    /// Dartrix, and the level-36 target can never be reached by raising at all.
+    /// Both remained reachable on paper, because the *graph* still contains the
+    /// edge, which is exactly why the generator's reachability assertion did not
+    /// catch this and a test had to.
+    ///
+    /// So: one item-free edge in total means it fires; more than one means the
+    /// choice is the player's and it waits. Eevee has three at level 36, Wurmple
+    /// two at 7, Tyrogue three at 20, and now Nincada and Dartrix wait too.
     ///
     /// Loops because one credit can cross several thresholds. A Rare Candy at
     /// level 5 takes a Caterpie past both 7 and 10.
     private mutating func resolveEvolutions(dex: Pokedex, now: Date) -> [GameEvent] {
         var events: [GameEvent] = []
         while let raise = active, let entry = dex.entry(id: raise.entryID) {
-            let ready = entry.evolutions.filter {
-                $0.item == nil && raise.level >= $0.minLevel
-            }
-            guard let edge = ready.first, ready.count == 1 else {
-                if ready.count > 1 {
+            let itemFree = entry.evolutions.filter { $0.item == nil }
+            let ready = itemFree.filter { raise.level >= $0.minLevel }
+            guard itemFree.count == 1, let edge = ready.first else {
+                if !ready.isEmpty, itemFree.count > 1 {
                     events.append(
                         .evolutionChoice(from: entry.id, options: ready.map(\.to)))
                 }
@@ -251,6 +264,35 @@ struct Trainer: Codable, Sendable, Equatable {
         }
         return events
     }
+
+    /// The free first pick, from the 27 starters.
+    ///
+    /// Exists because the first thirty seconds decide whether anyone comes back,
+    /// and a weighted draw over 570 entries is overwhelmingly likely to open with
+    /// something nobody asked for. Choosing your own first partner is how every
+    /// one of these games starts, and it costs the economy nothing: one entry out
+    /// of 1,083, on a curve where the constraint is raising time.
+    ///
+    /// Once only, and the guard is an empty log rather than a flag: "have I ever
+    /// caught anything" is a question the log already answers, and a separate
+    /// boolean could disagree with it.
+    ///
+    /// The variant is still rolled. A shiny starter at 1/64 is a better story than
+    /// a guaranteed plain one, and it costs nothing to allow.
+    @discardableResult
+    mutating func chooseStarter(
+        entryID: Int, dex: Pokedex, using rng: inout some RandomNumberGenerator,
+        now: Date = Date()
+    ) throws -> [GameEvent] {
+        guard log.events.isEmpty else { throw GameError.notStartingOut }
+        guard let entry = dex.entry(id: entryID),
+              Pokedex.starterIDs.contains(entryID)
+        else { throw GameError.unknownEntry(entryID) }
+        return obtain(entry, source: .starter, dex: dex, using: &rng, now: now)
+    }
+
+    /// Whether the first pick is still to be made. Drives the empty state.
+    var needsStarter: Bool { log.events.isEmpty }
 
     /// Names an entry and buys it outright, in its plain sprite.
     ///

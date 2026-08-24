@@ -13,15 +13,22 @@ struct CompanionView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let entry = game.activeEntry, let raise = game.active {
-                card(entry: entry, raise: raise)
-                evolutionActions
+            if game.needsStarter {
+                // The first pick replaces the whole pane, including the Hatch
+                // button. Offering a 300-coin random draw beside a free chosen
+                // partner is a choice nobody should have to think about.
+                StarterPickerView(game: game, store: store, onError: onError)
             } else {
-                emptyState
+                if let entry = game.activeEntry, let raise = game.active {
+                    card(entry: entry, raise: raise)
+                    evolutionActions
+                } else {
+                    emptyState
+                }
+                actions
+                if !game.recentEvents.isEmpty { feed }
+                petToggle
             }
-            actions
-            if !game.recentEvents.isEmpty { feed }
-            petToggle
         }
     }
 
@@ -109,11 +116,14 @@ struct CompanionView: View {
         }
     }
 
+    /// Nothing being raised, but the collection is not empty: a graduation, or
+    /// something set aside by switching away. Distinct from the first-run state,
+    /// which gets the starter picker instead.
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("No Pokemon yet")
+            Text("Nothing being raised")
                 .font(.subheadline.weight(.medium))
-            Text("Hatch an egg to start raising one. It gains XP from the same tokens that earn coins, so training and saving happen at once.")
+            Text("Hatch an egg, or pick something already caught from the Dex tab and raise it again from level 1.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

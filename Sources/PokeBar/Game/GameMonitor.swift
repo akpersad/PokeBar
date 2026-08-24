@@ -119,6 +119,18 @@ final class GameMonitor {
         persist()
     }
 
+    /// Whether the player has yet to make their first pick.
+    var needsStarter: Bool { trainer.needsStarter }
+
+    @discardableResult
+    func chooseStarter(entryID: Int) throws -> [GameEvent] {
+        guard let dex else { return [] }
+        let events = try trainer.chooseStarter(entryID: entryID, dex: dex, using: &rng)
+        record(events)
+        persist()
+        return events
+    }
+
     /// Buys and opens an egg. The whole loop starts here.
     @discardableResult
     func hatch() throws -> [GameEvent] {

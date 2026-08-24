@@ -895,13 +895,32 @@ once the loop is playable than to find out a year in that completion was never
 reachable. A re-roll is a tenth of the pick, so a 1/64 shiny hunt on a rare species
 is ~320 Dust, a long project rather than an afternoon.
 
-**Auto-evolution fires only for a single item-free edge.** The games' behaviour and
-the only safe rule. A stone is a thing you choose to use, so an item edge never
-fires on its own no matter how high the level goes. Where several item-free edges
-are satisfied at once, nothing fires and the choice is the player's, which is not
-an edge case worth glossing over: Eevee has three at level 36, Wurmple two at 7,
-Tyrogue three at 20. The resolution loops, because one credit can cross two
-thresholds and a Rare Candy at level 5 takes a Caterpie past both 7 and 10.
+**Auto-evolution fires only for an entry with exactly one item-free edge.** A
+stone is a thing you choose to use, so an item edge never fires on its own no
+matter how high the level goes. Anything that branches waits for the player: Eevee
+has three item-free edges at level 36, Wurmple two at 7, Tyrogue three at 20. The
+resolution loops, because one credit can cross two thresholds and a Rare Candy at
+level 5 takes a Caterpie past both 7 and 10.
+
+**"One edge in total" rather than "one edge *ready*", and the difference is a
+silent lock-out.** The narrower rule was written first and looks equivalent. It is
+not, for the two entries whose item-free branches sit at *different* levels:
+
+| Entry | Edges | What the narrower rule did |
+|---|---|---|
+| Nincada | Ninjask 20, Shedinja 36 | Evolved at 20, so level 36 was never reached as a Nincada |
+| Dartrix | Decidueye 34, Hisuian Decidueye 36 | Same, at 34 |
+
+In both cases the later target became unobtainable by raising, leaving only the
+Dust purchase. **The graph still contained the edge**, so the generator's
+reachability assertion was satisfied and said nothing: reachable-in-principle and
+reachable-by-playing are different properties, and only the first one is checkable
+from the manifest. A test covers the second.
+
+Found by a test asserting starter chains were linear, which they are not: Cyndaquil,
+Oshawott and Rowlet all fork at their second stage into a Hisuian form. That fork
+exists only because the edge join was corrected earlier the same day; under the old
+join those three regional evolutions had no incoming edge at all.
 
 **Shininess carries through evolution**, which is the only way a shiny Charizard
 slot can ever be filled: eggs draw from the hatchable pool and Charizard is not in
@@ -948,6 +967,35 @@ window closes on focus loss, which is exactly what presenting a sheet from it do
 **Unseen dex entries draw a glyph, not a greyed sprite.** Two reasons that happen
 to agree: it keeps the dex a thing you fill in, and it stops browsing from pulling
 2,368 sprite files for Pokemon nobody has caught.
+
+### The first pick
+
+Added 2026-08-23 after the user played the loop cold and named the barrier: the
+first thing that happens to a new player should not be a weighted random draw.
+
+**The first Pokemon is chosen, free, from the 27 canonical starters.** Opening with
+a draw over 570 hatchable entries means the first Pokemon is overwhelmingly likely
+to be one nobody asked for, which is a poor first thirty seconds for a game whose
+entire hook is attachment to a single creature. Every one of these games opens with
+this choice, and it costs the economy nothing: one entry out of 1,083, on a curve
+where the binding constraint is raising time rather than acquisition.
+
+It is offered once, and the guard is an **empty catch log** rather than a flag,
+because "have I ever caught anything" is a question the log already answers and a
+separate boolean could disagree with it. Hatching first forfeits it, so the free
+pick cannot be taken after seeing what luck gave you. The variant is still rolled:
+a shiny starter at 1/64 is a better story than a guaranteed plain one.
+
+**The starter list is 27 hardcoded ids**, because nothing in PokeAPI marks a species
+as a starter: no flag, no pokedex slice that isolates them, and no derivable rule
+that does not also catch Caterpie. What keeps that from being 27 magic numbers is
+the test, which asserts against the real dex that there are three per generation for
+nine generations, that every one is hatchable and non-regional, and that every one
+is the base of a three-stage line.
+
+**The picker is the only place in the app that shows sprites for Pokemon nobody
+owns.** Everywhere else an unseen entry draws a glyph. Here the choice is the
+content, so 27 sprites are worth fetching.
 
 ### Still open
 

@@ -280,6 +280,135 @@ final class TrainerTests: XCTestCase {
         }
     }
 
+    // MARK: - The first pick
+
+    /// The starter list is hardcoded, because nothing in PokeAPI marks a species
+    /// as one. This is what keeps it from being 27 magic numbers: every property
+    /// that made them starters is asserted against the real dex.
+    func testStarterListIsThreePerGenerationAndAllHatchable() {
+        let starters = dex.starters
+        XCTAssertEqual(starters.count, 27, "one missing from the dex would silently vanish")
+        XCTAssertEqual(Set(starters.map(\.id)).count, 27)
+
+        for generation in 1...9 {
+            XCTAssertEqual(
+                starters.filter { $0.generation == generation }.count, 3,
+                "generation \(generation)")
+        }
+        for entry in starters {
+            XCTAssertFalse(dex.isEvolutionGated(entry), "\(entry.slug) must be hatchable")
+            XCTAssertFalse(entry.isRegionalForm, entry.slug)
+            XCTAssertFalse(entry.evolutions.isEmpty, "\(entry.slug) should grow into something")
+        }
+        XCTAssertEqual(starters.first?.slug, "bulbasaur")
+        XCTAssertEqual(starters.last?.slug, "quaxly")
+    }
+
+    /// Every starter is a three-stage line, and exactly three of them fork at the
+    /// second stage into a Hisuian form. That fork is only in the data because the
+    /// edge join was corrected: under the old join these regional evolutions had no
+    /// incoming edge at all. The picker names both branches, so this pins which
+    /// lines have one.
+    func testStarterChainDepthsAndBranches() {
+        var branching: [String] = []
+        for entry in dex.starters {
+            var current = entry
+            var depth = 0
+            while let next = current.evolutions.first.flatMap({ dex.entry(id: $0.to) }) {
+                if current.evolutions.count > 1 { branching.append(current.slug) }
+                current = next
+                depth += 1
+                if depth > 4 { XCTFail("\(entry.slug) chain does not terminate"); break }
+            }
+            XCTAssertEqual(depth, 2, "\(entry.slug) should be a three-stage line")
+        }
+        XCTAssertEqual(branching.sorted(), ["dartrix", "dewott", "quilava"])
+    }
+
+    /// The rule is "one item-free edge in total fires", not "one *ready* edge
+    /// fires". The narrower version looks equivalent and silently locks targets
+    /// out: Dartrix would evolve into Decidueye the moment it hit 34, stop being a
+    /// Dartrix, and never reach the level-36 edge to Hisuian Decidueye. Nincada is
+    /// the same shape with Ninjask at 20 and Shedinja at 36.
+    ///
+    /// The graph still contained both edges either way, which is why the
+    /// generator's reachability assertion did not catch it.
+    func testBranchingWaitsEvenWhenOnlyOneBranchIsReady() throws {
+        for (slug, early, late) in [
+            ("dartrix", "decidueye", "decidueye-hisui"),
+            ("nincada", "ninjask", "shedinja"),
+        ] {
+            var trainer = try raising(slug)
+            let start = try entry(slug)
+            // Past the earlier edge, short of the later one.
+            let level = slug == "dartrix" ? 34 : 20
+            trainer.credit(
+                weightedTokens: Double(XPCurve.totalXP(forLevel: level))
+                    * XPCurve.weightedTokensPerXP, dex: dex)
+
+            XCTAssertEqual(trainer.active?.entryID, start.id, "\(slug) must not auto-evolve")
+            XCTAssertGreaterThanOrEqual(try XCTUnwrap(trainer.active?.level), level)
+
+            // Both remain reachable by raising, which is the point.
+            try trainer.evolveActive(into: try entry(early).id, dex: dex)
+            XCTAssertEqual(trainer.active?.entryID, try entry(early).id)
+
+            var second = try raising(slug)
+            second.credit(weightedTokens: 1e12, dex: dex)
+            try second.evolveActive(into: try entry(late).id, dex: dex)
+            XCTAssertEqual(second.active?.entryID, try entry(late).id)
+        }
+    }
+
+    func testChoosingAStarterIsFreeAndStartsTheRaise() throws {
+        var trainer = Trainer()
+        XCTAssertTrue(trainer.needsStarter)
+
+        let squirtle = try entry("squirtle")
+        let events = try trainer.chooseStarter(entryID: squirtle.id, dex: dex, using: &rng)
+
+        XCTAssertEqual(trainer.coinsSpent, 0, "the first pick costs nothing")
+        XCTAssertEqual(trainer.active?.entryID, squirtle.id)
+        XCTAssertEqual(trainer.active?.level, 1)
+        XCTAssertTrue(trainer.log.owns(entryID: squirtle.id))
+        XCTAssertEqual(trainer.log.events.first?.source, .starter)
+        XCTAssertFalse(trainer.needsStarter)
+        XCTAssertTrue(events.contains { if case .caught = $0 { true } else { false } })
+    }
+
+    /// Once only, and the guard is the log rather than a flag: "have I ever caught
+    /// anything" is a question the log already answers.
+    func testStarterCanOnlyBeChosenOnce() throws {
+        var trainer = Trainer()
+        _ = try trainer.chooseStarter(entryID: try entry("squirtle").id, dex: dex, using: &rng)
+        XCTAssertThrowsError(
+            try trainer.chooseStarter(entryID: try entry("bulbasaur").id, dex: dex, using: &rng)
+        ) { error in
+            XCTAssertEqual(error as? Trainer.GameError, .notStartingOut)
+        }
+        XCTAssertEqual(trainer.log.events.count, 1)
+    }
+
+    /// A hatch closes the window too, so the free pick cannot be taken after
+    /// seeing what luck gave you.
+    func testHatchingFirstForfeitsTheStarterPick() throws {
+        var trainer = Trainer()
+        _ = try trainer.hatch(coinsEarned: 1_000, dex: dex, using: &rng)
+        XCTAssertFalse(trainer.needsStarter)
+        XCTAssertThrowsError(
+            try trainer.chooseStarter(entryID: try entry("squirtle").id, dex: dex, using: &rng))
+    }
+
+    func testOnlyStartersCanBeChosen() throws {
+        var trainer = Trainer()
+        XCTAssertThrowsError(
+            try trainer.chooseStarter(entryID: try entry("mewtwo").id, dex: dex, using: &rng)
+        ) { error in
+            XCTAssertEqual(error as? Trainer.GameError, .unknownEntry(150))
+        }
+        XCTAssertTrue(trainer.needsStarter, "a refused pick must not consume it")
+    }
+
     // MARK: - Switching
 
     func testSwitchingIsFreeAndRestartsAtLevelOne() throws {

@@ -117,6 +117,28 @@ struct Pokedex: Sendable {
         }
     }
 
+    /// The 27 canonical starters, in National Dex order.
+    ///
+    /// Hardcoded, because nothing in PokeAPI marks a species as a starter: there
+    /// is no flag, no pokedex slice that isolates them, and no derivable rule that
+    /// does not also catch Caterpie. A literal list is honest about that, and the
+    /// test that guards it is what keeps it from being a list of magic numbers:
+    /// it asserts 27 entries, three per generation, every one hatchable and every
+    /// one the base of a chain.
+    static let starterIDs = [
+        1, 4, 7,        // Bulbasaur, Charmander, Squirtle
+        152, 155, 158,  // Chikorita, Cyndaquil, Totodile
+        252, 255, 258,  // Treecko, Torchic, Mudkip
+        387, 390, 393,  // Turtwig, Chimchar, Piplup
+        495, 498, 501,  // Snivy, Tepig, Oshawott
+        650, 653, 656,  // Chespin, Fennekin, Froakie
+        722, 725, 728,  // Rowlet, Litten, Popplio
+        810, 813, 816,  // Grookey, Scorbunny, Sobble
+        906, 909, 912,  // Sprigatito, Fuecoco, Quaxly
+    ]
+
+    var starters: [DexEntry] { Self.starterIDs.compactMap { byID[$0] } }
+
     /// Every item any evolution asks for, deduped and sorted by name: the shop's
     /// evolution stock.
     ///

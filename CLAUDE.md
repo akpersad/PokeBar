@@ -210,10 +210,13 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     invariant 3: the two must not be able to disagree, and nothing may reach
     backwards and unspend a purchase.
 
-20. **Auto-evolution fires only for a single item-free edge, and it loops.** An item
-    edge never fires on its own; where several item-free edges are satisfied at once
-    nothing fires and the choice is the player's (Eevee has three at level 36). It
-    loops because one credit can cross two thresholds.
+20. **Auto-evolution fires only for an entry with exactly one item-free edge, and
+    it loops.** Note "one in total", not "one currently *ready*". The narrower rule
+    silently locks targets out where branches sit at different levels: Nincada
+    (Ninjask 20, Shedinja 36) and Dartrix (Decidueye 34, Hisuian Decidueye 36) both
+    evolve at the earlier edge and can then never reach the later one. The graph
+    still contains the edge, so the generator's reachability assertion does not
+    catch it; a test does. It loops because one credit can cross two thresholds.
 
 21. **The hatch pool is derived from the edge set, never flagged per entry.**
     `Pokedex.hatchable` is "no incoming edge", 570 of 1,083. A stored flag could
@@ -299,6 +302,8 @@ items still listed under "Still open" in DECISIONS.md.
 
 What the game does now:
 
+- **Choose a starter**, free and once, from the 27 canonical ones. Guarded on an
+  empty catch log, so hatching first forfeits it.
 - **Hatch** an egg for 300 coins. Draws from the 570 hatchable entries weighted on
   raw `captureRate`, rolls shiny at 1/64 (1/48 with the charm) and sex from the
   species' real gender rate.

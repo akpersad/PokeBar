@@ -109,6 +109,7 @@ enum GameFormat {
             case .evolution: return "Registered \(shiny)\(name(catchEvent.entryID))"
             case .targetedPick: return "Claimed \(name(catchEvent.entryID))"
             case .reroll: return "Re-rolled into \(shiny)\(name(catchEvent.entryID))"
+            case .starter: return "Chose \(shiny)\(name(catchEvent.entryID)) to start"
             }
         case .duplicate(let entryID, let dust):
             return dust > 0
@@ -143,6 +144,7 @@ enum GameFormat {
         case .notEnoughDust(let needed, let have):
             return "Needs \(dust(needed)). You have \(dust(have))."
         case .nothingActive: return "Nothing is being raised yet."
+        case .notStartingOut: return "You have already chosen a first partner."
         case .unknownEntry: return "That Pokemon is not in the dex."
         case .alreadyOwned: return "Already in the collection."
         case .notOwned: return "Not in the collection yet."
