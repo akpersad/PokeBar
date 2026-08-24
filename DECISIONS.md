@@ -769,6 +769,12 @@ hatch starts at 1. Whatever was reached stays in the log, so switching is never
 destructive to the collection, only to the individual. Shiny re-rolling is governed
 by the re-roll price, which is a separate knob from swapping.
 
+**The abandon-levels half of that is reversed for v2, 2026-08-24.** The gate
+rejection stands; what does not is treating lost levels as the cost. The user's
+words: "I shouldn't lose my progress on Charizard if I want to switch out to
+another pokemon for a week." Levels will persist per individual. See the v2
+section below.
+
 ### Evolution triggers: two thirds are levels, one third needs a rule
 
 Measured over the 513 evolution edges that land in the collectible pool. **513 pool
@@ -1204,6 +1210,65 @@ way, that means it is unverified.
   user expects to tune them down. That is a judgement only play can make.
 - **Whether level 100 needs a reward.** Right now graduation is its own trophy. If
   the last 2.7 days of a climb feel empty in practice, that is where to look.
+
+---
+
+## v2 direction, set 2026-08-24
+
+Decisions only. The sequencing, the migration detail and the test list live in
+[PLAN-v2.md](PLAN-v2.md), and are deliberately not duplicated here: one copy of
+one fact, the same rule `CatchLog` follows.
+
+Nothing below is implemented.
+
+**Levels persist per individual, permanently.** Reverses the paragraph above.
+`Trainer.active: Raise?` becomes a roster plus an ordered team, and identity is
+`Raise.id` rather than `VariantSlot`, because a `Raise` mutates its own `entryID`
+as it evolves and a slot-keyed store would need rekeying on every evolution.
+`MilestoneEvent.raiseID` already exists and its doc comment already wants two
+Pikachu to be two individuals, so this is the shape the log was written for.
+
+**A team of up to 6 gains XP simultaneously.** Slot 1 at 1.0, slots 2 to 6 at
+0.8 each, per occupied slot, so a team of two is 1.8x and the ramp is smooth.
+
+**Exp Share is a boost, not a split.** 10,000 coins, one-time, then a free
+toggle. If slot 1 gets 100 XP then slots 2 to 6 each get 100 XP; the credit is
+never divided across the team. The divide-by-six reading was raised and rejected
+by the user: it would make a paid item a *downgrade* from the free 5.0x default.
+Priced at 10,000 rather than 5,000 because it is passive and permanent, which is
+the class the Shiny Charm sits in at 30,000; at 5,000 it is 4.6 days of accrual
+for a permanent +20% and is bought without thinking.
+
+**The 5x to 6x XP inflation is accepted, and the reason is that graduation pays
+out nothing.** This looks like it contradicts "raising time is the bottleneck",
+which is load-bearing above. The measurement that defuses it:
+
+| | XP | Days at 216,000 XP/day |
+|---|---|---|
+| Level 36, the deepest common evolution edge | 129,600 | **0.6** |
+| Level 50, silver ring | 250,000 | 1.16 |
+| Level 100, graduation | 1,000,000 | 4.63 |
+
+Evolution is already fast; what is slow is graduation, and `milestoneLevels` is
+display-only by deliberate decision while the reward question stays open. So 6x
+graduation throughput inflates ring colours and nothing else: no coins, no Dust,
+no unlock. Two real costs accepted knowingly: Rare Candy gets relatively weaker,
+and the silver and gold rings get common. Both are watch-and-see, and both are
+cosmetic to fix. The bench share is the dial if it needs turning, and it lives in
+one constant for that reason.
+
+**Per-project attribution records always, displays optionally.** The user wants
+to hide it sometimes, not to stop collecting it. A toggle that gated *recording*
+would leave holes that can never be backfilled, because the ledger credits each
+turn exactly once and cursors do not rewind. The toggle is therefore a display
+preference in `UserDefaults`, never in `game-state.json`: nothing re-derivable
+belongs in the one file that cannot be re-derived.
+
+**Deferred by the user, not rejected:** widgets, and battles. Battles were liked
+but named as a risk of "losing the plot of a token use project", and would also
+require reopening "stats are out", which is what Mint's rejection hangs off.
+Types in the manifest were only ever proposed as a battle prerequisite and go
+with it.
 
 ---
 

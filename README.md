@@ -26,9 +26,14 @@ layer, and the game. Live plan limits were considered and rejected, with reasons
 - [x] Shop, notifications, and a floating desktop pet
 - [x] Milestone rings in the Dex: silver at level 50, gold at 100
 
-What is left is tuning rather than building, and the tuning is deliberately not
-scheduled: the Dust prices are generous on purpose and will be adjusted on hitting
-the wall, not before. See "Still open" in [DECISIONS.md](DECISIONS.md).
+v1 is feature-complete and **v2 is scoped but not started**: levels that persist
+per individual, a team of up to 6 raised at once, and an Exp Share item. The plan
+is [PLAN-v2.md](PLAN-v2.md) and the decisions behind it are in
+[DECISIONS.md](DECISIONS.md).
+
+The v1 tuning that is left is deliberately not scheduled: the Dust prices are
+generous on purpose and will be adjusted on hitting the wall, not before. See
+"Still open" in [DECISIONS.md](DECISIONS.md).
 
 ### The loop
 

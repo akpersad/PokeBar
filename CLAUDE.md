@@ -7,6 +7,10 @@ collection. Personal build for one machine, never distributed.
 directional call is recorded there with the measurement behind it. If a decision
 looks wrong, change it there first, then the code.
 
+**v2 is planned and not started. The plan is [PLAN-v2.md](PLAN-v2.md).** Read it
+before touching the game layer: two decisions recorded below as shipped v1
+behaviour are deliberately reversed there, and both are annotated in place.
+
 ---
 
 ## Build and test
@@ -345,9 +349,16 @@ Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the fem
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
 
-**Next action, in one sentence: look at the Dex when the active Pokemon crosses
-level 50 and confirm the silver ring reads against the dark grid.** That is the
-only unverified thing in the build, because rendered pixels here can be confirmed
+**Next action, in one sentence: implement step 0 of [PLAN-v2.md](PLAN-v2.md), the
+dated `game-state.json` backup, because step 1 is the largest change this save
+format has taken and today's only protection fires on decode failure alone.**
+
+v2 was scoped 2026-08-24 and nothing is implemented. Priority is the user's:
+levels-always-persist and a team of 6 come first, right after that backup. The
+plan carries the ordering and the reasoning; DECISIONS.md carries the decisions.
+
+Still true and still unverified: the Dex silver ring at level 50 has never been
+looked at against the dark grid, because rendered pixels here can be confirmed
 only by asking the user to look. Nothing is half-built. The Dust prices were
 deliberately deferred by the user on 2026-08-24 rather than left pending, so do
 not treat them as the next step.
@@ -361,7 +372,8 @@ What the game does now:
   species' real gender rate.
 - **Raise** one Pokemon at a time. Every weighted token grants XP here *and* mints
   a coin in the ledger, in parallel, never from a shared pool. Level 100 is 4.63
-  days at this machine's throughput.
+  days at this machine's throughput. **Reversed in v2**: a team of up to 6, all
+  gaining XP at once. See PLAN-v2.md.
 - **Evolve.** Item-free edges fire on their own and chain; item edges wait for the
   stone; branching waits for the player. Shininess carries through. An **Everstone**
   toggle holds a Pokemon as it is, and queues rather than cancels: take it off and
@@ -393,7 +405,9 @@ The economy in one line each, all recorded in DECISIONS.md with the measurement:
 - **Raising time is the bottleneck, not coins.** One active Pokémon caps throughput
   at ~1.7 raises/day, so useful sinks buy time or certainty, not more eggs.
 - Switching Pokémon is **free, with no level gate**. The cost is losing that
-  individual's levels; the log keeps everything already earned.
+  individual's levels; the log keeps everything already earned. **The losing-levels
+  half is reversed in v2**: levels persist per individual, permanently. It is the
+  first thing being built. See PLAN-v2.md.
 - "Caught" is an **append-only event log** with the views derived, the same shape as
   `UsageLedger`. No `nature` field: there is no stat raising to feed it.
 - A variant is ownable **iff its sprite file exists**: 2,368 sprites, not 1,083 x 4.
