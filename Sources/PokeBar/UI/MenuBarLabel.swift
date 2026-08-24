@@ -44,6 +44,9 @@ struct MenuBarLabel: View {
             guard let shown else { return }
             await sprite.show(shown.entry, variant: shown.variant)
             await pet.show(shown.entry, variant: shown.variant)
+            // Settle notification permission here rather than at the first
+            // evolution, which would race its own prompt and be dropped.
+            await game.prepareNotifications()
         }
     }
 

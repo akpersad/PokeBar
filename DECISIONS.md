@@ -913,7 +913,27 @@ drives: an evolution, a graduation, and a choice now waiting. A shiny is the one
 exception, and only at the roll. Level ups are excluded on volume alone, at 99 per
 climb. A notification for something the player just clicked arrives second to the
 result already on screen, which is how an app gets its notifications turned off.
-Permission is requested lazily, on the first thing worth posting.
+
+**Permission is requested when the player first has something to raise, not on the
+first thing worth posting.** The lazy version was written first and was wrong:
+asking on the first postable event means the first evolution races its own
+permission prompt, and a notification posted while authorization is pending is
+dropped. The single event the whole feature exists for is the one that would be
+swallowed. Asking after the first hatch settles it hours before an evolution can
+fire, at a moment the player is already looking at the app. Still not asked at
+launch, so someone who never touches the game half is never prompted.
+
+**Granting sends one confirmation, ever**, and it exists because of how this was
+verified. Whether an ad-hoc signed bundle can post at all is not knowable from the
+code: `requestAuthorization` returned `true` while the app was absent from
+Notification Center's registered-apps list, which is the signature of a
+LaunchServices registration failure that drops notifications silently. The only
+evidence that settles it is someone seeing a banner. **The user confirmed one
+appeared, 2026-08-23**, so the ad-hoc path works. The confirmation also says
+plainly what will and will not interrupt them, which is worth one banner on its
+own. Note what the weaker evidence looked like: a `UserDefaults` flag proving the
+send code ran, which says nothing about whether anything rendered. Fourth instance
+in this project of that distinction mattering.
 
 **The desktop pet is an `NSPanel`, not a SwiftUI `Window`.** Three requirements
 SwiftUI has no vocabulary for: float above ordinary windows without stealing focus

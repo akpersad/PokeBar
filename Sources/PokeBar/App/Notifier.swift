@@ -26,7 +26,13 @@ final class Notifier {
         Bundle.main.bundleIdentifier != nil && Bundle.main.bundleURL.pathExtension == "app"
     }
 
+    /// Whether permission has been granted this run. Nil until asked.
     private var authorized: Bool?
+
+    /// Whether the one-time "notifications are on" confirmation has been sent.
+    /// In `UserDefaults` rather than in `Trainer`, because it is a fact about this
+    /// machine's notification settings and not part of the collection.
+    private static let confirmedKey = "PokeBarNotificationsConfirmed"
 
     /// The alert an event deserves, or nil for the ones that stay quiet.
     ///
@@ -55,25 +61,53 @@ final class Notifier {
         }
     }
 
-    /// Posts, asking for permission the first time there is something to post.
+    /// Asks for permission once there is a Pokemon to raise, and confirms.
     ///
-    /// Permission is requested lazily rather than at launch, so a user who never
-    /// plays the game half is never asked. A refusal is remembered for the run and
-    /// never re-asked.
-    func post(_ events: [GameEvent], dex: Pokedex) async {
-        guard Self.isAvailable else { return }
-        let alerts = events.compactMap { Self.announcement(for: $0, dex: dex) }
-        guard !alerts.isEmpty, await ensureAuthorized() else { return }
+    /// **Not lazy, and that was a bug before it was a decision.** Asking on the
+    /// first postable event means the first evolution races the permission prompt,
+    /// and a notification posted while authorization is still pending is dropped.
+    /// The one event notifications exist for is the one that would be swallowed.
+    /// Asking when the player first has something to raise settles permission
+    /// hours before the first evolution can fire, at a moment they are already
+    /// looking at the app.
+    ///
+    /// Still not asked at launch: a user who never touches the game half is never
+    /// prompted.
+    func requestIfNeeded() async {
+        guard Self.isAvailable, authorized == nil else { return }
+        guard await ensureAuthorized() else { return }
 
-        let center = UNUserNotificationCenter.current()
-        for alert in alerts {
-            let content = UNMutableNotificationContent()
-            content.title = alert.title
-            content.body = alert.body
-            let request = UNNotificationRequest(
-                identifier: UUID().uuidString, content: content, trigger: nil)
-            try? await center.add(request)
+        // One confirmation, ever. It proves the delivery path end to end, which
+        // otherwise cannot be known until an evolution happens to fire, and it
+        // says plainly what will and will not interrupt the user.
+        guard !UserDefaults.standard.bool(forKey: Self.confirmedKey) else { return }
+        UserDefaults.standard.set(true, forKey: Self.confirmedKey)
+        await deliver(
+            title: "PokeBar notifications are on",
+            body: "You will hear about evolutions, graduations and shinies. Nothing else.")
+    }
+
+    /// Posts whatever in `events` is worth interrupting for.
+    ///
+    /// A refusal is remembered for the run and never re-asked, and posting never
+    /// triggers a prompt: if permission has not been settled yet the events are
+    /// simply dropped, because a notification racing its own permission dialog
+    /// does not arrive anyway.
+    func post(_ events: [GameEvent], dex: Pokedex) async {
+        guard Self.isAvailable, authorized == true else { return }
+        for alert in events.compactMap({ Self.announcement(for: $0, dex: dex) }) {
+            await deliver(title: alert.title, body: alert.body)
         }
+    }
+
+    private func deliver(title: String, body: String) async {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        let request = UNNotificationRequest(
+            identifier: UUID().uuidString, content: content, trigger: nil)
+        try? await UNUserNotificationCenter.current().add(request)
     }
 
     private func ensureAuthorized() async -> Bool {

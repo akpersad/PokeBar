@@ -97,6 +97,15 @@ final class GameMonitor {
         return trainer.pendingEvolutions(dex: dex)
     }
 
+    /// Settles notification permission once the player has something to raise.
+    ///
+    /// Called from the status item, which is the one view alive for the whole run,
+    /// so this does not depend on the popover ever being opened.
+    func prepareNotifications() async {
+        guard trainer.active != nil else { return }
+        await notifier.requestIfNeeded()
+    }
+
     // MARK: - Writing
 
     /// Credits XP against the same tokens that minted coins.

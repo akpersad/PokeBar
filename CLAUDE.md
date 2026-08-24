@@ -312,7 +312,9 @@ What the game does now:
 - **Browse** 1,083 tiles in the Dex tab, with per-variant slots and the evolution
   requirements spelled out, including which ones are substitutions.
 - **Notifications** for the passive events only, and a **floating desktop pet**,
-  off by default.
+  off by default. Permission is asked for after the first hatch, never at launch,
+  because asking on the first postable event makes that event race its own prompt
+  and be dropped. Verified on screen: the ad-hoc signed bundle does deliver.
 
 The economy in one line each, all recorded in DECISIONS.md with the measurement:
 
