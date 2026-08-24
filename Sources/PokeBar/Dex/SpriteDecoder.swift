@@ -71,6 +71,32 @@ enum SpriteDecoder {
         return frames
     }
 
+    /// One frame, for a dex tile.
+    ///
+    /// Separate from `decode` because a grid must not pay for animation it will
+    /// not show: a gen-V sprite is up to 129 frames, and decoding all of them for
+    /// 30 visible tiles is ~4,000 image creations to draw 30 thumbnails.
+    ///
+    /// Frame 0 of an animation is drawn uncropped, which is correct for the same
+    /// reason `decode` does not crop animations: the canvas *is* the union of the
+    /// animation's content, so there is no margin to reclaim. A still is cropped,
+    /// because a static PNG fills only 14 to 19% of its canvas.
+    static func still(
+        _ data: Data, height: CGFloat, maxWidth: CGFloat, scale: CGFloat = 2
+    ) -> CGImage? {
+        guard height > 0, maxWidth > 0, scale > 0,
+              let source = CGImageSourceCreateWithData(data as CFData, nil),
+              CGImageSourceGetCount(source) > 0,
+              let raw = CGImageSourceCreateImageAtIndex(source, 0, nil)
+        else { return nil }
+
+        let image = CGImageSourceGetCount(source) == 1 ? cropToContent(raw) ?? raw : raw
+        let fitted = SpriteGeometry.fit(
+            pixelSize: CGSize(width: image.width, height: image.height),
+            height: height, maxWidth: maxWidth)
+        return resize(image, to: fitted, scale: scale)
+    }
+
     /// Frame delay in seconds, from the GIF metadata.
     ///
     /// Measured on the live set: delays are 60 to 200 ms, so 5 to 16 fps. A single

@@ -32,6 +32,11 @@ final class UsageMonitor {
     private(set) var allTimeCostUSD: Double = 0
     private(set) var byModelToday: [String: TokenCounts] = [:]
     private(set) var coins: Int = 0
+    /// Today's tier-weighted tokens. Display only, and recomputed at publish
+    /// time from current pricing, which is why it is not the ledger's frozen
+    /// figure: it feeds a "how long until the next level" projection, and a
+    /// projection should track today's rates.
+    private(set) var todayWeightedTokens: Double = 0
     private(set) var lastUpdated: Date?
 
     /// True when some model in the totals has no known price, so the cost shown
@@ -40,6 +45,14 @@ final class UsageMonitor {
     private(set) var costIsIncomplete = false
 
     // MARK: Dependencies
+
+    /// The game half, set once at app start. Weak and unobserved: this is a
+    /// one-way hand-off of credited tokens, not a thing the usage UI reads.
+    ///
+    /// The direction matters. Coins are minted here and frozen; XP is derived
+    /// from the *same* weighted tokens on the other side, never from a share of
+    /// a pool, so there is no allocation to negotiate between the two.
+    @ObservationIgnored weak var game: GameMonitor?
 
     private let scanner: UsageScanner
     private let catalog: PricingCatalog
@@ -128,8 +141,15 @@ final class UsageMonitor {
         }.value
 
         self.cursors = result.cursors
+        // The weighted delta, read across the credit rather than returned by it.
+        // `credit` already reports the raw tokens added; XP needs the tier-
+        // weighted figure, which is the one coins are minted from, and taking it
+        // this way leaves the ledger's signature and its tests alone.
+        let weightedBefore = ledger.weightedTokens
         let added = ledger.credit(result.entries, pricing: pricing)
+        let weightedAdded = ledger.weightedTokens - weightedBefore
         publish()
+        game?.credit(weightedTokens: weightedAdded, coinsEarned: ledger.coins)
 
         if added.total > 0 || !result.entries.isEmpty {
             lastUpdated = Date()
@@ -164,6 +184,16 @@ final class UsageMonitor {
         let allByModel = ledger.allTimeByModel()
         allTimeTokens = allByModel.values.reduce(into: .zero) { $0 += $1 }
         coins = ledger.coins
+
+        todayWeightedTokens = byModelToday.reduce(into: 0.0) { total, pair in
+            let multiplier = pricing.tierMultiplier(for: pair.key)
+                ?? ModelPricing.unknownModelTierMultiplier
+            total += Double(pair.value.total) * multiplier
+        }
+
+        // Push the restored balance before the first scan, so a relaunch can
+        // spend coins immediately rather than waiting for a turn to finish.
+        game?.coinsEarned = coins
 
         var incomplete = false
         todayCostUSD = Self.cost(of: byModelToday, pricing: pricing, incomplete: &incomplete)

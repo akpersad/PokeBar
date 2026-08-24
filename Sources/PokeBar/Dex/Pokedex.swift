@@ -117,6 +117,22 @@ struct Pokedex: Sendable {
         }
     }
 
+    /// Every item any evolution asks for, deduped and sorted by name: the shop's
+    /// evolution stock.
+    ///
+    /// Derived from the manifest rather than hand-listed, because a hand-written
+    /// list drifts from the data the moment a generation is added. 24 lines: 23
+    /// stones and the Linking Cord.
+    var evolutionItems: [(slug: String, name: String)] {
+        var byslug: [String: String] = [:]
+        for entry in entries {
+            for edge in entry.evolutions {
+                if let slug = edge.item { byslug[slug] = edge.itemName ?? slug }
+            }
+        }
+        return byslug.map { (slug: $0.key, name: $0.value) }.sorted { $0.name < $1.name }
+    }
+
     // MARK: - Sprite URLs
 
     /// Remote URL for an entry's sprite, pinned to the manifest's commit.

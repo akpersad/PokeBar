@@ -1,7 +1,10 @@
 import SwiftUI
 
-/// The menu bar window. Reads `UsageMonitor` and renders it; holds no state of
-/// its own, so there is no second copy of the totals to fall out of sync.
+/// The usage pane. Reads `UsageMonitor` and renders it; holds no state of its
+/// own, so there is no second copy of the totals to fall out of sync.
+///
+/// The window chrome around it (header, currency, tabs, footer) belongs to
+/// `PokeBarPopover`, because those are shared with the game panes.
 struct UsagePopover: View {
     let monitor: UsageMonitor
 
@@ -9,9 +12,6 @@ struct UsagePopover: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            header
-            coinsCard
-
             if hasUsage {
                 todaySection
                 Divider()
@@ -19,64 +19,11 @@ struct UsagePopover: View {
             } else {
                 placeholderSection
             }
-
-            Divider()
-            footer
         }
-        .padding(14)
-        .frame(width: 320)
         // Re-derive on open. "Today" is bucketed when the engine last published,
         // so a quiet run across midnight would otherwise keep yesterday's figures
         // under today's heading. Costs nothing: no disk, no scan.
         .task { monitor.refreshDisplayedTotals() }
-    }
-
-    // MARK: Header
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
-                Image(systemName: "smallcircle.filled.circle")
-                    .foregroundStyle(.red)
-                Text("PokeBar")
-                    .font(.headline)
-                Spacer()
-                StatusBadge(state: monitor.state)
-            }
-            if case .failed(let message) = monitor.state {
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    // MARK: Coins
-
-    private var coinsCard: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(UsageFormat.groupedInt(monitor.coins))
-                    .font(.system(size: 30, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                Text(monitor.coins == 1 ? "coin" : "coins")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            Text("1 coin per \(UsageFormat.groupedInt(Int(UsageLedger.tokensPerCoin))) weighted tokens")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-        }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.yellow.opacity(0.12)))
-        .animation(.snappy, value: monitor.coins)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(UsageFormat.groupedInt(monitor.coins)) coins earned")
     }
 
     // MARK: Sections
@@ -142,32 +89,11 @@ struct UsagePopover: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: Footer
-
-    private var footer: some View {
-        HStack {
-            Text(updatedText)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Button("Quit") {
-                monitor.stop()
-                NSApplication.shared.terminate(nil)
-            }
-            .keyboardShortcut("q")
-            .controlSize(.small)
-        }
-    }
-
-    private var updatedText: String {
-        guard let last = monitor.lastUpdated else { return "Waiting for the first scan" }
-        return "Updated \(UsageFormat.relativeAge(of: last))"
-    }
 }
 
 // MARK: - Pieces
 
-private struct SectionHeader: View {
+struct SectionHeader: View {
     private let title: String
     init(_ title: String) { self.title = title }
 
@@ -281,7 +207,7 @@ private struct ModelRow: View {
     }
 }
 
-private struct StatusBadge: View {
+struct StatusBadge: View {
     let state: UsageMonitor.State
 
     var body: some View {

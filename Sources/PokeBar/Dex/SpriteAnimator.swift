@@ -33,7 +33,9 @@ final class SpriteAnimator {
 
     private var frames: [SpriteFrame] = []
     private var ticker: Task<Void, Never>?
-    private var loaded: Int?
+    /// What is currently drawn. Keyed on the variant too, so switching to the
+    /// shiny of the same species is not mistaken for "already showing it".
+    private var loaded: VariantSlot?
 
     /// - Parameters:
     ///   - height: display height in points. The sprite fills this; width follows
@@ -58,13 +60,14 @@ final class SpriteAnimator {
     ///
     /// Idempotent for a given entry, so a view that calls this on every state
     /// change cannot restart the animation or re-fetch.
-    func show(_ entry: DexEntry) async {
-        guard let pokedex, loaded != entry.id else { return }
-        loaded = entry.id
+    func show(_ entry: DexEntry, variant: SpriteVariant = .normal) async {
+        let slot = VariantSlot(entryID: entry.id, variant: entry.resolve(variant))
+        guard let pokedex, loaded != slot else { return }
+        loaded = slot
         self.entry = entry
 
-        let key = pokedex.cacheKey(for: entry)
-        let url = pokedex.spriteURL(for: entry)
+        let key = pokedex.cacheKey(for: entry, variant: variant)
+        let url = pokedex.spriteURL(for: entry, variant: variant)
         guard let data = await store.data(key: key, url: url) else {
             // Offline with a cold cache. Leave the previous frame in place and
             // allow a later call to retry rather than latching a failure.

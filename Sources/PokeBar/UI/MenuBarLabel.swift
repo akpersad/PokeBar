@@ -8,6 +8,7 @@ import SwiftUI
 /// Compact formatting keeps the item's width stable as the figure grows.
 struct MenuBarLabel: View {
     let monitor: UsageMonitor
+    let game: GameMonitor
     let sprite: SpriteAnimator
 
     var body: some View {
@@ -30,10 +31,16 @@ struct MenuBarLabel: View {
                 // not shift sideways when the sprite lands.
                 Image(systemName: "smallcircle.filled.circle")
             }
-            Text(UsageFormat.compactTokens(monitor.coins))
+            Text(UsageFormat.compactTokens(game.coins))
         }
         .accessibilityLabel(accessibilityText)
-        .task(id: monitor.state) { await sprite.showFeatured() }
+        // Follows the Pokemon being raised, which is the seam Phase 3 left here
+        // on purpose: `featured(on:)` survives only as the fallback for a
+        // collection with nothing in it yet.
+        .task(id: shown.map { "\($0.entry.id)-\($0.variant)" } ?? "none") {
+            guard let shown else { return }
+            await sprite.show(shown.entry, variant: shown.variant)
+        }
     }
 
     /// A symbol instead of a sprite, or nil to show the sprite.
@@ -48,13 +55,19 @@ struct MenuBarLabel: View {
         }
     }
 
+    private var shown: (entry: DexEntry, variant: SpriteVariant)? { game.statusItem() }
+
     private var accessibilityText: String {
-        var coins = "PokeBar, \(UsageFormat.groupedInt(monitor.coins)) coins"
+        var coins = "PokeBar, \(UsageFormat.groupedInt(game.coins)) coins"
         switch monitor.state {
         case .scanning: return coins + ", reading usage history"
         case .failed: return coins + ", usage reading failed"
         case .idle, .watching:
-            if let name = sprite.entry?.name { coins += ", showing \(name)" }
+            if let raise = game.active, let entry = game.activeEntry {
+                coins += ", raising \(entry.name) at level \(raise.level)"
+            } else if let name = sprite.entry?.name {
+                coins += ", showing \(name)"
+            }
             return coins
         }
     }
