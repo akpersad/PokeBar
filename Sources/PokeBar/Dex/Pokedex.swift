@@ -19,12 +19,14 @@ struct Pokedex: Sendable {
 
     private let byID: [Int: DexEntry]
     private let bySlug: [String: DexEntry]
+    private let gatedIDs: Set<Int>
 
     init(manifest: DexManifest) {
         self.spritesCommit = manifest.spritesCommit
         self.entries = manifest.entries
         self.byID = Dictionary(uniqueKeysWithValues: manifest.entries.map { ($0.id, $0) })
         self.bySlug = Dictionary(uniqueKeysWithValues: manifest.entries.map { ($0.slug, $0) })
+        self.gatedIDs = Set(manifest.entries.flatMap(\.evolvesTo))
     }
 
     // MARK: - Loading
@@ -77,6 +79,18 @@ struct Pokedex: Sendable {
 
     var regionalForms: [DexEntry] { entries.filter(\.isRegionalForm) }
 
+    /// Entries with no incoming evolution edge: what an egg can produce.
+    ///
+    /// 570 of 1,083. The other 513 are reachable only by evolving something, so
+    /// they must never enter the hatch pool or the evolution half of the game has
+    /// nothing left to give. This is derived rather than flagged per entry,
+    /// because "gated" is a property of the edge set and a stored flag could
+    /// disagree with it.
+    var hatchable: [DexEntry] { entries.filter { !gatedIDs.contains($0.id) } }
+
+    /// Whether `entry` can only be obtained by evolving something else.
+    func isEvolutionGated(_ entry: DexEntry) -> Bool { gatedIDs.contains(entry.id) }
+
     /// What `entry` evolves into, resolved through the pool.
     ///
     /// Regional evolution stays in-region without a hardcoded exception table,
@@ -85,6 +99,22 @@ struct Pokedex: Sendable {
     /// Meowth to Perrserker via a species target.
     func evolutions(of entry: DexEntry) -> [DexEntry] {
         entry.evolvesTo.compactMap { byID[$0] }
+    }
+
+    /// The edges an individual at `level` holding `items` could take right now,
+    /// paired with what they lead to.
+    ///
+    /// Returns every satisfied edge rather than picking one, because branching is
+    /// real: Eevee at level 1 holding a Water Stone and a Fire Stone has two
+    /// legitimate answers and choosing between them is the player's.
+    func availableEvolutions(
+        of entry: DexEntry, atLevel level: Int, items: Set<String> = []
+    ) -> [(edge: Evolution, target: DexEntry)] {
+        entry.evolutions.compactMap { edge in
+            guard edge.isAvailable(atLevel: level, items: items),
+                  let target = byID[edge.to] else { return nil }
+            return (edge, target)
+        }
     }
 
     // MARK: - Sprite URLs

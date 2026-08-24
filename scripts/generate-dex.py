@@ -23,33 +23,48 @@ get wrong:
   * A regional form does not have to carry a regional suffix. Hisuian Basculin is
     `basculin-white-striped`, so a suffix regex finds 57 of the 58 regionals.
 
-NEXT CHANGE THIS FILE NEEDS (Phase 4, see DECISIONS.md "Game layer"):
+Evolution edges carry three resolved fields, because 47% of the pool is reachable
+only by evolving something and the game layer has to know *when* each edge fires:
 
-`evolvesTo` currently stores bare target ids, which is not enough for the game
-layer: 47% of the pool is evolution-gated and it has to know *when* each evolution
-fires. Three fields per edge are needed, resolved here so the app reads a plain
-level and never has to know what a tower of darkness is.
+  * `trigger`   - level / item / trade / substituted
+  * `minLevel`  - always a real number, so the app can compare a level and never
+                  has to know what a tower of darkness is
+  * `item`      - the slug of the item the edge requires, or null
 
-  * `trigger`        - level-up / use-item / trade / substituted
-  * `minLevel`       - from `pokemonevolution.min_level`
-  * `evolutionItem`  - from `pokemonevolution.evolution_item_id`
+Two of those values are **substitutions and are labelled as such**, because there
+is no honest way to model friendship or a tower of darkness in a token counter and
+silently dropping the 54 edges behind them would be worse:
 
-Measured over the 546 edges landing in the pool: 364 carry a real `min_level`
-(earliest 7, median 30, latest 64). The other 182 need the agreed rules, which are
-**substitutions and must be labelled as such in the output**, not silently folded in:
+  * `level-up` with no `min_level` (friendship, time of day, location) and the
+    exotic one-offs (spin, tower-of-darkness, three-critical-hits, take-damage,
+    shed, agile/strong-style-move, ...) both become `substituted` at level 36.
+    Classification is on `min_level` rather than on the trigger name, which is
+    why Nincada -> Shedinja (`shed`, level 20) and Tandemaus -> Maushold
+    (`other`, level 25) keep their real levels instead of being substituted.
+  * `trade` keeps its own trigger and gains a Linking Cord requirement, canonical
+    since Gen 9. That is a substitution in mechanism, not in spirit.
 
-  * 71 edges / 69 entries are `use-item`. 25 distinct item ids are referenced;
-    resolving them to names still needs a working PokeAPI item query, since
-    `item(where: {itemevolutions: {}})` returned no usable names.
-  * 27 edges are `trade` -> require a Linking Cord, canonical since Gen 9.
-  * 71 edges / 50 entries are `level-up` with no level (friendship, time of day,
-    location) -> substitute **level 36**.
-  * 13 edges / 12 entries are exotic one-offs (spin, tower-of-darkness,
-    three-critical-hits, gimmighoul-coins, recoil-damage, take-damage, use-move,
-    shed, agile/strong-style-move, three-defeated-bisharp) -> substitute **level 36**.
+THE EDGE JOIN IS THE THIRD DATA-MODEL TRAP, and it is the one that bit hardest.
+`base_form_id` is null on 495 of 553 rows, so an earlier version of this file fell
+back to `pokemonspecies.evolves_from_species_id` for the *whole edge*, which is a
+species-space answer to a pokemon-space question. It got 11 edges wrong in each
+direction: it claimed ordinary Meowth evolves into Perrserker (it is Galarian
+Meowth that does) and it left Alolan Exeggutor with no incoming edge at all, so
+nothing in the pool could reach it. The fix is to fall back only for the *base* of
+a row that has one, and keep the row's own pokemon-space target:
 
-Add expectations for all of these to the assertion block below, the same way the
-regional-form count is asserted. That count is what caught `pikachu-alola-cap`.
+    base   = row.base_form_id ?? species[row.evolved_species_id].evolves_from_species_id
+    target = row.evolved_form_id ?? row.evolved_species_id
+
+The species table is still consulted, but only as a backstop for a species that
+evolves from something and has no evolution row at all. Exactly one does:
+Meltan -> Melmetal.
+
+Thirteen edges carry more than one row (different version groups) and twelve of
+those disagree. `_resolve_edge` picks deliberately: lowest real `min_level` first,
+then an item row, then the lowest row id. That preference is what turns Kubfu into
+a Scroll of Darkness purchase rather than a level-36 substitution, and Eevee into
+eight stones rather than eight guesses.
 """
 
 from __future__ import annotations
@@ -57,8 +72,10 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import statistics
 import subprocess
 import sys
+from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -66,6 +83,13 @@ OUT = ROOT / "Sources/PokeBar/Dex/Resources/pokedex.json"
 
 GRAPHQL = "https://graphql.pokeapi.co/v1beta2"
 GITHUB = "https://api.github.com/repos/PokeAPI/sprites"
+
+# The sprites-repo commit every sprite URL is pinned to, and therefore the thing
+# that makes the app's permanent on-disk sprite cache correct (DECISIONS.md,
+# invariant 13). Pinned here rather than read from master on every run: resolving
+# master would mean a routine regeneration silently re-pins the whole dex, which
+# is a decision, not a side effect. Pass --repin to make that decision on purpose.
+SPRITES_COMMIT = "c10459b9b0129eaca5c5d9b1cac65336debb1d08"
 
 # The National Dex ceiling this manifest covers. Raising it is the one-line part
 # of adding a generation; the assertions below are the rest.
@@ -98,6 +122,17 @@ BASCULIN_HISUI = "basculin-white-striped"
 
 REGIONS = {"alola": "Alolan", "galar": "Galarian", "hisui": "Hisuian", "paldea": "Paldean"}
 
+# The level every unmodellable trigger evolves at. The user's call: 36 is the
+# second most common real evolution level in the data and the canonical
+# second-stage level, so it lands on a number the games already use, and at 14.4 h
+# into the climb it puts these after the ordinary first-stage crowd rather than
+# mixed in with them. See DECISIONS.md; 30 was proposed first and rejected.
+SUBSTITUTE_LEVEL = 36
+
+# Trading is not a thing a single-player menu bar app can do, so a trade edge
+# takes the item the mainline games added for exactly this in Gen 9.
+LINKING_CORD = ("linking-cord", "Linking Cord")
+
 # --- Expected figures. These are the assertions, not documentation. -----------
 # Measured 2026-08-22. Each one is a property of the source data that this
 # manifest depends on, so drift should stop the generator rather than reach code.
@@ -109,6 +144,16 @@ EXPECT_SHOWDOWN_BASE = 1011  # 98.6%
 EXPECT_HOME_BASE = 1025  # 100%
 # The species with no animated sprite in any set, so they resolve to static HOME.
 EXPECT_STATIC_ONLY = [990, 991, 992, 993, 994, 995, 1006, 1008, 1010, 1017, 1022, 1023, 1024, 1025]
+# Evolution, measured 2026-08-23 after the edge join was corrected. Every one of
+# these is load-bearing for the game layer: the hatch pool is the entries with no
+# incoming edge, and everything else has to be reachable by evolving.
+EXPECT_EDGES = 513
+EXPECT_GATED = 513  # entries reachable only by evolving. 47.4% of the pool
+EXPECT_HATCHABLE = EXPECT_POOL - EXPECT_GATED  # 570
+EXPECT_WITH_EVOLUTION = 477
+EXPECT_TRIGGERS = {"level": 364, "item": 69, "trade": 26, "substituted": 54}
+EXPECT_LEVEL_RANGE = (7, 64)
+EXPECT_EVOLUTION_ITEMS = 23  # distinct stones etc. 24 shop lines with the Cord
 
 
 def _curl(args: list[str]) -> dict:
@@ -201,23 +246,70 @@ def fetch_varieties() -> list[dict]:
     return data["pokemon"]
 
 
-def fetch_evolutions() -> list[dict]:
-    """Evolution edges, both the species-level and the form-level ones.
+def fetch_evolutions() -> tuple[list[dict], list[dict]]:
+    """Evolution rows, plus the species table used to resolve a row's base.
 
-    `evolved_form_id ?? evolved_species_id` is what keeps a regional evolution
-    in-region without a hardcoded exception table: Alolan Vulpix carries a form
-    target (10104, Alolan Ninetales) while Galarian Meowth carries only a species
-    target (863, Perrserker). Both fall out of the same expression.
+    Both are needed and they are in different id spaces, which is the trap
+    documented at the top of this file. The rows are authoritative for *what an
+    edge requires*; the species table only ever answers "what does this evolve
+    from", and only for rows that decline to say.
     """
-    data = graphql(
-        """{ pokemonevolution { evolved_species_id evolved_form_id base_form_id } }"""
-    )
-    edges = data["pokemonevolution"]
+    edges = graphql(
+        """{ pokemonevolution {
+                 id base_form_id evolved_form_id evolved_species_id
+                 min_level evolution_item_id
+                 evolutiontrigger { name }
+                 item { name itemnames(where: {language_id: {_eq: 9}}) { name } }
+             } }"""
+    )["pokemonevolution"]
     species = graphql(
         f"""{{ pokemonspecies(where: {{id: {{_lte: {MAX_SPECIES}}}}}) {{
                   id evolves_from_species_id }} }}"""
     )["pokemonspecies"]
     return edges, species
+
+
+def _resolve_edge(rows: list[dict]) -> dict:
+    """Collapse the rows for one edge into the single thing the game reads.
+
+    Thirteen edges carry several rows, one per version group, and twelve of those
+    disagree with each other. The preference order is deliberate and it is what
+    keeps interesting content out of the substitution bucket:
+
+      1. a real `min_level`, lowest wins   (Cyndaquil takes 14, not Legends' 17)
+      2. an item, lowest item id wins      (Kubfu becomes a Scroll of Darkness
+                                            rather than a tower of darkness;
+                                            Sinistea takes the Cracked Pot)
+      3. lowest row id, for determinism    (Feebas and Hisuian Qwilfish, which
+                                            offer nothing modellable either way)
+    """
+    levelled = [r for r in rows if r["min_level"] is not None]
+    if levelled:
+        row = min(levelled, key=lambda r: (r["min_level"], r["id"]))
+        return {"trigger": "level", "minLevel": row["min_level"], "item": None, "itemName": None}
+
+    with_item = [r for r in rows if r["evolution_item_id"] is not None]
+    if with_item:
+        row = min(with_item, key=lambda r: (r["evolution_item_id"], r["id"]))
+        item = row["item"]
+        if item is None or not item["itemnames"]:
+            raise SystemExit(f"evolution item {row['evolution_item_id']} has no English name")
+        # No level gate: a Fire Stone works on a level 1 Vulpix in the games too.
+        return {
+            "trigger": "item",
+            "minLevel": 1,
+            "item": item["name"],
+            "itemName": item["itemnames"][0]["name"],
+        }
+
+    row = min(rows, key=lambda r: r["id"])
+    if row["evolutiontrigger"]["name"] == "trade":
+        slug, name = LINKING_CORD
+        return {"trigger": "trade", "minLevel": 1, "item": slug, "itemName": name}
+
+    # Friendship, time of day, location, and the exotic one-offs. Labelled as a
+    # substitution rather than dressed up as a level requirement.
+    return {"trigger": "substituted", "minLevel": SUBSTITUTE_LEVEL, "item": None, "itemName": None}
 
 
 def display_name(slug: str, species_name: str, region: str | None) -> str:
@@ -269,8 +361,11 @@ def rarity_of(capture_rate: int, legendary: bool, mythical: bool) -> str:
     return "epic"
 
 
-def build() -> dict:
-    commit = github_json(f"{GITHUB}/commits/master")["sha"]
+def build(repin: bool = False) -> dict:
+    commit = github_json(f"{GITHUB}/commits/master")["sha"] if repin else SPRITES_COMMIT
+    if repin and commit != SPRITES_COMMIT:
+        print(f"re-pinning sprites: {SPRITES_COMMIT} -> {commit}")
+        print("  update SPRITES_COMMIT and DECISIONS.md in the same change.")
     sprites = sprite_manifest(commit)
 
     # Sprite-set coverage is the claim the whole three-set layering rests on, so
@@ -348,25 +443,60 @@ def build() -> dict:
     if len(pool) != EXPECT_POOL:
         raise SystemExit(f"pool is {len(pool)}, expected {EXPECT_POOL}")
 
-    # --- evolution targets, deduped -------------------------------------------
-    # qwilfish-hisui legitimately returns three rows for different version groups
-    # and must collapse to one target. Pikachu legitimately returns two distinct
-    # targets (Raichu and Alolan Raichu), which is real branching content.
-    evo: dict[int, set[int]] = {}
+    # --- evolution edges -------------------------------------------------------
+    # base comes from the row where the row has one, and only otherwise from the
+    # species table. Getting this backwards is the third data-model trap; see the
+    # module docstring. qwilfish-hisui legitimately returns three rows for
+    # different version groups and must collapse to one edge, while Pikachu
+    # legitimately returns two distinct targets (Raichu and Alolan Raichu), which
+    # is real branching content.
+    evolves_from = {s["id"]: s["evolves_from_species_id"] for s in species_evo}
+    edge_rows: dict[tuple[int, int], list[dict]] = {}
+    targets_with_rows: set[int] = set()
     for e in edges:
-        base = e["base_form_id"]
-        if base is None:
-            continue
         target = e["evolved_form_id"] or e["evolved_species_id"]
         if target is None:
             continue
-        evo.setdefault(base, set()).add(target)
-    for s in species_evo:
-        parent = s["evolves_from_species_id"]
-        if parent is not None:
-            evo.setdefault(parent, set()).add(s["id"])
+        targets_with_rows.add(target)
+        base = e["base_form_id"] or evolves_from.get(e["evolved_species_id"])
+        if base is None:
+            continue
+        edge_rows.setdefault((base, target), []).append(e)
+
+    # Backstop for a species that evolves from something and has no row at all.
+    # Exactly one does, and it is asserted, because a second one appearing means
+    # the source changed shape rather than that the backstop is working.
+    rowless = sorted(
+        (parent, s["id"])
+        for s in species_evo
+        if (parent := s["evolves_from_species_id"]) is not None
+        and s["id"] not in targets_with_rows
+    )
+    if rowless != [(808, 809)]:
+        raise SystemExit(f"expected only Meltan -> Melmetal to have no evolution row, got {rowless}")
 
     ids_in_pool = {e["id"] for e in pool}
+
+    # Resolve each edge to the single (trigger, level, item) triple the game
+    # reads, and index it by base. Targets outside the collectible pool (Megas,
+    # Gigantamax and the other excluded forms) are dropped here, so the dex can
+    # never point at an entry that does not exist.
+    resolved_edges: dict[int, list[dict]] = {}
+
+    def _add(base: int, edge: dict) -> None:
+        if base in ids_in_pool and edge["to"] in ids_in_pool:
+            resolved_edges.setdefault(base, []).append(edge)
+
+    for (base, target), rows in edge_rows.items():
+        _add(base, {"to": target, **_resolve_edge(rows)})
+    for base, target in rowless:
+        # No row means nothing to read a requirement off, which is the same
+        # position the exotic triggers leave us in. Melmetal costs 400 candy in
+        # Pokemon GO; there is no candy here either.
+        _add(base, {"to": target, "trigger": "substituted", "minLevel": SUBSTITUTE_LEVEL,
+                    "item": None, "itemName": None})
+    for group in resolved_edges.values():
+        group.sort(key=lambda e: e["to"])
 
     # --- sprite resolution, per entry -----------------------------------------
     static_only: list[int] = []
@@ -384,10 +514,7 @@ def build() -> dict:
         entry["animated"] = chosen[0] != "home"
         if not entry["animated"]:
             static_only.append(pid)
-        # Drop evolution targets outside the collectible pool (Megas, Gigantamax
-        # and the other excluded forms) so the dex never points at an entry that
-        # does not exist.
-        entry["evolvesTo"] = sorted(t for t in evo.get(pid, set()) if t in ids_in_pool)
+        entry["evolutions"] = resolved_edges.get(pid, [])
         entry["rarity"] = rarity_of(
             entry["captureRate"], entry["legendary"], entry["mythical"]
         )
@@ -397,6 +524,43 @@ def build() -> dict:
             f"static-only set drifted.\n  got:      {sorted(static_only)}\n"
             f"  expected: {EXPECT_STATIC_ONLY}"
         )
+
+    # --- evolution assertions --------------------------------------------------
+    # The hatch pool is "every entry with no incoming edge", so a wrong edge does
+    # not read as a wrong edge. It reads as a species that can never be obtained,
+    # or as one that hatches when it should have to be earned.
+    all_edges = [(e["id"], edge) for e in pool for edge in e["evolutions"]]
+    gated = {edge["to"] for _, edge in all_edges}
+    triggers = Counter(edge["trigger"] for _, edge in all_edges)
+    levels = [edge["minLevel"] for _, edge in all_edges if edge["trigger"] == "level"]
+    evo_items = {edge["item"] for _, edge in all_edges if edge["trigger"] == "item"}
+
+    for label, actual, expected in (
+        ("edges", len(all_edges), EXPECT_EDGES),
+        ("evolution-gated entries", len(gated), EXPECT_GATED),
+        ("hatchable entries", len(pool) - len(gated), EXPECT_HATCHABLE),
+        ("entries with an evolution", sum(1 for e in pool if e["evolutions"]), EXPECT_WITH_EVOLUTION),
+        ("distinct evolution items", len(evo_items), EXPECT_EVOLUTION_ITEMS),
+    ):
+        if actual != expected:
+            raise SystemExit(f"{label}: {actual}, expected {expected}")
+    if dict(triggers) != EXPECT_TRIGGERS:
+        raise SystemExit(f"trigger mix drifted.\n  got:      {dict(triggers)}\n"
+                         f"  expected: {EXPECT_TRIGGERS}")
+    if (min(levels), max(levels)) != EXPECT_LEVEL_RANGE:
+        raise SystemExit(f"min_level range {(min(levels), max(levels))}, "
+                         f"expected {EXPECT_LEVEL_RANGE}")
+    # Every gated entry must be reachable from something hatchable, or the dex
+    # advertises entries no amount of play can produce.
+    reachable = ids_in_pool - gated  # the hatchable seeds
+    frontier = set(reachable)
+    while frontier:
+        nxt = {edge["to"] for e in pool if e["id"] in frontier for edge in e["evolutions"]}
+        frontier = nxt - reachable
+        reachable |= frontier
+    unreachable = ids_in_pool - reachable
+    if unreachable:
+        raise SystemExit(f"unreachable entries: {sorted(unreachable)}")
 
     animated = len(pool) - len(static_only)
     print(f"pool                {len(pool)}")
@@ -408,9 +572,12 @@ def build() -> dict:
         n = sum(1 for e in pool if e["spriteSet"] == name)
         print(f"  via {name:<13s} {n}")
     print(f"shiny available     {sum(1 for e in pool if e['shiny'])}")
-    print(f"with evolution      {sum(1 for e in pool if e['evolvesTo'])}")
-    from collections import Counter
-
+    print(f"with evolution      {sum(1 for e in pool if e['evolutions'])}")
+    print(f"evolution edges     {len(all_edges)}")
+    print(f"  triggers          {dict(triggers)}")
+    print(f"  min_level         {min(levels)}-{max(levels)}, median {statistics.median(levels):.0f}")
+    print(f"  distinct items    {len(evo_items)}")
+    print(f"hatchable           {len(pool) - len(gated)} (the rest are evolution-gated)")
     print("rarity              " + str(dict(Counter(e["rarity"] for e in pool))))
     print(f"sprites commit      {commit}")
 
@@ -429,9 +596,15 @@ def main() -> int:
         action="store_true",
         help="verify the committed manifest against live sources, write nothing",
     )
+    ap.add_argument(
+        "--repin",
+        action="store_true",
+        help="re-pin sprite URLs to the sprites repo's current master (a decision, "
+             "not routine: it invalidates nothing but changes every sprite URL)",
+    )
     args = ap.parse_args()
 
-    manifest = build()
+    manifest = build(repin=args.repin)
     encoded = json.dumps(manifest, indent=1, ensure_ascii=False, sort_keys=True) + "\n"
 
     if args.check:

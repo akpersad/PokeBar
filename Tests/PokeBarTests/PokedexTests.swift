@@ -187,6 +187,136 @@ final class PokedexTests: XCTestCase {
         }
     }
 
+    /// The edge join reads a row's base from the row, and only falls back to the
+    /// species table when the row declines to say. Getting that backwards is a
+    /// species-space answer to a pokemon-space question and it is silent: it
+    /// claims ordinary Meowth becomes Perrserker, which the app would happily
+    /// act on. Both halves of the pair are asserted, because fixing one direction
+    /// and breaking the other looks identical from the Perrserker side.
+    func testOnlyTheRegionalFormTakesTheRegionalEvolution() throws {
+        let meowth = try XCTUnwrap(dex.entry(slug: "meowth"))
+        XCTAssertEqual(dex.evolutions(of: meowth).map(\.slug), ["persian"])
+        let galarian = try XCTUnwrap(dex.entry(slug: "meowth-galar"))
+        XCTAssertEqual(dex.evolutions(of: galarian).map(\.slug), ["perrserker"])
+    }
+
+    /// The mirror-image failure of the Meowth one, and the reason the generator
+    /// asserts reachability: a regional evolution whose *base* is an ordinary
+    /// species had no incoming edge at all, so nothing in the pool could produce
+    /// it and no amount of play would ever fill the tile.
+    func testRegionalEvolutionsOfOrdinaryBasesAreReachable() throws {
+        let exeggcute = try XCTUnwrap(dex.entry(slug: "exeggcute"))
+        XCTAssertEqual(
+            Set(dex.evolutions(of: exeggcute).map(\.slug)), ["exeggutor", "exeggutor-alola"]
+        )
+    }
+
+    /// Every entry is either hatchable or downstream of something hatchable.
+    /// The hatch pool is "no incoming edge", so a wrong edge does not read as a
+    /// wrong edge: it reads as a tile that can never be filled.
+    func testEveryEntryIsReachableFromTheHatchPool() {
+        var reachable = Set(dex.hatchable.map(\.id))
+        var frontier = reachable
+        while !frontier.isEmpty {
+            let next = Set(frontier.compactMap { dex.entry(id: $0) }.flatMap(\.evolvesTo))
+            frontier = next.subtracting(reachable)
+            reachable.formUnion(frontier)
+        }
+        let unreachable = Set(dex.entries.map(\.id)).subtracting(reachable)
+        XCTAssertEqual(unreachable, [], "\(unreachable.compactMap { dex.entry(id: $0)?.slug })")
+    }
+
+    func testHatchPoolExcludesEvolutionGatedEntries() throws {
+        XCTAssertEqual(dex.hatchable.count, 570)
+        XCTAssertEqual(dex.count - dex.hatchable.count, 513)
+        let charmander = try XCTUnwrap(dex.entry(slug: "charmander"))
+        let charizard = try XCTUnwrap(dex.entry(slug: "charizard"))
+        XCTAssertFalse(dex.isEvolutionGated(charmander))
+        XCTAssertTrue(dex.isEvolutionGated(charizard))
+    }
+
+    /// The whole point of resolving triggers at generation time: the app compares
+    /// a level and checks an item, and there is no fifth case to handle.
+    func testEveryEdgeCarriesAUsableLevel() {
+        for entry in dex.entries {
+            for edge in entry.evolutions {
+                XCTAssertTrue((1...100).contains(edge.minLevel), "\(entry.slug) -> \(edge.to)")
+                switch edge.trigger {
+                case .level:
+                    XCTAssertTrue((7...64).contains(edge.minLevel), entry.slug)
+                    XCTAssertNil(edge.item, entry.slug)
+                case .item, .trade:
+                    XCTAssertNotNil(edge.item, entry.slug)
+                    XCTAssertNotNil(edge.itemName, entry.slug)
+                case .substituted:
+                    XCTAssertEqual(edge.minLevel, 36, entry.slug)
+                    XCTAssertNil(edge.item, entry.slug)
+                }
+            }
+        }
+    }
+
+    func testTriggerMixMatchesTheGenerator() {
+        var counts: [EvolutionTrigger: Int] = [:]
+        for entry in dex.entries {
+            for edge in entry.evolutions { counts[edge.trigger, default: 0] += 1 }
+        }
+        XCTAssertEqual(counts, [.level: 364, .item: 69, .trade: 26, .substituted: 54])
+    }
+
+    /// Trading is the one trigger with no single-player equivalent, so it takes
+    /// the item the mainline games added for exactly this in Gen 9. It must be
+    /// one item, not 26 improvised ones, or the shop grows a page of nonsense.
+    func testTradeEdgesAllTakeTheLinkingCord() {
+        let items = Set(
+            dex.entries.flatMap(\.evolutions).filter { $0.trigger == .trade }.compactMap(\.item)
+        )
+        XCTAssertEqual(items, ["linking-cord"])
+    }
+
+    /// 23 stones plus the Linking Cord. This is the shop's evolution stock, so it
+    /// is a number the economy depends on rather than a curiosity.
+    func testEvolutionItemsAreABoundedShopList() {
+        let items = Set(dex.entries.flatMap(\.evolutions).compactMap(\.item))
+        XCTAssertEqual(items.count, 24)
+        XCTAssertTrue(items.contains("thunder-stone"))
+        XCTAssertTrue(items.contains("linking-cord"))
+    }
+
+    /// An item edge is gated on the item, not on the level, and a missing item
+    /// must not quietly degrade into "evolves at level 1".
+    func testItemEdgesNeedTheItem() throws {
+        let pikachu = try XCTUnwrap(dex.entry(slug: "pikachu"))
+        XCTAssertEqual(dex.availableEvolutions(of: pikachu, atLevel: 100).count, 0)
+        let held = dex.availableEvolutions(of: pikachu, atLevel: 1, items: ["thunder-stone"])
+        XCTAssertEqual(Set(held.map(\.target.slug)), ["raichu", "raichu-alola"])
+    }
+
+    /// Branching is the player's choice, not the game's, so every satisfied edge
+    /// comes back rather than the first one.
+    func testLevelEdgesFireOnLevelAlone() throws {
+        let bulbasaur = try XCTUnwrap(dex.entry(slug: "bulbasaur"))
+        XCTAssertEqual(dex.availableEvolutions(of: bulbasaur, atLevel: 15).count, 0)
+        XCTAssertEqual(
+            dex.availableEvolutions(of: bulbasaur, atLevel: 16).map(\.target.slug), ["ivysaur"]
+        )
+    }
+
+    /// Nincada is both cases at once: a real level-20 edge to Ninjask and a
+    /// `shed` edge to Shedinja that nothing here can model. Classification is on
+    /// `min_level` rather than the trigger name, which is what keeps the first
+    /// one honest instead of substituting both.
+    func testUnmodellableTriggersSubstituteRatherThanDisappear() throws {
+        let nincada = try XCTUnwrap(dex.entry(slug: "nincada"))
+        let byTarget = Dictionary(uniqueKeysWithValues: nincada.evolutions.map { ($0.to, $0) })
+        let ninjask = try XCTUnwrap(dex.entry(slug: "ninjask"))
+        let shedinja = try XCTUnwrap(dex.entry(slug: "shedinja"))
+        XCTAssertEqual(byTarget[ninjask.id]?.trigger, .level)
+        XCTAssertEqual(byTarget[ninjask.id]?.minLevel, 20)
+        XCTAssertEqual(byTarget[shedinja.id]?.trigger, .substituted)
+        XCTAssertEqual(byTarget[shedinja.id]?.minLevel, 36)
+    }
+
     // MARK: - Sprite URLs
 
     /// Pinning to a commit is what makes the disk cache permanent: sprites are

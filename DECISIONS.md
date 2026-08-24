@@ -312,7 +312,7 @@ delegated them explicitly, so they were decided on measurement.
 
 **The catalog is a build-time manifest, not a runtime fetch.**
 `scripts/generate-dex.py` produces `Sources/PokeBar/Dex/Resources/pokedex.json`,
-325 KiB, checked in. Four reasons, in descending weight:
+381 KiB, checked in. Four reasons, in descending weight:
 
 1. **A cold first launch needs no network and nothing third-party to be up.**
    A runtime fetch makes the dex, and therefore the whole game layer, depend on
@@ -553,8 +553,8 @@ entries are ~85x less likely than the commonest, since the rate spans 3 to 255.
 | Capture-rate weighted | **168,729** (21.5x worse) |
 
 At ~1,080 coins/day that is 4.3 years even at 10 coins per egg, and 43 years at
-100. (Hatching actually draws only from the 571 base species, since 512 entries are
-evolution-gated. That is measured further down and it barely helps: 109,812 hatches,
+100. (Hatching actually draws only from the 570 hatchable entries, since 513 are
+evolution-gated. That is measured further down and it barely helps: 110,218 hatches,
 a mere 1.5x improvement, because the rarest entries are largely non-evolving
 legendaries that stay in the hatchable pool. The conclusion is the same either way.) So "collect all of them" is not achievable by random draws at any sane price,
 and no amount of price tuning fixes it. Three exits were considered: abandon
@@ -693,7 +693,7 @@ ones that buy *time* (Rare Candy) or *certainty* (targeted pick), not the ones t
 buy more eggs.
 
 **Switching Pokemon is free and unrestricted, with no level gate.** A gate at level
-20 was considered and rejected. With 571 hatchable species drawn at random, hatching
+20 was considered and rejected. With 570 hatchable entries drawn at random, hatching
 something you do not care about is the common case, not the exception, and a gate
 punishes the player for the game's own randomness. The real cost is already built
 in and needs no rule: swapping abandons that individual's levels, and the next
@@ -703,17 +703,17 @@ by the re-roll price, which is a separate knob from swapping.
 
 ### Evolution triggers: two thirds are levels, one third needs a rule
 
-Measured over the 546 evolution edges that land in the collectible pool. 512 pool
-entries, **47% of the dex, are reachable only by evolving something**, so these
-rules are load-bearing rather than edge-case tidying.
+Measured over the 513 evolution edges that land in the collectible pool. **513 pool
+entries, 47.4% of the dex, are reachable only by evolving something**, so these
+rules are load-bearing rather than edge-case tidying. The hatch pool is therefore
+the other 570.
 
-| Trigger | Edges | Distinct entries gated | Rule |
-|---|---|---|---|
-| level-up with `min_level` | 364 | 363 | Use `min_level` directly |
-| use-item (stones) | 71 | 69 | Requires the item. **25 distinct items**, so the shop has real stock |
-| level-up, no `min_level` | 71 | 50 | Friendship, time of day, location. **Substitute: evolves at level 36** |
-| trade | 27 | 27 | No trading in a single-player menu bar app. **Requires a Linking Cord**, which is canonical since Gen 9 |
-| exotic one-offs | 13 | 12 | spin, tower-of-darkness, three-critical-hits, gimmighoul-coins, recoil-damage, take-damage, use-move, shed, agile/strong-style-move, three-defeated-bisharp. **Substitute: level 36** |
+| Trigger | Edges | Rule |
+|---|---|---|
+| `level` | 364 | The games' own `min_level`. Range 7 to 64, median 30 |
+| `item` | 69 | Requires the item. **23 distinct stones**, so the shop has real stock |
+| `trade` | 26 | No trading in a single-player menu bar app. **Requires a Linking Cord**, which is canonical since Gen 9 |
+| `substituted` | 54 | Friendship, time of day, location, and the exotic one-offs. **Evolves at level 36** |
 
 **The substitution level is 36.** The user's call, and a defensible one: 36 is the
 second most common real evolution level in the data (27 edges, behind 30's 31) and is
@@ -727,17 +727,57 @@ the way past level 16.
 30 was the first proposal, on the grounds that it is the measured median. Rejected in
 favour of 36 for the reasons above.
 
-The two substitutions cover 62 entries between them, and are labelled as
-substitutions: there is no honest way to model friendship or a tower of darkness in a
-token counter, and silently dropping 62 entries from a dex that advertises 1,083
-would be worse.
+Substitution is labelled in the data rather than folded in silently: there is no
+honest way to model friendship or a tower of darkness in a token counter, and
+silently dropping 54 edges from a dex that advertises 1,083 entries would be worse.
+`trade` keeps its own trigger for the same reason, even though mechanically it is
+just an item requirement.
 
-**This requires regenerating the manifest.** `pokedex.json` currently stores
-`evolvesTo` as bare target ids and carries neither the trigger, the `min_level`, nor
-the evolution item. Phase 4 cannot start without adding those three fields to
-`scripts/generate-dex.py`, with the substitution rules applied at generation time so
-the app reads a level for every edge and never has to know what a tower of darkness
-is.
+**Three refinements fell out of building it, each of which moves content out of the
+substitution bucket and into something real.**
+
+*Multi-row edges are resolved by preference, not by first-wins.* Thirteen edges carry
+several rows (one per version group) and twelve of those disagree. The order is: a
+real `min_level` (lowest) beats an item, an item beats nothing. That is what turns
+Kubfu into a Scroll of Darkness purchase rather than a tower-of-darkness
+substitution, Eevee's Leafeon and Glaceon into a Leaf Stone and an Ice Stone rather
+than two location guesses, and Magnezone and Probopass into Thunder Stones.
+
+*Classification is on `min_level`, not on the trigger name.* Nincada -> Shedinja is
+trigger `shed` and Tandemaus -> Maushold is trigger `other`, but both carry real
+levels (20 and 25), so both keep them.
+
+*The edge join was wrong, and it was wrong silently.* `base_form_id` is null on 495
+of 553 rows, and the original generator fell back to
+`pokemonspecies.evolves_from_species_id` for the *whole edge*, which is a
+species-space answer to a pokemon-space question. It got 11 edges wrong in each
+direction:
+
+- It claimed ordinary **Meowth evolves into Perrserker**. It is Galarian Meowth that
+  does. Same for Farfetch'd, Mr. Mime, Wooper, Qwilfish, Sneasel, Corsola, Linoone,
+  Basculin and Yamask: ten ordinary species carrying their regional form's evolution.
+- It left **Alolan Exeggutor with no incoming edge at all**, along with Alolan
+  Marowak, Galarian Weezing, Hisuian Typhlosion, Galarian Mr. Mime, Hisuian Samurott,
+  Hisuian Lilligant, Hisuian Braviary, Hisuian Sliggoo, Hisuian Avalugg and Hisuian
+  Decidueye. These evolve from an *ordinary* base, so under the old join nothing in
+  the pool could produce them and no amount of play would ever fill those tiles.
+
+Neither half shows up as an error. The fix is to take the base from the row where the
+row has one, and consult the species table only as a backstop for a row that declines
+to say. Exactly one species evolves from something and has no evolution row at all
+(Meltan -> Melmetal), and that is asserted rather than assumed. The generator now
+also asserts that every entry is reachable from a hatchable seed, which is the
+property both halves of the bug violated.
+
+This is why the pool figures moved: hatchable 581 -> 570, gated 502 -> 513.
+
+**Done, 2026-08-23.** `pokedex.json` replaces the old bare-target-id `evolvesTo`
+with an `evolutions` array carrying `to`, `trigger`, `minLevel`, `item` and
+`itemName` per edge, with the substitutions applied at generation time, so the app
+compares a level and checks an item and never has to know what a tower of darkness
+is. The manifest grew 325 -> 381 KiB. `Evolution.isAvailable(atLevel:items:)` and
+`Pokedex.availableEvolutions(of:atLevel:items:)` are the read side, and
+`Pokedex.hatchable` is the 570-entry draw pool.
 
 ### Prices, v1
 
@@ -755,7 +795,7 @@ is actually playable.
 | Targeted pick | **200 x (255 / captureRate)** | 200 coins for a Caterpie-tier entry, ~1,100 at the median, ~17,000 for a capture-rate-3 legendary. **This is the number most likely to be wrong** and should be tuned first |
 
 The targeted pick is what makes the dex completable at all, so its price sets the
-endgame. Random hatching alone needs a median **109,812 hatches** to see every base
+endgame. Random hatching alone needs a median **110,218 hatches** to see every base
 species once (29x worse than uniform, because the rarest entries are largely
 non-evolving legendaries that stay in the hatchable pool). Restricting draws to base
 species only improved that by a mere 1.5x over drawing from the full 1,083. Luck

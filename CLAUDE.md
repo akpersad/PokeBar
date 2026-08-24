@@ -75,7 +75,7 @@ Sources/PokeBar/
     SpriteDecoder.swift         GIF/PNG -> pre-scaled frames (ImageIO)
     SpriteStore.swift           actor; permanent on-disk sprite cache
     SpriteAnimator.swift        @MainActor @Observable; drives the status item
-    Resources/pokedex.json      generated, checked in. 1,083 entries, 325 KiB
+    Resources/pokedex.json      generated, checked in. 1,083 entries, 381 KiB
 ```
 
 Dex data flow: `scripts/generate-dex.py` (by hand) -> `pokedex.json` ->
@@ -214,11 +214,12 @@ Pokédex, measured 2026-08-22 and asserted by `scripts/generate-dex.py`:
 | Quantity | Value |
 |---|---|
 | Collectible pool | **1,083** = 1,025 species + 58 regional forms |
-| Manifest | 325 KiB, `Sources/PokeBar/Dex/Resources/pokedex.json` |
+| Manifest | 381 KiB, `Sources/PokeBar/Dex/Resources/pokedex.json` |
 | Animated | 1,069 (98.7%). 816 via gen-v, 253 via showdown, 14 static via home |
 | No animated sprite | `990-995, 1006, 1008, 1010, 1017, 1022-1025` |
 | No shiny sprite | 2 entries |
-| With an evolution | 483 |
+| With an evolution | 477. 513 edges: 364 level, 69 item, 26 trade, 54 substituted |
+| Hatchable (no incoming edge) | 570. The other 513 are evolution-gated |
 | Rarity bands | rare 493, common 238, uncommon 187, legendary 74, epic 68, mythical 23 |
 | Sprite animation | 51-129 frames, 60-200 ms delays, so 5-16 fps |
 | Sprites commit | `c10459b9b0129eaca5c5d9b1cac65336debb1d08` |
@@ -230,14 +231,18 @@ prints live totals under `POKEBAR_CORPUS=1`.
 
 ## State
 
-**Phases 1, 2 and 3 (data layer): complete.** 144 tests, 0 failures.
+**Phases 1, 2 and 3 (data layer): complete.** 155 tests, 0 failures.
 
-**Next action, in one sentence: add `trigger`, `minLevel` and `evolutionItem` to the
-manifest via `scripts/generate-dex.py` (applying the level-36 substitutions), then
-build Phase 4 as an append-only catch log plus levels, the hatch roll, and a Pokédex
-view.** The manifest change comes first because 47% of the dex is evolution-gated
-and `pokedex.json` currently stores `evolvesTo` as bare target ids with no trigger,
-level, or item, so nothing in the game layer can resolve when a Pokémon evolves.
+**Phase 4 step 1 (the manifest) is done.** `pokedex.json` now carries a structured
+`evolutions` array per entry (`to`, `trigger`, `minLevel`, `item`, `itemName`) with
+the level-36 substitutions applied at generation time, so the game layer compares a
+level and checks an item and never has to know what a tower of darkness is. The
+generator also asserts that every entry is reachable from a hatchable seed, which is
+what caught a silently wrong edge join: ordinary Meowth was claimed to evolve into
+Perrserker, and Alolan Exeggutor had no incoming edge at all. Details in DECISIONS.md.
+
+**Next action, in one sentence: build the game layer proper, as an append-only catch
+log plus XP and levels, the hatch roll, and a Pokédex view.**
 
 Phase 4's shape was decided with the user 2026-08-23 and is recorded in
 DECISIONS.md. Read that section before writing any of it; the short version:
