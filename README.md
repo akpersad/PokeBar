@@ -48,6 +48,9 @@ week of saving.
 - **Level 100 is graduation**, for every species, in about 4.6 days of this
   machine's usage. Evolution is an event along the climb rather than the goal of
   it, so a Pokémon that never evolves is not a special case.
+- **Evolution is automatic** where the games give no choice, and asks where they
+  do: an item, or a branch. An **Everstone** holds a Pokémon as it is, and queues
+  rather than cancels, so taking it off fires everything the level passed.
 
 ## Requirements
 
@@ -102,10 +105,11 @@ Five worth knowing up front:
 Reads `~/.claude/projects/**/*.jsonl` locally to extract token counts. It holds no
 credentials and reads no Keychain item.
 
-It writes two files of its own, both under
-`~/Library/Application Support/PokeBar/`: `usage-state.json`, which is the token
-ledger and the scan cursors, and `game-state.json`, which is the collection.
-Neither is ever sent anywhere. Local notifications are posted through
+It writes its own files under `~/Library/Application Support/PokeBar/`:
+`usage-state.json`, the token ledger and scan cursors; `game-state.json`, the
+collection; a `sprites/` cache; and, only if a save ever fails to decode,
+`game-state.unreadable.json`, which is a copy kept so a collection cannot be lost
+to a schema change. None of them is ever sent anywhere. Local notifications are posted through
 `UNUserNotificationCenter`, which does not involve a server: PokeBar has no push
 entitlement and no remote registration.
 
