@@ -239,6 +239,26 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     now copied to `game-state.unreadable.json` before anything overwrites it, and a
     test decodes a real pre-`everstone` save.
 
+24. **A Codex entry's id comes from `session file + ordinal`, never from the byte
+    offset it was read at.** A Claude turn carries a `requestId`, so re-reading a
+    file from a different offset reproduces the same id and keep-max absorbs it.
+    A Codex `token_count` record carries no such field, and the positional
+    fallback embeds the offset the scan began at, so one event read once
+    incrementally and once from zero arrives under two ids and is credited
+    twice. Coins are frozen at credit time, so that inflation is permanent.
+    `ordinal` is unique across every record of every rollout measured here. A
+    test scans incrementally, rescans from zero, and asserts the ids match.
+
+25. **The two parsers fall through, they do not branch else-if.** The Codex
+    prefilter matches the raw text `"turn_context"` / `"token_count"`, which
+    could appear inside a Claude turn's own content. Falling through costs one
+    wasted parse on a false positive; branching silently dropped that turn's
+    usage. Zero lines in the live Claude corpus match today, which is the reason
+    it needs a test rather than the reason it does not: the sessions most likely
+    to produce one are the ones spent on this code. A genuine Codex record
+    cannot reach the Claude branch, because its only `usage` substring is
+    `last_token_usage`, which has no opening quote before `usage`.
+
 ---
 
 ## UI copy rules
@@ -257,16 +277,21 @@ are what matter, not the exact numbers.
 | Quantity | Value |
 |---|---|
 | Corpus | 1,029 files, 481 MiB, `~/.claude/projects` |
+| Codex corpus | 3 files, 5.1 MiB, `~/.codex/sessions`. 132 `token_count` events |
+| Codex tokens | 13.1M, 97.2% cache read. 0.7% of total volume |
 | Deduped turns | 13,243 |
 | Raw tokens | 1.85B (92.6% cache read) |
 | Cold scan | ~17s. Warm pass: **0 files, 0 bytes** |
 | Weighted tokens | 3.36B → 33,456 coins at 100K/coin |
 | API-equivalent cost | $3,513.84 for 31 days |
 | Models in use | fable-5 81%, opus-5 19%, opus-4-8 and sonnet-5 trace |
+| Codex model in use | `gpt-5.6-sol`, the only one seen. Tier multiplier 0.8 |
 
-Tier multipliers: fable 2.0, opus 1.0, sonnet 0.6, haiku 0.2 (input rate relative
-to `claude-opus-5`). Within-model ratios are uniform across every Claude model:
-output 5x input, cache write 1.25x, cache read 0.1x. A test asserts this.
+Tier multipliers: fable 2.0, opus 1.0, sonnet 0.6, haiku 0.2, gpt-5.6-sol 0.8
+(input rate relative to `claude-opus-5`). Within-model ratios are uniform across
+every Claude model: output 5x input, cache write 1.25x, cache read 0.1x. A test
+asserts this, scoped to Claude: the GPT rows share the cache ratios but not the
+output one, which is 5x on Sol and 6x on Terra and Luna.
 
 Pokédex, measured 2026-08-22 and re-measured 2026-08-23 when the manifest gained
 evolution triggers, the female flag and gender rates. All asserted by
@@ -304,7 +329,7 @@ prints live totals under `POKEBAR_CORPUS=1`.
 
 ## State
 
-**Phases 1 through 4: complete.** 227 tests, 0 failures.
+**Phases 1 through 4: complete.** 253 tests, 0 failures.
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the

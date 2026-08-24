@@ -17,12 +17,45 @@ final class ModelPricingTests: XCTestCase {
         }
     }
 
+    /// Pins the published OpenAI rates, re-verified 2026-08-24. The first cut of
+    /// this branch carried every GPT figure at half its real value, which is
+    /// invisible in the dollar readout but not in the game: the Sol tier
+    /// multiplier came out 0.5 instead of 0.8, and coins are frozen at credit
+    /// time, so tokens credited under a wrong weight can never be corrected.
     func testCodexModelRates() throws {
         let sol = try XCTUnwrap(pricing.rate(for: "gpt-5.6-sol"))
-        XCTAssertEqual(sol.input * 1_000_000, 2.5, accuracy: 0.001)
-        XCTAssertEqual(sol.output * 1_000_000, 15, accuracy: 0.001)
-        XCTAssertEqual(sol.cacheWrite * 1_000_000, 3.125, accuracy: 0.001)
-        XCTAssertEqual(sol.cacheRead * 1_000_000, 0.25, accuracy: 0.001)
+        XCTAssertEqual(sol.input * 1_000_000, 4, accuracy: 0.001)
+        XCTAssertEqual(sol.output * 1_000_000, 20, accuracy: 0.001)
+        XCTAssertEqual(sol.cacheWrite * 1_000_000, 5, accuracy: 0.001)
+        XCTAssertEqual(sol.cacheRead * 1_000_000, 0.4, accuracy: 0.001)
+
+        let terra = try XCTUnwrap(pricing.rate(for: "gpt-5.6-terra"))
+        XCTAssertEqual(terra.input * 1_000_000, 2, accuracy: 0.001)
+        XCTAssertEqual(terra.output * 1_000_000, 12, accuracy: 0.001)
+
+        let luna = try XCTUnwrap(pricing.rate(for: "gpt-5.6-luna"))
+        XCTAssertEqual(luna.input * 1_000_000, 0.2, accuracy: 0.001)
+        XCTAssertEqual(luna.output * 1_000_000, 1.2, accuracy: 0.001)
+    }
+
+    /// The load-bearing half of the rate table. A wrong input rate is a wrong
+    /// currency weight, and `ModelPricing` derives the multiplier rather than
+    /// storing it, so this is the assertion that catches a bad GPT figure.
+    func testCodexTierMultiplierIsDerivedFromTheOpusBaseline() throws {
+        XCTAssertEqual(try XCTUnwrap(pricing.tierMultiplier(for: "gpt-5.6-sol")), 0.8, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(pricing.tierMultiplier(for: "gpt-5.6-terra")), 0.4, accuracy: 1e-9)
+        XCTAssertEqual(try XCTUnwrap(pricing.tierMultiplier(for: "gpt-5.6-luna")), 0.04, accuracy: 1e-9)
+    }
+
+    /// Cache classes follow input on the GPT entries too, even though output
+    /// does not. Scoped separately from `testWithinModelRatiosAreUniform`,
+    /// which now covers Claude only.
+    func testCodexCacheRatiosFollowInput() throws {
+        for model in ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"] {
+            let rate = try XCTUnwrap(pricing.rate(for: model))
+            XCTAssertEqual(rate.cacheWrite / rate.input, 1.25, accuracy: 1e-9, "\(model) cacheWrite")
+            XCTAssertEqual(rate.cacheRead / rate.input, 0.1, accuracy: 1e-9, "\(model) cacheRead")
+        }
     }
 
     /// The concrete upstream defect: no entry for the two newest models, so

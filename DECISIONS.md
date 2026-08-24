@@ -18,8 +18,9 @@ runtime from PokéAPI, nothing is redistributed, nothing is sold. The upstream
 project's legal exposure came from shipping a public product built on ripped
 game assets, which does not apply here.
 
-**Claude Code and Codex are the usage sources.** Copilot CLI, Cursor and the
-other upstream providers remain out of scope.
+**Claude Code and Codex are the usage sources.** Reversed 2026-08-24, at the
+user's request. Copilot CLI, Cursor and the other upstream providers remain out
+of scope.
 
 - Copilot: upstream expects `~/.copilot/session-store.db` with an
   `assistant_usage_events` table. That file does not exist on this machine; only
@@ -33,12 +34,59 @@ other upstream providers remain out of scope.
   is included in output; the parser subtracts the former and does not re-add the
   latter, producing the same four non-overlapping classes as Claude usage.
 
+  Both halves of that were **measured**, not assumed, over the live tree on
+  2026-08-24: 3 rollouts, 132 `token_count` events. `input_tokens` minus
+  `cached_input_tokens` minus `cache_write_input_tokens` is small and
+  non-negative on every event (632 ordinary input tokens across 13.1M total), and
+  `total_tokens` equals `input_tokens + output_tokens` on every event, which is
+  only true if reasoning is already inside output. The per-response
+  `last_token_usage` values sum exactly to the session's final cumulative
+  `total_token_usage`, which is what proves no response is skipped or counted
+  twice. `CorpusParityTests.testCodexEntriesMatchCumulativeSessionTotals` is that
+  check, run against the real tree rather than a fixture.
+
+  Volume is small next to Claude Code: 13.1M tokens, 0.7% of corpus, 97.2% of it
+  cache read. That is $7.47 of API-equivalent cost and about 104 coins of
+  back-credit, against a standing balance of 33,456. The
+  reason to do it properly anyway is that the ratio can change any week, and
+  coins are frozen at credit time so a wrong weight can never be corrected.
+
 **No `UsageProvider` protocol.** Both sources are append-only JSONL and normalize
 directly into `UsageEntry`, so a provider abstraction would still add indirection
 without isolating different lifecycle behavior.
 
 **No SQLite dependency.** Claude Code and current Codex usage are both
 append-only JSONL. Cursor, Copilot and Kiro remain out of scope.
+
+**GPT rates are bundled and never refreshed, and Sol's is a promotional rate.**
+Two departures from how the Claude rows work, both deliberate, both with a cost.
+
+`PricingCatalog.parse` keeps bare `claude-` keys only, so the weekly LiteLLM
+refresh cannot reach a GPT row. That is the right call for the reason the filter
+exists at all (the source carries provider-prefixed and regional duplicates at
+marked-up rates), but it means a GPT rate is only ever as fresh as the last
+person to edit the table.
+
+That matters more than usual because OpenAI publishes no list price for
+`gpt-5.6-sol`. It cut Sol on 2026-08-22 and labels the result promotional
+"at least through 2026-11-21", so the promo is the only published number and the
+bundled entry carries it. This is the opposite of the `claude-sonnet-5` call
+above, where list was chosen over the intro rate precisely so the tier multiplier
+would not shift when the promo lapsed. Here there is no list to choose. When the
+promo ends, Sol's multiplier goes stale silently and a human has to notice.
+
+Rates re-verified 2026-08-24 against developers.openai.com: Sol $4 / $20 with
+cache write $5 and cache read $0.40; Terra $2 / $12; Luna $0.20 / $1.20. Cache
+write is 1.25x input and cache read 0.1x input on all three, the same structure
+Anthropic uses. Output is not: 5x on Sol, 6x on Terra and Luna, which is why
+`testWithinModelRatiosAreUniform` is now scoped to Claude.
+
+The first cut of this branch carried every GPT figure at **half** its real value.
+The dollar readout would have been understated by a third, which is cosmetic, but
+the Sol tier multiplier came out 0.5 instead of 0.8, which is not: coins are
+frozen at credit time. `testCodexTierMultiplierIsDerivedFromTheOpusBaseline`
+pins the multiplier rather than only the rates, because the multiplier is the
+load-bearing derivation and a rate table can be wrong in a way that looks right.
 
 **macOS 26 floor.** Upstream targets macOS 14 to serve strangers. This targets
 one machine (macOS 26.6, Swift 6.3.3), which buys native `MenuBarExtra`,

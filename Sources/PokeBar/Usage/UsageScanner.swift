@@ -102,17 +102,33 @@ struct UsageScanner: Sendable {
                     consumed = try JSONLStreamer.read(file, from: start) { line in
                         lineIndex += 1
                         let fallbackID = "\(path)#\(start)+\(lineIndex)"
+                        // Two cheap prefilters, in that order. Most lines in
+                        // either tree are not usage records, and skipping the
+                        // JSON parse for them is the difference between a fast
+                        // scan and a slow one.
+                        //
+                        // The Codex markers are matched on raw text, so they
+                        // could in principle appear inside a Claude turn's
+                        // content. Falling *through* rather than branching
+                        // else-if means a false positive costs one wasted parse
+                        // instead of silently dropping that turn's usage. A
+                        // genuine Codex record cannot reach the Claude branch:
+                        // its only "usage" substring is `last_token_usage`,
+                        // which has no opening quote before `usage`.
                         if line.contains("\"turn_context\"") || line.contains("\"token_count\"") {
                             if let entry = CodexUsageParser.consume(
                                 line: line,
+                                sessionKey: file.lastPathComponent,
                                 fallbackID: "codex|\(fallbackID)",
                                 currentModel: &codexModel) {
                                 raw.append(entry)
+                                return
                             }
-                        } else if line.contains("\"usage\""),
-                                  let entry = ClaudeUsageParser.entry(
-                                    fromLine: line,
-                                    fallbackID: "claude|\(fallbackID)") {
+                        }
+                        if line.contains("\"usage\""),
+                           let entry = ClaudeUsageParser.entry(
+                            fromLine: line,
+                            fallbackID: "claude|\(fallbackID)") {
                             raw.append(entry)
                         }
                     }

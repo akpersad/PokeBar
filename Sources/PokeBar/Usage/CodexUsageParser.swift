@@ -11,8 +11,14 @@ enum CodexUsageParser {
 
     /// Consumes one rollout line, updating the model carried by `turn_context`
     /// records and returning an entry only for response usage records.
+    ///
+    /// `sessionKey` is the rollout's file name, which carries the session UUID
+    /// (`rollout-2026-08-23T23-24-29-01a031cc-...jsonl`). Together with the
+    /// record's `ordinal` it forms an id that is a function of the *content*,
+    /// not of where the scan happened to start reading. See `stableID`.
     static func consume(
         line: String,
+        sessionKey: String,
         fallbackID: @autoclosure () -> String,
         currentModel: inout String?
     ) -> UsageEntry? {
@@ -46,11 +52,31 @@ enum CodexUsageParser {
         guard tokens.total > 0 else { return nil }
 
         return UsageEntry(
-            id: fallbackID(),
+            id: stableID(object, sessionKey: sessionKey) ?? fallbackID(),
             date: date,
             model: currentModel ?? "unknown-codex-model",
             tokens: tokens,
             localDay: ClaudeUsageParser.localDayKey(date))
+    }
+
+    /// An id derived from the record, not from its byte offset.
+    ///
+    /// This matters more here than on the Claude path. A Claude turn carries a
+    /// `requestId`, so re-reading a file from a different offset reproduces the
+    /// same id and the ledger's keep-max dedup absorbs it. A Codex record has no
+    /// such field, and the positional fallback embeds the offset the scan began
+    /// at, so the same event read once incrementally and once from zero would
+    /// arrive under two ids and be credited twice. Coins are frozen at credit
+    /// time, so that inflation would be permanent.
+    ///
+    /// `ordinal` is a per-record counter within a rollout, verified unique
+    /// across every record of every rollout on this machine, so
+    /// `session + ordinal` identifies the event even if the tree is moved or a
+    /// resumed session replays it into a second file. Falls back to the
+    /// positional id if a future Codex build stops writing it.
+    private static func stableID(_ object: [String: Any], sessionKey: String) -> String? {
+        guard let ordinal = object["ordinal"] as? Int else { return nil }
+        return "codex|\(sessionKey)#\(ordinal)"
     }
 
     /// Tolerates the numeric representations JSONSerialization can produce.

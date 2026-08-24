@@ -124,8 +124,20 @@ final class UsageFormatTests: XCTestCase {
         XCTAssertEqual(identity.family, .unknown)
     }
 
+    /// A GPT id older or newer than `gpt-5.6-*` still has to render. The
+    /// number-vs-word branch is the whole point: version components stay as
+    /// written, names get capitalised.
+    func testGPTDisplayNamesKeepVersionsAndCapitaliseNames() {
+        XCTAssertEqual(ModelIdentity("gpt-4o").displayName, "GPT 4o")
+        XCTAssertEqual(ModelIdentity("gpt-4o").family, .gpt)
+        XCTAssertEqual(ModelIdentity("gpt-5.6-terra").displayName, "GPT 5.6 Terra")
+        XCTAssertEqual(ModelIdentity("gpt-5.6-luna").displayName, "GPT 5.6 Luna")
+    }
+
     func testUnknownProviderIdentifiersFallBackToRaw() {
-        for raw in ["Other", "<synthetic>", "claude-", ""] {
+        // "gpt-" is the GPT-side counterpart of "claude-": a prefix with
+        // nothing after it renders as the raw id, not as "GPT ".
+        for raw in ["Other", "<synthetic>", "claude-", "gpt-", ""] {
             let identity = ModelIdentity(raw)
             XCTAssertEqual(identity.displayName, raw)
             XCTAssertEqual(identity.family, .unknown)

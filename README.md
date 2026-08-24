@@ -103,8 +103,7 @@ Five worth knowing up front:
 ## Privacy
 
 Reads `~/.claude/projects/**/*.jsonl` and `~/.codex/sessions/**/*.jsonl` locally
-to extract token counts. It holds no
-credentials and reads no Keychain item.
+to extract token counts. It holds no credentials and reads no Keychain item.
 
 It writes its own files under `~/Library/Application Support/PokeBar/`:
 `usage-state.json`, the token ledger and scan cursors; `game-state.json`, the
