@@ -10,6 +10,7 @@ struct PokeBarPopover: View {
     let monitor: UsageMonitor
     let game: GameMonitor
     let store: SpriteStore
+    let pet: FloatingPet
 
     @State private var pane: Pane = .companion
     @State private var message: String?
@@ -43,7 +44,7 @@ struct PokeBarPopover: View {
             switch pane {
             case .companion:
                 CompanionView(
-                    game: game, store: store,
+                    game: game, store: store, pet: pet,
                     weightedTokensPerDay: monitor.todayWeightedTokens, onError: report)
             case .dex:
                 DexView(game: game, store: store, onError: report)

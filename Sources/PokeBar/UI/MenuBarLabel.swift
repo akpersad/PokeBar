@@ -10,6 +10,9 @@ struct MenuBarLabel: View {
     let monitor: UsageMonitor
     let game: GameMonitor
     let sprite: SpriteAnimator
+    /// Updated from here rather than from the popover, because the pet has to
+    /// follow the active Pokemon whether or not the window has ever been opened.
+    let pet: FloatingPet
 
     var body: some View {
         HStack(spacing: 3) {
@@ -40,6 +43,7 @@ struct MenuBarLabel: View {
         .task(id: shown.map { "\($0.entry.id)-\($0.variant)" } ?? "none") {
             guard let shown else { return }
             await sprite.show(shown.entry, variant: shown.variant)
+            await pet.show(shown.entry, variant: shown.variant)
         }
     }
 

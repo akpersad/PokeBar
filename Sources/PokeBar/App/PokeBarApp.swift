@@ -19,6 +19,7 @@ struct PokeBarApp: App {
     @State private var monitor = UsageMonitor()
     @State private var game = GameMonitor(dex: PokeBarApp.dex)
     @State private var sprite = SpriteAnimator(pokedex: PokeBarApp.dex, store: PokeBarApp.store)
+    @State private var pet = FloatingPet(pokedex: PokeBarApp.dex, store: PokeBarApp.store)
 
     var body: some Scene {
         // Native MenuBarExtra in .window style. The upstream project could not
@@ -26,12 +27,12 @@ struct PokeBarApp: App {
         // hand-rolled NSEvent global monitor (their OutsideClickMonitor, plus
         // the idempotency fix in their #168). On macOS 26 the platform handles it.
         MenuBarExtra {
-            PokeBarPopover(monitor: monitor, game: game, store: Self.store)
+            PokeBarPopover(monitor: monitor, game: game, store: Self.store, pet: pet)
         } label: {
             // The label is the one view that exists for the whole run, so it is
             // where the engine is started. `start()` is idempotent, so a rebuild
             // of the status item cannot launch a second scan loop.
-            MenuBarLabel(monitor: monitor, game: game, sprite: sprite)
+            MenuBarLabel(monitor: monitor, game: game, sprite: sprite, pet: pet)
                 .task {
                     // Hand the game its side of the credit before the first scan.
                     // Weighted tokens mint coins in the ledger and XP here, in

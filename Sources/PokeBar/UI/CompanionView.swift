@@ -7,6 +7,7 @@ import SwiftUI
 struct CompanionView: View {
     let game: GameMonitor
     let store: SpriteStore
+    let pet: FloatingPet
     let weightedTokensPerDay: Double
     let onError: (any Error) -> Void
 
@@ -20,8 +21,10 @@ struct CompanionView: View {
             }
             actions
             if !game.recentEvents.isEmpty { feed }
+            petToggle
         }
     }
+
 
     // MARK: Active
 
@@ -159,6 +162,18 @@ struct CompanionView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The desktop companion. Off by default: an always-on-top window is a thing
+    /// a user asks for, not one that appears.
+    private var petToggle: some View {
+        Toggle(isOn: Binding(get: { pet.isVisible }, set: { _ in pet.toggle() })) {
+            Text("Show on the desktop")
+                .font(.caption)
+        }
+        .toggleStyle(.switch)
+        .controlSize(.mini)
+        .disabled(game.active == nil)
     }
 
     private func run(_ action: () throws -> Void) {

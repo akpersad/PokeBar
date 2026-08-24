@@ -33,6 +33,7 @@ final class GameMonitor {
 
     private let stateURL: URL
     private var rng = SystemRandomNumberGenerator()
+    private let notifier = Notifier()
 
     init(dex: Pokedex? = try? Pokedex.loadBundled(), stateURL: URL = GameMonitor.defaultStateURL()) {
         self.dex = dex
@@ -157,6 +158,11 @@ final class GameMonitor {
     private func record(_ events: [GameEvent]) {
         guard !events.isEmpty else { return }
         recentEvents = (events.reversed() + recentEvents).prefix(20).map(\.self)
+        // Fire and forget. Most events are silent by design, and a notification
+        // that fails to post must never stop a hatch from being recorded.
+        if let dex {
+            Task { [notifier] in await notifier.post(events, dex: dex) }
+        }
     }
 
     // MARK: - Persistence
