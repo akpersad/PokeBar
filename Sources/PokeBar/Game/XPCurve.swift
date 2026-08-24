@@ -56,8 +56,13 @@ enum XPCurve {
     static let benchShare: Double = 0.8
 
     /// A given team slot's share. Slot 0 is the lead.
-    static func share(forSlot slot: Int) -> Double {
-        slot == 0 ? leadShare : benchShare
+    ///
+    /// With an Exp Share held and switched on, every slot takes the lead's share,
+    /// so a full team goes from 5.0x to 6.0x. **The item boosts, it never splits**:
+    /// dividing one credit six ways would make a 10,000 coin purchase a downgrade
+    /// from the free default, which is incoherent. See DECISIONS.md.
+    static func share(forSlot slot: Int, expShare: Bool = false) -> Double {
+        slot == 0 || expShare ? leadShare : benchShare
     }
 
     /// XP is a *parallel* derivation of the same tokens that mint coins, never a

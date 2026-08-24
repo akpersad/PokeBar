@@ -1,6 +1,6 @@
 # PokeBar v2 work plan
 
-Written 2026-08-24. **Steps 0, 1 and 2 are built; steps 3 to 7 are not started.**
+Written 2026-08-24. **Steps 0 to 3 are built; steps 4 to 7 are not started.**
 Priority order is the user's, set in the brainstorm that produced this file:
 **the team comes first.**
 
@@ -262,7 +262,7 @@ observable outside the tests.
 
 ---
 
-## Step 3: the Exp Share
+## Step 3: the Exp Share — DONE 2026-08-24
 
 Settled: boost, per the section above.
 
@@ -277,6 +277,17 @@ Settled: boost, per the section above.
 - Tests: the multiplier changes from 5.0x to 6.0x when enabled; the toggle is
   inert until purchased; buying twice throws `alreadyOwned`; an old save decodes
   with both flags false.
+
+**As built**, all four of those tests plus three more: every member earns an
+identical figure with it on, both flags round trip through a save, and off means
+0.8 rather than nothing. Two calls the spec did not name:
+
+- **Buying turns it on.** A 10,000 coin purchase that visibly does nothing until a
+  second control is found reads as a bug. The toggle is for turning it off, which
+  nothing sensible will do.
+- **It is not listed in `ShopView` yet**, on purpose. It only affects bench slots
+  and nothing in the popover can build a team, so the row would sell an item that
+  does nothing observable. That row is part of this step's UI, which is step 4.
 
 ---
 

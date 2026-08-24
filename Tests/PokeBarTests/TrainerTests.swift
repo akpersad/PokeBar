@@ -436,6 +436,35 @@ final class TrainerTests: XCTestCase {
         XCTAssertEqual(trainer.active?.id, migrated.id, "slot 1, so the UI sees it")
     }
 
+    /// Two new persisted fields, so two more chances to make every existing save
+    /// unreadable. Same rule as always: absent means false.
+    func testASaveWrittenBeforeTheExpShareStillLoads() throws {
+        let json = """
+            {"coinsSpent":0,"inventory":{},"hasShinyCharm":true,"dust":4,
+             "log":{"events":[]}}
+            """
+        let trainer = try JSONDecoder().decode(Trainer.self, from: Data(json.utf8))
+
+        XCTAssertFalse(trainer.hasExpShare)
+        XCTAssertFalse(trainer.expShareEnabled)
+        XCTAssertFalse(trainer.expShareActive)
+        XCTAssertTrue(trainer.hasShinyCharm, "and the field beside it is untouched")
+    }
+
+    /// Both halves round trip, because owning it and using it are separate facts.
+    func testTheExpShareFlagsSurviveASaveAndReload() throws {
+        var trainer = try raising("lapras")
+        try trainer.buy(.expShare, coinsEarned: 10_000)
+        trainer.setExpShare(false)
+
+        let data = try JSONEncoder().encode(trainer)
+        let reloaded = try JSONDecoder().decode(Trainer.self, from: data)
+
+        XCTAssertTrue(reloaded.hasExpShare)
+        XCTAssertFalse(reloaded.expShareEnabled)
+        XCTAssertEqual(reloaded, trainer)
+    }
+
     /// Writing `active` again would mean two copies of one fact, and the older
     /// reader would win on the next launch of an older build.
     func testTheLegacyActiveKeyIsNeverWritten() throws {
@@ -1079,6 +1108,94 @@ final class TrainerTests: XCTestCase {
         XCTAssertEqual(Set(atFifty.map(\.raiseID)), [first.id, second])
         XCTAssertEqual(atFifty.count, 2, "two individuals, two records")
         XCTAssertEqual(trainer.log.milestone(entryID: lapras.id), 50)
+    }
+
+    // MARK: - The Exp Share
+
+    /// **It boosts, it never splits.** With the item on, every bench slot earns at
+    /// the lead's rate, so a full team goes from 5.0x to 6.0x. The rejected
+    /// reading, one credit divided six ways, would have made a 10,000 coin
+    /// purchase a *downgrade* from the free default.
+    func testTheExpShareTakesAFullTeamFromFiveToSix() throws {
+        let lapras = try entry("lapras")
+        let credit = 1_000.0
+        let baseline = Double(XPCurve.totalXP(forLevel: 1))
+
+        func totalGained(expShare: Bool) throws -> Double {
+            var trainer = try raising("lapras")
+            for _ in 1..<Trainer.teamCapacity {
+                _ = try trainer.startRaising(entryID: lapras.id, dex: dex)
+            }
+            if expShare { try trainer.buy(.expShare, coinsEarned: Prices.expShare) }
+            trainer.credit(weightedTokens: credit * XPCurve.weightedTokensPerXP, dex: dex)
+            XCTAssertEqual(trainer.lead?.totalXP, baseline + credit, "the lead is unaffected")
+            return trainer.teamRaises.map { $0.totalXP - baseline }.reduce(0, +)
+        }
+
+        XCTAssertEqual(try totalGained(expShare: false) / credit, 5.0, accuracy: 0.000_1)
+        XCTAssertEqual(try totalGained(expShare: true) / credit, 6.0, accuracy: 0.000_1)
+    }
+
+    /// Every slot at the same rate, not just a bigger total: a bench Pokemon with
+    /// the item on climbs exactly as fast as the one in front of it.
+    func testWithTheExpShareEveryMemberEarnsTheSameXP() throws {
+        var trainer = try raising("lapras")
+        let lapras = try entry("lapras")
+        _ = try trainer.startRaising(entryID: lapras.id, dex: dex)
+        _ = try trainer.startRaising(entryID: lapras.id, dex: dex)
+        try trainer.buy(.expShare, coinsEarned: Prices.expShare)
+
+        trainer.credit(weightedTokens: 1_000 * XPCurve.weightedTokensPerXP, dex: dex)
+
+        XCTAssertEqual(Set(trainer.teamRaises.map(\.totalXP)).count, 1, "one figure, three slots")
+    }
+
+    /// Bought once, and it costs coins like anything else.
+    func testTheExpShareIsBoughtOnceAndCostsTenThousand() throws {
+        var trainer = Trainer()
+        XCTAssertEqual(Trainer.ShopItem.expShare.priceInCoins, 10_000)
+        XCTAssertFalse(trainer.hasExpShare)
+
+        XCTAssertThrowsError(try trainer.buy(.expShare, coinsEarned: 9_999)) { error in
+            XCTAssertEqual(
+                error as? Trainer.GameError, .notEnoughCoins(needed: 10_000, have: 9_999))
+        }
+
+        try trainer.buy(.expShare, coinsEarned: 10_000)
+        XCTAssertTrue(trainer.hasExpShare)
+        XCTAssertTrue(trainer.expShareEnabled, "buying it turns it on")
+        XCTAssertEqual(trainer.coinsSpent, 10_000)
+        XCTAssertEqual(trainer.coins(earned: 10_000), 0)
+
+        XCTAssertThrowsError(try trainer.buy(.expShare, coinsEarned: 100_000)) { error in
+            XCTAssertEqual(error as? Trainer.GameError, .alreadyOwned)
+        }
+        XCTAssertEqual(trainer.coinsSpent, 10_000, "a refused purchase spends nothing")
+    }
+
+    /// The toggle is free, reversible, and does nothing at all until the item is
+    /// owned. A throw here would only ever fire on a bug, because the control does
+    /// not exist until it is bought.
+    func testTheToggleIsInertUntilItIsBought() throws {
+        var trainer = try raising("lapras")
+        trainer.setExpShare(true)
+        XCTAssertFalse(trainer.expShareEnabled, "not owned, so nothing happened")
+        XCTAssertFalse(trainer.expShareActive)
+
+        try trainer.buy(.expShare, coinsEarned: 10_000)
+        XCTAssertTrue(trainer.expShareActive)
+
+        trainer.setExpShare(false)
+        XCTAssertTrue(trainer.hasExpShare, "turning it off does not sell it back")
+        XCTAssertFalse(trainer.expShareActive)
+        XCTAssertEqual(trainer.coinsSpent, 10_000, "and the toggle is free both ways")
+
+        // Off means back to 0.8, not off entirely.
+        let bench = try trainer.startRaising(entryID: try entry("lapras").id, dex: dex)
+        let baseline = Double(XPCurve.totalXP(forLevel: 1))
+        trainer.credit(weightedTokens: 1_000 * XPCurve.weightedTokensPerXP, dex: dex)
+        XCTAssertEqual(
+            trainer.raise(id: bench)?.totalXP, baseline + 1_000 * XPCurve.benchShare)
     }
 
     /// **Rare Candy feeds one Pokemon, not six.** Routing it through `credit`

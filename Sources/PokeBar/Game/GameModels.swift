@@ -262,6 +262,15 @@ enum Prices {
     /// ~28 days of accrual. Passive and permanent, so it should be a genuine
     /// commitment rather than an early purchase.
     static let shinyCharm = 30_000
+    /// Every bench slot earns at the lead's rate: a full team goes from 5.0x to
+    /// 6.0x. ~9 days of accrual.
+    ///
+    /// **10,000 rather than 5,000.** It is passive and permanent, which is the
+    /// class the Shiny Charm is priced in at 30,000. At 5,000 it is 4.6 days for a
+    /// permanent +20% team XP, which is bought on sight and never thought about
+    /// again. At 10,000 it competes with 33 eggs, and a third of the charm reads
+    /// correctly against it.
+    static let expShare = 10_000
 
     // MARK: Dust
 

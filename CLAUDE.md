@@ -456,7 +456,9 @@ Game layer, decided or derived:
 | XP curve | `totalXP(level) = 100 * level^2`. Level 100 = 1,000,000 XP |
 | XP rate | 1 XP per 500 weighted tokens. A full climb is **4.63 days** here |
 | Team shares | lead 1.0, bench 0.8 each. Full team **5.0x**, so 0.93 days a climb |
+| With Exp Share | every slot 1.0. Full team **6.0x** |
 | Egg / Rare Candy / stone / cord / charm | 300 / 250 / 400 / 400 / 30,000 coins |
+| Exp Share | 10,000 coins, one-time. Every bench slot earns at the lead's rate |
 | Dust per duplicate | `255 / captureRate`. Expected **1.97**, so ~7 Dust/day |
 | Targeted pick | 10 / 20 / 50 / 100 / 250 / 300 Dust by band. Re-roll is a tenth |
 | Shiny odds | 1 in 64, 1 in 48 with the charm |
@@ -472,21 +474,20 @@ writing, which a fixture cannot reproduce.
 
 ## State
 
-**Phases 1 through 4: complete.** 322 tests, 0 failures (323 with
+**Phases 1 through 4: complete.** 329 tests, 0 failures (330 with
 `POKEBAR_CORPUS=1`).
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
 
-**Next action, in one sentence: implement step 3 of [PLAN-v2.md](PLAN-v2.md), the
-Exp Share, which is `Prices.expShare = 10_000`, `hasExpShare` and
-`expShareEnabled` on `Trainer` (both `decodeIfPresent`), and a bench share that
-reads 1.0 when it is on.**
+**Next action, in one sentence: implement step 4 of [PLAN-v2.md](PLAN-v2.md), the
+UI for everything steps 1 to 3 built, because none of it is reachable from the
+popover today and the whole point of the team is currently invisible.**
 
-v2 was scoped 2026-08-24. **Steps 0, 1 and 2 are done**: the dated save backup
-(invariant 29), the roster (invariants 30 and 31) and the team gaining XP together
-(invariants 32 to 34). Steps 3 onward are not started. The plan carries the
+v2 was scoped 2026-08-24. **Steps 0 to 3 are done**: the dated save backup
+(invariant 29), the roster (invariants 30 and 31), the team gaining XP together
+(invariants 32 to 34) and the Exp Share. Steps 4 onward are not started. The plan carries the
 ordering and the reasoning; DECISIONS.md carries the decisions.
 
 **The model is ahead of the UI on purpose, and that is the thing to know before
@@ -494,9 +495,12 @@ touching step 4.** `Trainer` supports a full team of 6 today, but nothing the
 popover offers can build one: `switchTo` clears the other slots, and hatching only
 starts a raise when the team is empty. So the shipped app still behaves as a team
 of one, and every team rule is currently covered by tests rather than by play.
-Step 4 is what makes any of step 2 visible. The per-individual seams it needs are
+Step 4 is what makes steps 1 to 3 visible. The per-individual seams it needs are
 already there: `pendingEvolutions(of:)`, `teamPendingEvolutions(dex:)`,
-`evolve(_:into:)`, `useRareCandy(on:)` and `setEverstone(_:of:)`.
+`evolve(_:into:)`, `useRareCandy(on:)` and `setEverstone(_:of:)`, plus
+`GameMonitor.resume(raiseID:)`, `bench(raiseID:)` and `setExpShare(_:)`. The Exp
+Share also still needs its shop row, deliberately left out until a team can exist.
+`Trainer.switchTo` is the transitional verb step 4 deletes.
 
 Still true and still unverified: the Dex silver ring at level 50 has never been
 looked at against the dark grid, because rendered pixels here can be confirmed
@@ -558,7 +562,11 @@ The economy in one line each, all recorded in DECISIONS.md with the measurement:
 - "Caught" is an **append-only event log** with the views derived, the same shape as
   `UsageLedger`. No `nature` field: there is no stat raising to feed it.
 - A variant is ownable **iff its sprite file exists**: 2,368 sprites, not 1,083 x 4.
-- Shop keeps Rare Candy and Shiny Charm. **Mint is rejected**, not deferred.
+- Shop keeps Rare Candy, Shiny Charm and the **Exp Share** at 10,000. **Mint is
+  rejected**, not deferred. The Exp Share is bought and toggled in `Trainer` but is
+  deliberately **not listed in `ShopView` yet**: it only affects bench slots, and
+  nothing in the popover can build a team, so listing it would sell an item that
+  does nothing observable. The row goes in with step 4.
 
 The app runs via `scripts/bundle.sh`. The status item shows the Pokemon being
 raised plus the coin count; the popover has four tabs (Raise, Dex, Shop, Usage) and

@@ -1307,8 +1307,8 @@ Decisions only. The sequencing, the migration detail and the test list live in
 [PLAN-v2.md](PLAN-v2.md), and are deliberately not duplicated here: one copy of
 one fact, the same rule `CatchLog` follows.
 
-**Steps 0, 1 and 2 are implemented, 2026-08-24.** Everything else below is not:
-the Exp Share, the UI for any of it, per-project attribution and the LaunchAgent.
+**Steps 0 to 3 are implemented, 2026-08-24.** Everything else below is not: the
+UI for any of it, per-project attribution and the LaunchAgent.
 
 ### The save is copied aside before it is read
 
@@ -1431,13 +1431,38 @@ Ivysaur, all at once." Grouped per kind and never across kinds, because
 credit. A batch of one still reads exactly as it did before the team existed, and
 a shiny is never grouped because it can only come from a single click.
 
-**Exp Share is a boost, not a split.** 10,000 coins, one-time, then a free
-toggle. If slot 1 gets 100 XP then slots 2 to 6 each get 100 XP; the credit is
-never divided across the team. The divide-by-six reading was raised and rejected
-by the user: it would make a paid item a *downgrade* from the free 5.0x default.
+### The Exp Share
+
+Step 3 of the plan, implemented 2026-08-24.
+
+**A boost, not a split.** 10,000 coins, one-time, then a free toggle. If slot 1
+gets 100 XP then slots 2 to 6 each get 100 XP; the credit is never divided across
+the team. The divide-by-six reading was raised and rejected by the user: it would
+make a paid item a *downgrade* from the free 5.0x default. A full team goes from
+5.0x to 6.0x.
+
 Priced at 10,000 rather than 5,000 because it is passive and permanent, which is
 the class the Shiny Charm sits in at 30,000; at 5,000 it is 4.6 days of accrual
-for a permanent +20% and is bought without thinking.
+for a permanent +20% and is bought without thinking. At 10,000 it competes with
+33 eggs.
+
+Three smaller calls:
+
+- **Buying turns it on.** Nobody spends 10,000 coins on something and then leaves
+  it off, and a purchase that visibly does nothing until a second control is found
+  reads as a bug. The toggle exists to turn it *off* again, which nothing sensible
+  will ever do; that is known and accepted rather than a tradeoff being offered.
+- **The toggle is inert until owned, not an error.** A control the player cannot
+  see cannot be pressed, so a throw there could only ever fire on a bug. Turning
+  it off does not sell it back, and off means 0.8 rather than nothing.
+- **Owning it and using it are two persisted fields**, both `decodeIfPresent` and
+  both defaulting to false. One combined field could not express "bought, switched
+  off", and a save from before either existed has to mean neither.
+
+**Deliberately not in the shop UI yet.** The item only affects bench slots, and
+nothing the popover offers can build a team of more than one, so listing it today
+would sell a 10,000 coin item that does *nothing observable*. The row goes in with
+the team UI in step 4.
 
 **The 5x to 6x XP inflation is accepted, and the reason is that graduation pays
 out nothing.** This looks like it contradicts "raising time is the bottleneck",

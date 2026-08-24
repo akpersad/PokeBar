@@ -178,6 +178,12 @@ final class GameMonitor {
         persist()
     }
 
+    /// Switches the Exp Share on or off. Silently does nothing until it is bought.
+    func setExpShare(_ enabled: Bool) {
+        trainer.setExpShare(enabled)
+        persist()
+    }
+
     func setEverstone(_ held: Bool) {
         guard let dex else { return }
         record(trainer.setEverstone(held, dex: dex))

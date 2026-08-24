@@ -52,6 +52,16 @@ struct Trainer: Codable, Sendable, Equatable {
     var inventory: [String: Int] = [:]
     var hasShinyCharm = false
 
+    /// Bought once, kept forever, like the charm.
+    var hasExpShare = false
+
+    /// Whether the Exp Share is switched on. Free and reversible.
+    ///
+    /// Known and accepted: the item is strictly beneficial, so this will sit on
+    /// permanently once bought. The off position exists for completeness, not as a
+    /// tradeoff, and buying turns it on because nobody buys it to leave it off.
+    var expShareEnabled = false
+
     enum GameError: Error, Equatable, CustomStringConvertible {
         case notEnoughCoins(needed: Int, have: Int)
         case notEnoughDust(needed: Int, have: Int)
@@ -126,6 +136,21 @@ struct Trainer: Codable, Sendable, Equatable {
         dust -= amount
     }
 
+    /// Whether bench slots are currently earning at the lead's rate.
+    ///
+    /// Both halves, because owning it and using it are separate facts: a save can
+    /// hold the item with the toggle off, and a save from before either existed
+    /// holds neither.
+    var expShareActive: Bool { hasExpShare && expShareEnabled }
+
+    /// Switches the Exp Share on or off. **Inert until it is bought**, rather than
+    /// an error: a toggle the player cannot see cannot be pressed, and a throw
+    /// here would only ever fire on a bug.
+    mutating func setExpShare(_ enabled: Bool) {
+        guard hasExpShare else { return }
+        expShareEnabled = enabled
+    }
+
     /// The levels the Dex marks, lowest first.
     ///
     /// Halfway and done. Both are *display* thresholds and nothing else keys off
@@ -158,6 +183,9 @@ struct Trainer: Codable, Sendable, Equatable {
     /// a downgrade, which is incoherent for the thing the player is being asked to
     /// work towards.
     ///
+    /// An **Exp Share** raises every bench slot to the lead's rate, taking a full
+    /// team from 5.0x to 6.0x. It boosts, it never splits.
+    ///
     /// **A capped member's share is not redistributed.** XP that would go to a
     /// graduated individual is simply not granted, because redistribution would
     /// quietly change what the lead slot means the moment it hits 100. A graduated
@@ -170,8 +198,9 @@ struct Trainer: Codable, Sendable, Equatable {
         guard weightedTokens > 0 else { return [] }
         var events: [GameEvent] = []
         for (slot, raiseID) in team.enumerated() {
+            let share = XPCurve.share(forSlot: slot, expShare: expShareActive)
             events += grant(
-                xp: XPCurve.xp(forWeightedTokens: weightedTokens * XPCurve.share(forSlot: slot)),
+                xp: XPCurve.xp(forWeightedTokens: weightedTokens * share),
                 to: raiseID, dex: dex, now: now)
         }
         return events
@@ -666,6 +695,7 @@ struct Trainer: Codable, Sendable, Equatable {
         case rareCandy
         case item(slug: String, name: String)
         case shinyCharm
+        case expShare
 
         var priceInCoins: Int {
             switch self {
@@ -673,6 +703,7 @@ struct Trainer: Codable, Sendable, Equatable {
             case .item(let slug, _): slug == "linking-cord" ? Prices.linkingCord
                                                             : Prices.evolutionStone
             case .shinyCharm: Prices.shinyCharm
+            case .expShare: Prices.expShare
             }
         }
     }
@@ -681,6 +712,7 @@ struct Trainer: Codable, Sendable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case log, roster, team, coinsSpent, dust, inventory, hasShinyCharm
+        case hasExpShare, expShareEnabled
         /// v1's single individual. **Read forever, never written**, the pattern
         /// `CatchLog` already uses for `graduations`.
         case active
@@ -706,6 +738,8 @@ struct Trainer: Codable, Sendable, Equatable {
         dust = try c.decode(Int.self, forKey: .dust)
         inventory = try c.decode([String: Int].self, forKey: .inventory)
         hasShinyCharm = try c.decode(Bool.self, forKey: .hasShinyCharm)
+        hasExpShare = try c.decodeIfPresent(Bool.self, forKey: .hasExpShare) ?? false
+        expShareEnabled = try c.decodeIfPresent(Bool.self, forKey: .expShareEnabled) ?? false
 
         if let saved = try c.decodeIfPresent([Raise].self, forKey: .roster) {
             roster = saved
@@ -739,6 +773,8 @@ struct Trainer: Codable, Sendable, Equatable {
         try c.encode(dust, forKey: .dust)
         try c.encode(inventory, forKey: .inventory)
         try c.encode(hasShinyCharm, forKey: .hasShinyCharm)
+        try c.encode(hasExpShare, forKey: .hasExpShare)
+        try c.encode(expShareEnabled, forKey: .expShareEnabled)
     }
 
     // MARK: - Shop, continued
@@ -750,6 +786,13 @@ struct Trainer: Codable, Sendable, Equatable {
             guard !hasShinyCharm else { throw GameError.alreadyOwned }
             try spend(coins: item.priceInCoins, earned: coinsEarned)
             hasShinyCharm = true
+        case .expShare:
+            guard !hasExpShare else { throw GameError.alreadyOwned }
+            try spend(coins: item.priceInCoins, earned: coinsEarned)
+            hasExpShare = true
+            // On by definition of having bought it. The toggle is for turning it
+            // off again, which nothing sensible will ever do.
+            expShareEnabled = true
         case .rareCandy:
             try spend(coins: item.priceInCoins, earned: coinsEarned)
             inventory[Self.rareCandySlug, default: 0] += 1

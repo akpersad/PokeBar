@@ -93,6 +93,18 @@ final class XPCurveTests: XCTestCase {
         }
     }
 
+    /// The Exp Share raises every slot to the lead's rate: 5.0x becomes 6.0x. It
+    /// is a boost and never a split, because a 10,000 coin item that made the
+    /// team *slower* than the free default would be incoherent.
+    func testTheExpShareTakesTheFullTeamToSix() {
+        let boosted = XPCurve.leadShare + 5 * XPCurve.share(forSlot: 1, expShare: true)
+        XCTAssertEqual(boosted, 6.0, accuracy: 0.000_1)
+        XCTAssertEqual(XPCurve.share(forSlot: 0, expShare: true), XPCurve.leadShare)
+        XCTAssertGreaterThan(
+            XPCurve.share(forSlot: 5, expShare: true), XPCurve.share(forSlot: 5),
+            "the item must never be a downgrade")
+    }
+
     /// A share multiplies, it never splits. If the bench were paid out of the
     /// lead's share, filling the team would be a *downgrade*, which is the
     /// reading the user rejected.
