@@ -243,6 +243,13 @@ final class GameFormatTests: XCTestCase {
             "Your team is full at 6. Bench one first.")
     }
 
+    /// The swap menu is the drag's twin, and a menu bar window is an awkward
+    /// place to drag inside.
+    func testSwapRowsNameTheSlotAndOccupant() {
+        XCTAssertEqual(GameFormat.swapRow(slot: 0, name: "Charizard"), "Lead, Charizard")
+        XCTAssertEqual(GameFormat.swapRow(slot: 2, name: "Pineco"), "Slot 3, Pineco")
+    }
+
     func testCandidateRowsNameTheVariantAndLevel() {
         XCTAssertEqual(
             GameFormat.candidateRow(

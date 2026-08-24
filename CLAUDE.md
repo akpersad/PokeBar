@@ -640,6 +640,14 @@ caught on screen. `.fillEqually` is the only knob that works. Do not "simplify"
 this back to a `Picker`; the bug it fixes is invisible in code and only shows up
 in rendered pixels. **Approved on screen by the user 2026-08-24.**
 
+**A team slot card is not a `Button`, and that is load-bearing.** A button's press
+gesture wins against `.draggable`, so the first version selected fine and could not
+be dragged at all: the drag never started. It is a plain view with `.onTapGesture`
+plus `.draggable`, which coexist because a drag has a movement threshold and a tap
+does not. A drop target highlights while a card is over it, and the same jobs are
+on a right-click menu too, because a menu bar window is an awkward place to drag
+inside and drag-only is no route for anyone who cannot drag.
+
 **The Raise pane's scroll area is measured and clamped, not pinned.** The Dex and
 Shop panes are always full so a fixed 280pt frame is honest for them; the Raise
 pane is one card on a fresh install and six slots plus a bench of twenty later.

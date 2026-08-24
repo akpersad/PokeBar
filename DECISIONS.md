@@ -1614,6 +1614,20 @@ a card, which truncates "Charizard" beside a level. Dropping one card on another
 promotes exactly one Pokemon and demotes exactly one. "Make lead" survives beside
 it as the reliable way.
 
+**The drag was dead on arrival, and the reason is worth keeping.** The slot card
+was a `Button` with `.draggable` on it, and a button's press gesture wins: the
+drag never started, so selection worked and dragging did nothing at all. It is a
+plain view with `.onTapGesture` now, which coexists with a drag because the drag
+has a movement threshold and the tap does not. A drop target also highlights while
+a card is over it, since a drag with no feedback until it lands is indistinguishable
+from a drag that is not working.
+
+**And there is a right-click menu doing the same jobs**, added at the same time
+rather than after the next round of feedback. A menu bar window is an awkward place
+to drag inside, and a feature that only works by dragging has no route at all for
+anyone who cannot. It carries "Make lead", "Swap with" and "Bench", which is
+everything the drag and the detail panel can do.
+
 **The milestone mark is a halo, not a border.** Caught on screen: a crisp 1.5pt
 ring around one tile in a grid is what *selection* looks like, and macOS draws its
 focus ring the same way. The hard edge is now 0.6pt at 40% and the mark is carried

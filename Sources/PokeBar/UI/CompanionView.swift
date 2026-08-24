@@ -30,6 +30,10 @@ struct CompanionView: View {
     /// Measured, so the scroll area is as tall as it needs to be and no taller.
     @State private var contentHeight: CGFloat = 0
 
+    /// The slot a drag is currently hovering, so the card being dropped onto says
+    /// so. Without it a drag gives no feedback at all until it lands.
+    @State private var dropTarget: UUID?
+
     private var selected: (slot: Int, raise: Raise, entry: DexEntry)? {
         let members = game.teamMembers
         if let selectedID, let match = members.first(where: { $0.raise.id == selectedID }) {
@@ -126,11 +130,16 @@ struct CompanionView: View {
         }
     }
 
+    /// One slot.
+    ///
+    /// **Not a `Button`, deliberately.** A button's press gesture wins against
+    /// `.draggable`, so the first version of this card selected fine and could not
+    /// be dragged at all: the drag never started. A tap gesture and a drag gesture
+    /// coexist, because the drag has a movement threshold and the tap does not.
     private func slotCard(_ member: (slot: Int, raise: Raise, entry: DexEntry)) -> some View {
         let isSelected = selected?.raise.id == member.raise.id
-        return Button {
-            selectedID = member.raise.id
-        } label: {
+        let isDropTarget = dropTarget == member.raise.id
+        return Group {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 3) {
                     if member.slot == 0 {
@@ -178,17 +187,31 @@ struct CompanionView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(isSelected ? Color.accentColor.opacity(0.16) : Color.primary.opacity(0.06)))
+                    .fill(fill(isSelected: isSelected, isDropTarget: isDropTarget)))
             .overlay(
                 RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .stroke(isSelected ? Color.accentColor : .clear, lineWidth: 1.5))
+                    .stroke(
+                        isDropTarget ? Color.accentColor
+                            : (isSelected ? Color.accentColor : .clear),
+                        lineWidth: isDropTarget ? 2 : 1.5))
         }
-        .buttonStyle(.plain)
+        // Hit-testable across the whole card including its gaps, or a tap between
+        // the sprite and the name would land on nothing.
+        .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+        .onTapGesture { selectedID = member.raise.id }
         // Drag one card onto another to exchange their slots. Swap rather than
         // insert-and-shift, so dropping onto the lead promotes exactly one
         // Pokemon and demotes exactly one.
         .draggable(member.raise.id.uuidString) {
-            Text(member.entry.name).font(.caption)
+            // The thing that follows the cursor. Without an explicit preview
+            // macOS drags a snapshot of the whole card, which at 150pt wide
+            // covers the slot being dropped on.
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.left.arrow.right")
+                Text(member.entry.name)
+            }
+            .font(.caption)
+            .padding(4)
         }
         .dropDestination(for: String.self) { items, _ in
             guard let dragged = items.first.flatMap(UUID.init(uuidString:)),
@@ -196,11 +219,40 @@ struct CompanionView: View {
             else { return false }
             do { try game.swapSlots(dragged, member.raise.id) } catch { onError(error) }
             return true
+        } isTargeted: { targeted in
+            dropTarget = targeted ? member.raise.id : nil
         }
+        .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "\(member.entry.name), \(GameFormat.slotLabel(member.slot)), "
                 + GameFormat.level(member.raise.level))
         .accessibilityHint("Select to candy, hold or bench. Drag onto another slot to swap.")
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+        // Everything the drag can do, reachable without dragging. A menu bar
+        // window is an awkward place to drag inside, and this is also the only
+        // route for anyone who cannot drag at all.
+        .contextMenu {
+            if member.slot > 0 {
+                Button("Make lead") { run { try game.promoteToLead(raiseID: member.raise.id) } }
+            }
+            let others = game.teamMembers.filter { $0.raise.id != member.raise.id }
+            if !others.isEmpty {
+                Menu("Swap with") {
+                    ForEach(others, id: \.raise.id) { other in
+                        Button(GameFormat.swapRow(slot: other.slot, name: other.entry.name)) {
+                            run { try game.swapSlots(member.raise.id, other.raise.id) }
+                        }
+                    }
+                }
+            }
+            Divider()
+            Button("Bench") { game.bench(raiseID: member.raise.id) }
+        }
+    }
+
+    private func fill(isSelected: Bool, isDropTarget: Bool) -> Color {
+        if isDropTarget { return Color.accentColor.opacity(0.28) }
+        return isSelected ? Color.accentColor.opacity(0.16) : Color.primary.opacity(0.06)
     }
 
     private func emptySlot(_ slot: Int) -> some View {

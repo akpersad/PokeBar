@@ -79,6 +79,11 @@ enum GameFormat {
         slot == 0 ? "Lead" : "Slot \(slot + 1)"
     }
 
+    /// One row of the swap menu: "Slot 3, Pineco".
+    static func swapRow(slot: Int, name: String) -> String {
+        "\(slotLabel(slot)), \(name)"
+    }
+
     /// What one bench slot is currently earning, for the caption under a row.
     static func shareLine(slot: Int, expShare: Bool) -> String {
         let share = XPCurve.share(forSlot: slot, expShare: expShare)
