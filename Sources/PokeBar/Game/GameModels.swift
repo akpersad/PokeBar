@@ -224,7 +224,11 @@ enum GameEvent: Sendable, Equatable {
     /// reaches up to six of them at once, so "it levelled up" is not a fact until
     /// you know *which one*, and the `raiseID` is what lets a caller pair an event
     /// with a team slot.
-    case levelledUp(raiseID: UUID, to: Int)
+    /// Carries `entryID` as well as the individual, because the feed needs a
+    /// *name* and a `raiseID` cannot give it one. It is the form it was at the
+    /// time, not what it later became: a Pineco that reaches 21 and evolves in
+    /// the same credit reached 21 as a Pineco. Same rule as `MilestoneEvent`.
+    case levelledUp(raiseID: UUID, entryID: Int, to: Int)
     case evolved(raiseID: UUID, from: Int, to: Int)
     /// Several edges are satisfied at once and the choice is the player's, which
     /// is the honest answer for Eevee at level 36 and for Wurmple at 7. Six

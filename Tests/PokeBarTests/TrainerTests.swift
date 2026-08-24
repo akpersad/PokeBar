@@ -74,8 +74,9 @@ final class TrainerTests: XCTestCase {
         let raise = try XCTUnwrap(trainer.lead)
         XCTAssertEqual(raise.level, 16)
         XCTAssertTrue(
-            events.contains(.levelledUp(raiseID: raise.id, to: 16)),
-            "and the event names which individual did it")
+            events.contains(
+                .levelledUp(raiseID: raise.id, entryID: try entry("bulbasaur").id, to: 16)),
+            "and the event names which individual did it, and what it was at the time")
     }
 
     /// Coins accrue whether or not something is being raised, so a quiet slot
@@ -1232,7 +1233,9 @@ final class TrainerTests: XCTestCase {
 
         XCTAssertEqual(trainer.lead?.totalXP, 25_600)
         XCTAssertEqual(trainer.lead?.level, 16)
-        XCTAssertTrue(events.contains(.levelledUp(raiseID: raise.id, to: 16)))
+        XCTAssertTrue(
+            events.contains(
+                .levelledUp(raiseID: raise.id, entryID: try entry("bulbasaur").id, to: 16)))
     }
 
     /// **A capped member's share is not redistributed.** Redistribution would

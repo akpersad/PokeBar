@@ -293,8 +293,8 @@ enum GameFormat {
         // The feed names the species, which is what the player recognises, so the
         // `raiseID` these carry is for pairing an event with a team slot rather
         // than for reading out.
-        case .levelledUp(_, let level):
-            return "Reached level \(level)"
+        case .levelledUp(_, let entryID, let level):
+            return "\(name(entryID)) reached level \(level)"
         case .evolved(_, let from, let to):
             return "\(name(from)) evolved into \(name(to))"
         case .evolutionChoice(_, let from, let options):

@@ -221,7 +221,12 @@ struct Trainer: Codable, Sendable, Equatable {
         let after = roster[index].level
 
         var events: [GameEvent] = []
-        if after > before { events.append(.levelledUp(raiseID: raiseID, to: after)) }
+        if after > before {
+            // Read the entry before `resolveEvolutions` runs: it levelled up as
+            // whatever it was, and may not be that a line later.
+            events.append(
+                .levelledUp(raiseID: raiseID, entryID: roster[index].entryID, to: after))
+        }
         events += resolveEvolutions(of: raiseID, dex: dex, now: now)
         // Read the roster again rather than reusing a copy from above: an
         // evolution resolved just now may have changed what this individual is,

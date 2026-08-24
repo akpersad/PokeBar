@@ -27,7 +27,7 @@ final class NotifierTests: XCTestCase {
     /// caused the hatch. Neither earns an alert.
     func testRoutineEventsAreSilent() throws {
         let caterpie = try XCTUnwrap(dex.entry(slug: "caterpie"))
-        XCTAssertNil(announcement(.levelledUp(raiseID: anyone, to: 42)))
+        XCTAssertNil(announcement(.levelledUp(raiseID: anyone, entryID: 10, to: 42)))
         XCTAssertNil(announcement(.duplicate(entryID: caterpie.id, dust: 1)))
         XCTAssertNil(announcement(.caught(CatchEvent(
             entryID: caterpie.id, variant: .normal, gender: .male, source: .hatch))))
@@ -78,7 +78,7 @@ final class NotifierTests: XCTestCase {
     /// mattered does not arrive either.
     func testSameKindAlertsFromOneCreditAreGrouped() throws {
         let events: [GameEvent] = [
-            .levelledUp(raiseID: anyone, to: 16),
+            .levelledUp(raiseID: anyone, entryID: 10, to: 16),
             .evolved(raiseID: UUID(), from: 10, to: 11),
             .evolved(raiseID: UUID(), from: 13, to: 14),
             .evolved(raiseID: UUID(), from: 1, to: 2),
@@ -138,8 +138,8 @@ final class NotifierTests: XCTestCase {
 
     func testSilentEventsStaySilentInABatch() throws {
         let events: [GameEvent] = [
-            .levelledUp(raiseID: anyone, to: 2),
-            .levelledUp(raiseID: UUID(), to: 30),
+            .levelledUp(raiseID: anyone, entryID: 10, to: 2),
+            .levelledUp(raiseID: UUID(), entryID: 10, to: 30),
             .duplicate(entryID: 10, dust: 3),
         ]
         XCTAssertTrue(Notifier.announcements(for: events, dex: dex).isEmpty)

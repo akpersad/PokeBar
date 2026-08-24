@@ -139,6 +139,12 @@ final class GameFormatTests: XCTestCase {
         XCTAssertEqual(
             GameFormat.describe(.graduated(raiseID: UUID(), entryID: raichu.id), dex: dex),
             "Raichu graduated at level 100")
+        // A level up has to say *who*. With six of them training, "Reached level
+        // 21" is a line about nobody.
+        XCTAssertEqual(
+            GameFormat.describe(
+                .levelledUp(raiseID: UUID(), entryID: pikachu.id, to: 21), dex: dex),
+            "Pikachu reached level 21")
     }
 
     func testDexTileLabelSaysOutLoudWhatTheRingShows() {
@@ -375,7 +381,7 @@ final class GameFormatTests: XCTestCase {
         ]
         strings += [
             GameFormat.describe(.evolutionChoice(raiseID: UUID(), from: pikachu.id, options: [26]), dex: dex),
-            GameFormat.describe(.levelledUp(raiseID: UUID(), to: 5), dex: dex),
+            GameFormat.describe(.levelledUp(raiseID: UUID(), entryID: 25, to: 5), dex: dex),
         ]
         strings += dex.entries.prefix(200).flatMap(\.evolutions).map(GameFormat.requirement)
         strings += [

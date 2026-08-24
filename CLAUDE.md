@@ -653,6 +653,12 @@ working on screen by the user 2026-08-24**, after two attempts that failed
 silently. Do not "modernise" this back to `.draggable`. Every card also carries a right-click menu
 with the same actions, because drag-only is no route for anyone who cannot drag.
 
+**Every `GameEvent` that concerns one Pokemon carries enough to *name* it.** A
+`raiseID` identifies an individual but cannot produce a name, so `.levelledUp`
+carries `entryID` too. It shipped without one, because in v1 there was only ever
+one Pokemon it could have been, and the feed read "Reached level 21" for a team of
+two. The entry is the form it was at the time, matching `MilestoneEvent`.
+
 **The stored Pokemon are "your PC", never "the bench".** The games' word, and the
 user's correction. `Trainer.boxed`, `GameMonitor.sendToPC(raiseID:)`, "Send to PC"
 in the UI. `XPCurve.partyShare` is a different thing entirely (team slots 2 to 6)

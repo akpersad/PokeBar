@@ -1635,6 +1635,14 @@ mouse-up. The dragged card offsets and lifts while it moves, and the target
 highlights, because a drag with no feedback until it lands is indistinguishable
 from a drag that is not working, which is exactly how the first two failed.
 
+**A level up says who levelled up.** `.levelledUp` never carried a subject,
+because for all of v1 there was exactly one Pokemon it could have been, so the
+feed read "Reached level 21" and meant nobody. It carries `entryID` alongside the
+`raiseID` now: the id says which individual, the entry says which *name to print*,
+and a `raiseID` alone cannot give the feed a name. It is the form it was at the
+time rather than what it later became, the same rule `MilestoneEvent` follows, so a
+Pineco that reaches 21 and evolves in the same credit reached 21 as a Pineco.
+
 **"Bench" was the wrong word and is gone.** The games call it the PC, so the
 button is "Send to PC", the list is "YOUR PC", and the code follows: `Trainer.boxed`,
 `GameMonitor.sendToPC(raiseID:)`. The rename went further than the copy on purpose,
