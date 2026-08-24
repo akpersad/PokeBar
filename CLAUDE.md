@@ -104,6 +104,7 @@ Sources/PokeBar/
     HatchRoll.swift             weighted draw, shiny odds, gender roll
     Trainer.swift               every game rule. No clock, no RNG, no disk
     GameMonitor.swift           @MainActor @Observable; owns and persists one Trainer
+    SaveBackup.swift            dated copy of game-state.json, taken before load()
   UI/
     MenuBarLabel.swift          status item: sprite + coin count
     PokeBarPopover.swift        the menu bar window: chrome, currency, tabs
@@ -331,6 +332,19 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     skipped forward for the same reason: holding the cursor on one bad row blocks
     every later row for good. Same family as invariant 24.
 
+29. **The save is backed up before it is read, and backups are pruned by day, not
+    by launch.** `SaveBackup.capture()` runs in `GameMonitor.init` ahead of
+    `load()`. The `game-state.unreadable.json` quarantine fires only on a decode
+    error, so it covers a corrupt save and not the one a migration produces: a
+    save that decodes cleanly and holds the wrong thing. Copies are stamped
+    `backups/game-state-<local day>.json`, newest 10, because a crash loop would
+    burn ten per-launch copies in ten seconds. **The first capture of a day wins**
+    and later launches that day copy nothing, so today's copy is the save as it
+    stood before today ran and a bad write cannot overwrite the copy that would
+    undo it. Pruning sorts on the file name, which is day order because the stamp
+    is `yyyy-MM-dd`; modification date says when a copy was taken, not which day's
+    state it holds.
+
 ---
 
 ## UI copy rules
@@ -409,19 +423,20 @@ writing, which a fixture cannot reproduce.
 
 ## State
 
-**Phases 1 through 4: complete.** 284 tests, 0 failures.
+**Phases 1 through 4: complete.** 293 tests, 0 failures.
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
 
-**Next action, in one sentence: implement step 0 of [PLAN-v2.md](PLAN-v2.md), the
-dated `game-state.json` backup, because step 1 is the largest change this save
-format has taken and today's only protection fires on decode failure alone.**
+**Next action, in one sentence: implement step 1 of [PLAN-v2.md](PLAN-v2.md), the
+roster that makes levels persist per individual, starting with the DECISIONS.md
+amendment and the bench-it-and-bring-it-back test.**
 
-v2 was scoped 2026-08-24 and nothing is implemented. Priority is the user's:
-levels-always-persist and a team of 6 come first, right after that backup. The
-plan carries the ordering and the reasoning; DECISIONS.md carries the decisions.
+v2 was scoped 2026-08-24. **Step 0, the dated save backup, is done** (invariant 29,
+`SaveBackup.swift`, 9 tests); steps 1 onward are not started. Priority is the
+user's: levels-always-persist and a team of 6 come next. The plan carries the
+ordering and the reasoning; DECISIONS.md carries the decisions.
 
 Still true and still unverified: the Dex silver ring at level 50 has never been
 looked at against the dark grid, because rendered pixels here can be confirmed

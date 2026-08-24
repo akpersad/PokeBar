@@ -38,6 +38,10 @@ final class GameMonitor {
     init(dex: Pokedex? = try? Pokedex.loadBundled(), stateURL: URL = GameMonitor.defaultStateURL()) {
         self.dex = dex
         self.stateURL = stateURL
+        // Before `load()`, never after. The point is to hold a copy of the save
+        // as it stood before this run touched it, so a bad write later in the
+        // launch has something to be recovered from.
+        SaveBackup(stateURL: stateURL).capture()
         load()
     }
 

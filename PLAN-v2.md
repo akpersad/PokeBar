@@ -1,7 +1,8 @@
 # PokeBar v2 work plan
 
-Written 2026-08-24. Plan only, nothing implemented. Priority order is the
-user's, set in the brainstorm that produced this file: **the team comes first.**
+Written 2026-08-24. **Step 0 is built; steps 1 to 7 are not started.** Priority
+order is the user's, set in the brainstorm that produced this file: **the team
+comes first.**
 
 Read DECISIONS.md before starting any step. Every step below that changes a
 directional call names the DECISIONS.md section it has to amend *first*.
@@ -82,7 +83,7 @@ tradeoff.
 
 ---
 
-## Step 0: back up the save before touching its shape
+## Step 0: back up the save before touching its shape — DONE 2026-08-24
 
 Small, and first for a specific reason: step 1 is the largest change to
 `game-state.json` in the project's history, and today the only protection is the
@@ -100,7 +101,15 @@ one, which is precisely the failure step 1 could introduce.
   still quarantined by the existing path.
 
 Invariant to add: **the save is backed up before it is read, and backups are
-pruned by age, not by count of launches.**
+pruned by age, not by count of launches.** Shipped as invariant 29.
+
+**As built**, in `Sources/PokeBar/Game/SaveBackup.swift`, called from
+`GameMonitor.init` ahead of `load()`. One refinement on the spec above: **the
+first capture of a day wins**, so later launches that day copy nothing rather
+than overwriting. Overwriting per launch would let a bad write on day X destroy
+day X's own good copy, which is the failure this step exists for. Nine tests,
+including the eleventh-day prune, the out-of-order-day prune, and a corrupt save
+that is both backed up and quarantined.
 
 ---
 

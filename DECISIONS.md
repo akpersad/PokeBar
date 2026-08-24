@@ -1298,7 +1298,41 @@ Decisions only. The sequencing, the migration detail and the test list live in
 [PLAN-v2.md](PLAN-v2.md), and are deliberately not duplicated here: one copy of
 one fact, the same rule `CatchLog` follows.
 
-Nothing below is implemented.
+**Step 0 is implemented, 2026-08-24.** Everything else below is not.
+
+### The save is copied aside before it is read
+
+Step 0 of the plan, and first because step 1 is the largest change
+`game-state.json` has ever taken. The existing protection, the
+`game-state.unreadable.json` quarantine, fires **only when a decode throws**. It
+covers a corrupt file and it does not cover the failure a migration actually
+produces: a save that decodes perfectly and holds the wrong thing, because a
+default was seeded wrong or an empty roster was persisted over a real one.
+Nothing throws, nothing is quarantined, and the next write makes it permanent.
+The asymmetry from "saved games must survive a new field" is the whole reason to
+care: the usage ledger can be rebuilt by rescanning, the collection cannot.
+
+`SaveBackup.capture()` runs in `GameMonitor.init` **before `load()`**, copying
+the save to `backups/game-state-<local day>.json`, newest 10 kept.
+
+Three calls inside that, each with a plausible alternative:
+
+- **Day-stamped, not per-launch.** An app that launches, writes a bad save and
+  dies would otherwise burn ten good copies in ten launches, which on a crash
+  loop is ten seconds. Ten days of history is the useful axis, not ten launches.
+- **The first capture of a day wins**; later launches that day copy nothing. This
+  is the half that makes the backup work against a bad write rather than only
+  against corruption. Today's copy is the save as it stood *before today ran*, so
+  a launch that ruins the save cannot then overwrite the copy that would undo it.
+  Overwriting per launch was the obvious reading of "copy the save" and is
+  strictly worse for the failure this exists to catch.
+- **Pruned by file name, not by modification date.** The stamp is `yyyy-MM-dd`,
+  so lexical order *is* day order, while modification date says when a copy was
+  taken rather than which day's state it holds. A test writes the days out of
+  order and asserts the oldest *day* is the one evicted.
+
+Local calendar for the stamp, matching invariant 9: a UTC stamp rolls over
+mid-evening here and would file a copy under tomorrow.
 
 **Levels persist per individual, permanently.** Reverses the paragraph above.
 `Trainer.active: Raise?` becomes a roster plus an ordered team, and identity is
