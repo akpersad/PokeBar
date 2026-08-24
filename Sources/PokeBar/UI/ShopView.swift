@@ -19,7 +19,7 @@ struct ShopView: View {
                 section("TRAINING") {
                     row(
                         .rareCandy, name: "Rare Candy",
-                        detail: "\(UsageFormat.groupedInt(Int(Prices.rareCandyXP))) XP, used from the Companion tab",
+                        detail: "\(UsageFormat.groupedInt(Int(Prices.rareCandyXP))) XP, used from the Raise tab",
                         held: game.trainer.count(ofItem: Trainer.rareCandySlug))
                 }
                 section("PERMANENT") {

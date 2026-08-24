@@ -926,6 +926,14 @@ join those three regional evolutions had no incoming edge at all.
 slot can ever be filled: eggs draw from the hatchable pool and Charizard is not in
 it.
 
+**Nothing that acquires a Pokemon disturbs the raise in progress.** Hatching,
+re-rolling and the targeted pick all land in the log and assign an active raise
+only when there is none. It matters most for re-rolling, which would be unusable
+otherwise: the point of a shiny hunt is to keep fishing while the current one
+climbs, and a re-roll of the species being raised is the case a careless
+implementation would overwrite. Switching is still the one thing that costs levels,
+and it is the one thing the player asks for explicitly.
+
 **Notifications are quiet by default.** What earns an alert is an event that
 happens on its own while the window is closed, which is the set token accrual
 drives: an evolution, a graduation, and a choice now waiting. A shiny is the one

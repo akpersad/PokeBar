@@ -267,7 +267,7 @@ struct DexDetailView: View {
                     .disabled(game.dust < Prices.reroll(entry.rarity))
                 }
                 .controlSize(.small)
-                Text("Re-rolling hatches this species again for a shot at a variant you do not have. It is how shinies are hunted.")
+                Text("Re-rolling hatches this species again for a shot at a variant you do not have. It is how shinies are hunted, and it does not disturb what you are raising.")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .fixedSize(horizontal: false, vertical: true)

@@ -184,14 +184,33 @@ final class TrainerTests: XCTestCase {
         XCTAssertTrue(events.contains { if case .caught = $0 { true } else { false } })
     }
 
-    /// A hatch never interrupts a raise in progress. Losing 40 levels to a
-    /// Zubat you did not ask for would make hatching hostile.
-    func testHatchingDoesNotStealAnActiveRaise() throws {
+    /// Nothing that *acquires* a Pokemon may interrupt a raise in progress.
+    /// Losing 40 levels to a Zubat you did not ask for would make hatching
+    /// hostile, and losing them to a shiny hunt would make re-rolling unusable:
+    /// the whole point of a re-roll is to keep fishing while the current one
+    /// climbs. Hatch, re-roll and the targeted pick all share `obtain`, which
+    /// assigns an active raise only when there is none, so this pins all three
+    /// rather than trusting that they stay on one path.
+    func testAcquiringNeverStealsAnActiveRaise() throws {
         var trainer = try raising("bulbasaur")
         trainer.credit(weightedTokens: 1e9, dex: dex)
-        let before = trainer.active
+        let before = try XCTUnwrap(trainer.active)
+        XCTAssertGreaterThan(before.level, 1)
+
         _ = try trainer.hatch(coinsEarned: 10_000, dex: dex, using: &rng)
-        XCTAssertEqual(trainer.active, before)
+        XCTAssertEqual(trainer.active, before, "a hatch stole the raise")
+
+        // Re-roll the species being raised, which is the worst case: same entry,
+        // so a careless implementation would overwrite the individual.
+        trainer.dust = 1_000
+        _ = try trainer.reroll(entryID: before.entryID, dex: dex, using: &rng)
+        XCTAssertEqual(trainer.active, before, "a re-roll stole the raise")
+
+        _ = try trainer.targetedPick(entryID: try entry("mewtwo").id, dex: dex)
+        XCTAssertEqual(trainer.active, before, "a targeted pick stole the raise")
+
+        // And the XP is genuinely still there, not merely an equal-looking Raise.
+        XCTAssertEqual(trainer.active?.totalXP, before.totalXP)
     }
 
     /// Duplicates are judged on the sprite, not the species: a shiny Pikachu is
