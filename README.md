@@ -3,10 +3,6 @@
 A macOS menu bar app that turns Claude Code and Codex token usage into a Pokémon
 collection. Personal build, not distributed.
 
-Inspired by [chattymin/PokeTokenBar](https://github.com/chattymin/PokeTokenBar)
-(MIT), which was audited in full first. Some Claude Code parsing logic is lifted
-from it, marked in the source where it is.
-
 ## Status
 
 Phases 1 through 4 are **complete**: usage engine, menu bar UI, the Pokédex data
