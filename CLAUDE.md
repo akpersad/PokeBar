@@ -107,6 +107,7 @@ Sources/PokeBar/
   UI/
     MenuBarLabel.swift          status item: sprite + coin count
     PokeBarPopover.swift        the menu bar window: chrome, currency, tabs
+    SegmentedTabs.swift         NSSegmentedControl bridge; the tabs that fill
     CompanionView.swift         the Pokemon being raised, and what changes it
     DexView.swift               1,083 tiles plus a detail pane
     ShopView.swift              what coins buy
@@ -504,6 +505,16 @@ Views hold no logic. Everything they render goes through `UsageFormat`,
 where the display behaviour is pinned by tests, including an assertion that no em
 dash reaches user-facing copy. Keep it that way: a fact asserted in a view body
 cannot be tested in this toolchain.
+
+**The tab bar is `SegmentedTabs`, an `NSSegmentedControl` bridge, not a
+`Picker`.** SwiftUI's `.pickerStyle(.segmented)` wraps that control at
+`segmentDistribution = .fit`, which sizes every segment to its own label, and it
+exposes no way to change that. Framing it `maxWidth: .infinity` widens the
+container and leaves the control **centred** inside it, which is a different
+wrong answer, not a fix: it shipped bunched left, then centred, and both were
+caught on screen. `.fillEqually` is the only knob that works. Do not "simplify"
+this back to a `Picker`; the bug it fixes is invisible in code and only shows up
+in rendered pixels. **Approved on screen by the user 2026-08-24.**
 
 **Popover geometry lives in `PopoverMetrics`, not in the view bodies.** The
 popover is a chosen 340pt with 14pt padding, so a pane lays out in 312pt, and the

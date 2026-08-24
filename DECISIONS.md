@@ -1370,8 +1370,14 @@ lays out in 312pt, and `PopoverMetrics` now owns that arithmetic. Three things
 were wrong on screen and all three had the same cause, a leading-aligned `VStack`
 handing each child its ideal width and letting the rest of the row go to waste:
 
-- The segmented tab picker sat bunched against the left edge. Fixed with
-  `maxWidth: .infinity`, which also gives the four labels more room.
+- The segmented tab picker sat bunched against the left edge. `maxWidth:
+  .infinity` widened the container and left the control **centred** inside it,
+  which is a second wrong answer rather than a fix. SwiftUI wraps
+  `NSSegmentedControl` at `segmentDistribution = .fit`, sizing each segment to
+  its own label, and exposes no way to change it, so the control is now bridged
+  directly as `SegmentedTabs` with `.fillEqually`. Reimplementing the tab bar in
+  SwiftUI was the alternative and it costs more than it buys: the native look is
+  already right and a hand-built copy would drift from it on the next OS.
 - The token-class grid hugged the left with a gap beside it. Its cells now split
   the width evenly, which incidentally lines "Cache read" up under "Output".
 - The model rows spent 282 of 312pt and gave the name column 74 of them, so
@@ -1393,6 +1399,12 @@ tail.
 Not fixed by widening the popover, which was the other option. 340pt was chosen
 against the menu bar, not against this content, and the space to fill was already
 there.
+
+All three **approved on screen by the user 2026-08-24**, which is the only way
+rendered pixels get verified here. It took two rounds: the first fixed the rows
+and the grid and left the tabs centred, and the user caught that from a
+screenshot. Worth remembering as the same lesson the menu bar sprite taught, that
+a layout change is not verified until somebody looks at it.
 
 **The per-model breakdown collapses everything past five rows into "Other".**
 A layout guard, not cosmetics: the popover is a fixed-width menu bar window, and a

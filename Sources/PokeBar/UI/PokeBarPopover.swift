@@ -28,17 +28,13 @@ struct PokeBarPopover: View {
             header
             currency
 
-            // `maxWidth: .infinity` because the enclosing VStack is
-            // leading-aligned, so a segmented picker is otherwise offered only
-            // its ideal width and the four tabs bunch up against the left edge
-            // with dead space beside them. Filling makes the segments share the
-            // popover's full content width, which is also more room for the
-            // labels to sit in.
-            Picker("", selection: $pane) {
-                ForEach(Pane.allCases) { Text($0.rawValue).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            // `SegmentedTabs`, not `Picker`, and the reason is in that file:
+            // SwiftUI's segmented picker fits each segment to its own label and
+            // then centres the lot, so the four tabs sat in the middle of the
+            // popover with dead space either side however it was framed.
+            SegmentedTabs(
+                tabs: Pane.allCases.map { (label: $0.rawValue, value: $0) },
+                selection: $pane)
             .frame(maxWidth: .infinity)
 
             if let message {
