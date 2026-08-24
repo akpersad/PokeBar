@@ -116,7 +116,7 @@ final class ModelPricingTests: XCTestCase {
 
     func testCostMath() throws {
         let entry = UsageEntry(
-            id: "a", date: Date(), model: "claude-opus-5",
+            id: "a", date: Date(), model: "claude-opus-5", source: .claudeCode,
             tokens: TokenCounts(
                 input: 1_000_000, output: 1_000_000,
                 cacheWrite: 1_000_000, cacheRead: 1_000_000),
@@ -132,7 +132,7 @@ final class ModelPricingTests: XCTestCase {
         func weighted(_ model: String) -> Double {
             pricing.totals(for: [
                 UsageEntry(
-                    id: "x", date: Date(), model: model,
+                    id: "x", date: Date(), model: model, source: .claudeCode,
                     tokens: TokenCounts(input: 100, output: 0, cacheWrite: 0, cacheRead: 0),
                     localDay: "2026-08-22")
             ]).weightedTokens
@@ -144,7 +144,7 @@ final class ModelPricingTests: XCTestCase {
     /// incomplete — never report $0.00 as though it were free.
     func testUnknownModelEarnsAtBaselineAndFlagsCost() {
         let entry = UsageEntry(
-            id: "a", date: Date(), model: "claude-future-9",
+            id: "a", date: Date(), model: "claude-future-9", source: .claudeCode,
             tokens: TokenCounts(input: 500, output: 0, cacheWrite: 0, cacheRead: 0),
             localDay: "2026-08-22")
         let (totals, weighted) = pricing.totals(for: [entry])
@@ -156,7 +156,7 @@ final class ModelPricingTests: XCTestCase {
     func testPerModelBreakdownAccumulates() {
         let entries = (0..<3).map {
             UsageEntry(
-                id: "e\($0)", date: Date(), model: "claude-opus-5",
+                id: "e\($0)", date: Date(), model: "claude-opus-5", source: .claudeCode,
                 tokens: TokenCounts(input: 10, output: 20, cacheWrite: 0, cacheRead: 0),
                 localDay: "2026-08-22")
         }

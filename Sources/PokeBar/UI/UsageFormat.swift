@@ -70,6 +70,47 @@ enum UsageFormat {
     }
 }
 
+/// The popover's fixed geometry, and the column budget the per-model usage rows
+/// are laid out against.
+///
+/// Here rather than as literals in the view bodies for the reason the rest of
+/// this file exists: the numbers have to *add up*, and a sum asserted in a view
+/// body cannot be tested in this toolchain. `ModelRow.barWidth` is what is left
+/// after the fixed columns, so a future widening of the name column shows up as
+/// a failing test rather than as a bar squeezed to nothing on screen.
+enum PopoverMetrics {
+
+    /// A menu bar window, so this is a chosen width, not an available one.
+    static let width: CGFloat = 340
+    static let padding: CGFloat = 14
+    /// What a pane actually gets to lay out in: 312pt.
+    static var contentWidth: CGFloat { width - 2 * padding }
+
+    /// One row of the per-model breakdown: `name | bar | share | total`.
+    ///
+    /// The name column is fixed and the **bar** flexes, which is the way round
+    /// that both fills the row and keeps every bar starting and ending on the
+    /// same x. Widths measured with `NSFont.systemFont`, not guessed: at 12pt
+    /// (`.callout`) the widest name this can produce is
+    /// `"GPT 5.6 Terra (Copilot)"` at 130.8pt, so 132 renders it whole. The old
+    /// 74pt at 10pt cut `"Sonnet 5 (Copilot)"` down to `"Sonnet 5 (Co..."`.
+    /// The numeric columns are 10pt monospaced digits: `"100%"` is 28.6pt and
+    /// `"76.7M"` is 31.2pt, the widest either can hold.
+    enum ModelRow {
+        static let columnSpacing: CGFloat = 6
+        static let nameWidth: CGFloat = 132
+        static let shareWidth: CGFloat = 30
+        static let totalWidth: CGFloat = 36
+        static let barHeight: CGFloat = 5
+
+        /// The slack the flexible bar receives. Derived, never typed in.
+        static var barWidth: CGFloat {
+            PopoverMetrics.contentWidth
+                - (nameWidth + shareWidth + totalWidth + 3 * columnSpacing)
+        }
+    }
+}
+
 /// The tier a model belongs to, parsed from its identifier.
 ///
 /// Only used for display grouping and colour. Currency weighting reads the real
@@ -93,6 +134,19 @@ struct ModelIdentity: Sendable, Equatable {
 
     init(_ raw: String) {
         self.raw = raw
+
+        // A ledger key carrying the Copilot marker renders as the underlying
+        // model's normal name plus a visible tag, and keeps the underlying
+        // model's family so the row's colour swatch still reads as its tier.
+        // Claude Code and Codex entries never carry the prefix and are
+        // unaffected: this is the *only* place source ever changes display.
+        // The marker's spelling lives on `UsageSource`, not here.
+        if UsageSource.isCopilotLedgerKey(raw) {
+            let inner = ModelIdentity(UsageSource.model(fromLedgerKey: raw))
+            family = inner.family
+            displayName = "\(inner.displayName) (Copilot)"
+            return
+        }
 
         // `gpt-5.6-sol` renders as `GPT 5.6 Sol`. A bare `gpt-` falls back to
         // raw, the same way a bare `claude-` does below: a displayable name

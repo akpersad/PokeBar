@@ -28,11 +28,18 @@ struct PokeBarPopover: View {
             header
             currency
 
+            // `maxWidth: .infinity` because the enclosing VStack is
+            // leading-aligned, so a segmented picker is otherwise offered only
+            // its ideal width and the four tabs bunch up against the left edge
+            // with dead space beside them. Filling makes the segments share the
+            // popover's full content width, which is also more room for the
+            // labels to sit in.
             Picker("", selection: $pane) {
                 ForEach(Pane.allCases) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+            .frame(maxWidth: .infinity)
 
             if let message {
                 Text(message)
@@ -57,8 +64,8 @@ struct PokeBarPopover: View {
             Divider()
             footer
         }
-        .padding(14)
-        .frame(width: 340)
+        .padding(PopoverMetrics.padding)
+        .frame(width: PopoverMetrics.width)
         .onChange(of: pane) { message = nil }
     }
 

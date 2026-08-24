@@ -100,6 +100,18 @@ final class UsageFormatTests: XCTestCase {
         XCTAssertEqual(ModelIdentity("gpt-5.6-sol").family, .gpt)
     }
 
+    /// A Copilot-sourced ledger key renders as the underlying model's normal
+    /// name plus a visible tag, so the same model used through both Claude Code
+    /// and Copilot CLI reads as two distinguishable rows, not one merged total.
+    /// Claude Code and Codex are unaffected: they never carry this prefix.
+    func testCopilotLedgerKeyAppendsASourceTag() {
+        let identity = ModelIdentity("copilot:claude-opus-5")
+        XCTAssertEqual(identity.displayName, "Opus 5 (Copilot)")
+        XCTAssertEqual(identity.family, .opus, "colour grouping still follows the underlying model")
+
+        XCTAssertEqual(ModelIdentity("copilot:gpt-5.6-luna").displayName, "GPT 5.6 Luna (Copilot)")
+    }
+
     /// Snapshot ids carry a trailing date that is not a version component.
     func testModelDisplayNameDropsSnapshotDate() {
         let identity = ModelIdentity("claude-haiku-4-5-20251001")
@@ -202,5 +214,35 @@ final class UsageFormatTests: XCTestCase {
         let rows = ModelBreakdown.rows(from: byModel, limit: 5)
         XCTAssertEqual(rows.count, 5)
         XCTAssertFalse(rows.contains { $0.key == ModelBreakdown.otherKey })
+    }
+
+    // MARK: Popover geometry
+
+    /// The per-model row's columns are fixed and the bar takes the slack, so the
+    /// budget has to leave the bar something to be. Widening the name column
+    /// past its share is a silent change: the row still lays out, the bar just
+    /// collapses to its 3pt minimum and stops carrying any information.
+    func testModelRowColumnsLeaveTheBarAUsableWidth() {
+        let row = PopoverMetrics.ModelRow.self
+        let fixed = row.nameWidth + row.shareWidth + row.totalWidth + 3 * row.columnSpacing
+        XCTAssertLessThan(fixed, PopoverMetrics.contentWidth, "the row must fit the pane")
+        XCTAssertEqual(row.barWidth, PopoverMetrics.contentWidth - fixed, accuracy: 0.001)
+        XCTAssertGreaterThanOrEqual(
+            row.barWidth, 60,
+            "a share bar narrower than this reads as a dot, not a proportion")
+    }
+
+    /// The name column has to hold the longest name the breakdown can produce,
+    /// which is now a Copilot-tagged GPT id. Measured with `NSFont` at 12pt
+    /// (`.callout`): `"GPT 5.6 Terra (Copilot)"` is 130.8pt. Asserted as a
+    /// character budget rather than by measuring a font here, because measuring
+    /// one in a test asserts the OS rather than this code.
+    func testNameColumnIsBudgetedForTheLongestTaggedName() {
+        let longest = ModelIdentity("copilot:gpt-5.6-terra").displayName
+        XCTAssertEqual(longest, "GPT 5.6 Terra (Copilot)")
+        // 12pt system text averages just under 5.7pt per character across this
+        // set, so the column is sized at 132pt for a 23 character worst case.
+        XCTAssertGreaterThanOrEqual(
+            PopoverMetrics.ModelRow.nameWidth, CGFloat(longest.count) * 5.7)
     }
 }

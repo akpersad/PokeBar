@@ -54,9 +54,25 @@ asserts the fixtures sit inside the window.
 
 ## Workflow
 
+> ### Who may push to `main`
+>
+> **Claude Code only.** The standing permission to commit and push directly to
+> `main` was granted to Claude Code, for this project only, and it does not
+> transfer to any other agent or tool.
+>
+> **Every other agent works on a feature branch.** GitHub Copilot CLI, Codex,
+> Cursor, an IDE assistant, a hosted agent, anything that is not Claude Code:
+> branch off `main`, commit to that branch, push the branch, and leave the merge
+> to the user. Do not commit to `main`, do not push to `main`, do not fast-forward
+> or rebase `main`, and do not merge your own branch.
+>
+> If you are reading this and you are not sure which one you are, you are not
+> Claude Code. Branch.
+
 - Remote `git@github.com-personal:akpersad/PokeBar.git`, authenticates as `akpersad`.
-- **Push directly to `main`.** Standing permission for this project only.
-- Run `./scripts/check.sh` before pushing.
+- **Push directly to `main`: Claude Code only.** See the box above. Every other
+  agent branches and stops.
+- Run `./scripts/check.sh` before pushing, whichever agent you are.
 - No GitHub Actions. macOS runners burn free minutes.
 
 ---
@@ -72,6 +88,7 @@ Sources/PokeBar/
     JSONLStreamer.swift         chunked reads, resumable byte offsets
     ClaudeUsageParser.swift     Claude JSONL line -> UsageEntry, keep-max dedup
     CodexUsageParser.swift      Codex token_count event -> UsageEntry
+    CopilotUsageParser.swift    Copilot CLI SQLite row -> UsageEntry, id cursor
     UsageScanner.swift          walks roots, inode-keyed cursors
     DirectoryWatcher.swift      FSEvents -> AsyncStream<Void>
     UsageLedger.swift           durable accumulation, growth-only credit
@@ -113,8 +130,12 @@ Dex data flow: `scripts/generate-dex.py` (by hand) -> `pokedex.json` ->
 `Pokedex.loadBundled()` -> `SpriteAnimator.showFeatured()` -> `SpriteStore` fetch or
 disk hit -> `SpriteDecoder` -> frames -> `MenuBarLabel`.
 
-Data flow: `DirectoryWatcher` tick → `UsageScanner.scan(cursors:)` → new entries →
-`UsageLedger.credit(_:pricing:)` → `UsageMonitor.publish()` → UI.
+Data flow: `DirectoryWatcher` tick → `UsageScanner.scan(cursors:)` **plus**
+`CopilotUsageParser.scan(databaseURL:cursor:)` → new entries →
+`UsageLedger.credit(_:pricing:)` → `UsageMonitor.publish()` → UI. The watcher
+covers `~/.copilot` as well as the two JSONL roots, so a SQLite write there ticks
+the same stream; the scanner itself never walks it, because it only looks for
+`*.jsonl`.
 
 ---
 
@@ -162,9 +183,12 @@ Each one is load-bearing and each was measured. Breaking any is silent.
    opens: without it, a quiet run across midnight keeps labelling yesterday's
    usage "Today". A test pins that re-publishing credits nothing.
 
-10. **Claude Code and Codex are the usage sources.** Both are append-only JSONL
-    and share the cursor/watcher/ledger path. Copilot and other providers remain
-    out of scope. See DECISIONS.md.
+10. **Claude Code, Codex, and Copilot CLI are the usage sources.** Claude Code
+    and Codex are append-only JSONL and share the cursor/watcher/ledger path.
+    Copilot CLI logs to a live SQLite database instead (`~/.copilot/session-store.db`,
+    `assistant_usage_events`), read read-only through `CopilotUsageParser` with
+    its own id-based cursor, and credited globally rather than scoped to this
+    repository. Cursor and other providers remain out of scope. See DECISIONS.md.
 
 11. **The UI exists only inside an app bundle.** SwiftUI registers a
     `MenuBarExtra` status item only for a process that has a bundle identifier.
@@ -272,6 +296,28 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     cannot reach the Claude branch, because its only `usage` substring is
     `last_token_usage`, which has no opening quote before `usage`.
 
+26. **A model credited from two sources must never merge into one ledger row.**
+    `UsageSource.ledgerKey(model:source:)` groups Copilot entries under
+    `"copilot:" + model` while Claude Code and Codex keep the bare model id
+    unchanged, so `claude-opus-5` used through both shows as two rows. Pricing
+    lookup always uses `entry.model` (or `UsageSource.model(fromLedgerKey:)` when
+    starting from a ledger key), never the prefixed key: invariant 4's exact-key
+    rule is about the pricing table, not the ledger's grouping key. There is
+    deliberately no inverse returning a `UsageSource`: a Claude Code key and a
+    Codex key are identical by design, so any such function would have to invent
+    one of the two, and `UsageSource.isCopilotLedgerKey(_:)` answers the only
+    source question a key can actually answer.
+    `ModelIdentity` is the only place the "(Copilot)" tag is added to a display
+    name; Claude Code and Codex render identically to before this existed.
+
+27. **Copilot CLI usage rows are immutable once written, unlike a Claude Code
+    line.** Verified against a live session: a row's token counts, once
+    inserted, never changed on re-read. A Claude Code turn is rewritten ~2.4
+    times as its response streams, which is what makes keep-max dedup necessary
+    there; a Copilot row is written once, after the request completes, so
+    `CopilotUsageParser` only needs a cursor on the monotonic `id` column, not
+    keep-max.
+
 ---
 
 ## UI copy rules
@@ -293,6 +339,8 @@ use; the *properties* are what matter, not the exact numbers.
 | Corpus | 1,029 files, 481 MiB, `~/.claude/projects` |
 | Codex corpus | 3 files, 5.1 MiB, `~/.codex/sessions`. 132 `token_count` events |
 | Codex tokens | 13.1M, 97.2% cache read. 0.7% of total volume |
+| Copilot corpus | 1 SQLite file, 272 KiB + WAL, `~/.copilot/session-store.db`. 108 `assistant_usage_events` rows over 2 sessions |
+| Copilot tokens | 12.4M, 95.5% cache read. Input outside both cache classes is 219 tokens *total*, 2 or 3 per row |
 | Deduped turns | 13,243 |
 | Raw tokens | 1.85B (92.6% cache read) |
 | Cold scan | ~17s. Warm pass: **0 files, 0 bytes** |
@@ -300,6 +348,7 @@ use; the *properties* are what matter, not the exact numbers.
 | API-equivalent cost | $3,513.84 for 31 days |
 | Models in use | fable-5 81%, opus-5 19%, opus-4-8 and sonnet-5 trace |
 | Codex model in use | `gpt-5.6-sol`, the only one seen. Tier multiplier 0.8 |
+| Copilot models in use | `claude-sonnet-5` (105 rows), `gpt-5.6-luna` (3). Both already in the bundled table |
 
 Tier multipliers: fable 2.0, opus 1.0, sonnet 0.6, haiku 0.2, gpt-5.6-sol 0.8
 (input rate relative to `claude-opus-5`). Within-model ratios are uniform across
@@ -337,13 +386,17 @@ Game layer, decided or derived:
 | Shiny odds | 1 in 64, 1 in 48 with the charm |
 
 To re-verify parity independently, `Tests/PokeBarTests/CorpusParityTests.swift`
-prints live totals under `POKEBAR_CORPUS=1`.
+prints live totals under `POKEBAR_CORPUS=1`. It covers Copilot too, checking the
+parser's figures against the same aggregate computed in SQL through the `sqlite3`
+CLI: two code paths, one answer. That test is also the only place the
+read-only-under-WAL open runs against a database another process is actively
+writing, which a fixture cannot reproduce.
 
 ---
 
 ## State
 
-**Phases 1 through 4: complete.** 266 tests, 0 failures.
+**Phases 1 through 4: complete.** 284 tests, 0 failures.
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
@@ -447,10 +500,21 @@ one band. Three were evaluated and all three did. The bands are a display label;
 the raw number behaves like a smooth weight. Measured distribution in DECISIONS.md.
 
 Views hold no logic. Everything they render goes through `UsageFormat`,
-`ModelIdentity`, `ModelBreakdown` and `GameFormat`, which is where the display
-behaviour is pinned by tests, including an assertion that no em dash reaches
-user-facing copy. Keep it that way: a fact asserted in a view body cannot be
-tested in this toolchain.
+`ModelIdentity`, `ModelBreakdown`, `PopoverMetrics` and `GameFormat`, which is
+where the display behaviour is pinned by tests, including an assertion that no em
+dash reaches user-facing copy. Keep it that way: a fact asserted in a view body
+cannot be tested in this toolchain.
+
+**Popover geometry lives in `PopoverMetrics`, not in the view bodies.** The
+popover is a chosen 340pt with 14pt padding, so a pane lays out in 312pt, and the
+per-model usage row spends that on four columns. The name column is fixed and the
+**bar** flexes: that is the only arrangement that both fills the row and keeps
+every bar starting and ending on the same x. Widening the name column past its
+share is a silent change, because the row still lays out and the bar just
+collapses to its 3pt minimum, so a test asserts the budget leaves the bar at
+least 60pt. Column widths were measured with `NSFont.systemFont`, not guessed:
+at 12pt the widest name this can produce is `"GPT 5.6 Terra (Copilot)"` at
+130.8pt, hence 132.
 
 **Live plan limits: rejected, not deferred.** Do not propose it again, and do not
 add code that reads any Keychain item. `Claude Code-credentials` on this machine

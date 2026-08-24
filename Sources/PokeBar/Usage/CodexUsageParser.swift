@@ -55,6 +55,7 @@ enum CodexUsageParser {
             id: stableID(object, sessionKey: sessionKey) ?? fallbackID(),
             date: date,
             model: currentModel ?? "unknown-codex-model",
+            source: .codex,
             tokens: tokens,
             localDay: ClaudeUsageParser.localDayKey(date))
     }

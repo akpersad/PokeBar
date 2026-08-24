@@ -61,6 +61,7 @@ enum ClaudeUsageParser {
             id: id,
             date: date,
             model: model,
+            source: .claudeCode,
             tokens: tokens,
             localDay: localDayKey(date))
     }
