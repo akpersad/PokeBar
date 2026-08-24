@@ -25,6 +25,7 @@ layer, and the game. Live plan limits were considered and rejected, with reasons
 - [x] An animated species sprite in the status item
 - [x] Evolution triggers, levels and items resolved into the manifest
 - [x] Game layer: eggs, hatching, levels 1-100, evolution-by-XP, two currencies
+- [x] Choose your first partner from the 27 starters, free and once
 - [x] Pokédex view, browse and claim from the popover
 - [x] Shop, notifications, and a floating desktop pet
 
@@ -100,6 +101,13 @@ Five worth knowing up front:
 
 Reads `~/.claude/projects/**/*.jsonl` locally to extract token counts. It holds no
 credentials and reads no Keychain item.
+
+It writes two files of its own, both under
+`~/Library/Application Support/PokeBar/`: `usage-state.json`, which is the token
+ledger and the scan cursors, and `game-state.json`, which is the collection.
+Neither is ever sent anywhere. Local notifications are posted through
+`UNUserNotificationCenter`, which does not involve a server: PokeBar has no push
+entitlement and no remote registration.
 
 Two things are fetched over the network, both unauthenticated GETs of public
 static files, and nothing is ever uploaded:

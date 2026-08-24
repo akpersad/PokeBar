@@ -80,6 +80,7 @@ Sources/PokeBar/
     DexView.swift               1,083 tiles plus a detail pane
     ShopView.swift              what coins buy
     SpriteTile.swift            one still sprite, fetched on appearance
+    StarterPickerView.swift     the free first pick, from the 27 starters
     FloatingPetPanel.swift      the desktop companion, an NSPanel
     UsagePopover.swift          the usage pane
     UsageFormat.swift           pure display logic; where the UI tests live
@@ -256,7 +257,9 @@ Tier multipliers: fable 2.0, opus 1.0, sonnet 0.6, haiku 0.2 (input rate relativ
 to `claude-opus-5`). Within-model ratios are uniform across every Claude model:
 output 5x input, cache write 1.25x, cache read 0.1x. A test asserts this.
 
-Pokédex, measured 2026-08-22 and asserted by `scripts/generate-dex.py`:
+Pokédex, measured 2026-08-22 and re-measured 2026-08-23 when the manifest gained
+evolution triggers, the female flag and gender rates. All asserted by
+`scripts/generate-dex.py`, which fails rather than writing a dex with holes in it:
 
 | Quantity | Value |
 |---|---|
@@ -290,10 +293,11 @@ prints live totals under `POKEBAR_CORPUS=1`.
 
 ## State
 
-**Phases 1 through 4: complete.** 215 tests, 0 failures.
+**Phases 1 through 4: complete.** 222 tests, 0 failures.
 
-Phase 4 shipped in one session, 2026-08-23, in four steps: the manifest, the female
-variant flag, the pure game core, then the UI and the two carried-over extras.
+Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
+variant flag, the pure game core, the UI plus the two carried-over extras, then the
+starter pick after the user played it cold and named the barrier.
 
 **Next action, in one sentence: play it for a few days and tune the prices,
 starting with the targeted pick, which is deliberately generous.** Nothing is

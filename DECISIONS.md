@@ -353,6 +353,14 @@ regenerating the manifest and moving an entry between sets cannot serve stale ar
 under a reused name. Writes are atomic, because a torn write is the one corruption
 a never-expiring cache would otherwise never repair.
 
+**The commit is a constant in the generator, not `master` resolved at run time.**
+Changed 2026-08-23. The generator used to fetch `master` on every run, which makes
+re-pinning the entire dex a side effect of any routine regeneration: every sprite
+URL changes, and whether that is safe depends on the disk cache, which keys on the
+sprite set rather than the commit. Re-pinning is a decision, so `--repin` makes it
+one and prints the old and new SHAs. The pin has not moved: `master` was still at
+`c10459b9` when this was written, so nothing about the shipped dex changed.
+
 Nothing is prefetched. At 1,083 entries x 2 variants a full prefetch is ~2,166
 files, so sprites load on first display instead.
 
