@@ -20,6 +20,7 @@ struct UsagePopover: View {
                 placeholderSection
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         // Re-derive on open. "Today" is bucketed when the engine last published,
         // so a quiet run across midnight would otherwise keep yesterday's figures
         // under today's heading. Costs nothing: no disk, no scan.
@@ -74,13 +75,13 @@ struct UsagePopover: View {
     private var placeholderSection: some View {
         VStack(alignment: .leading, spacing: 4) {
             if monitor.state == .scanning {
-                Text("Reading your Claude Code and Codex history")
+                Text("Reading your Claude Code, Codex and Copilot history")
                     .font(.subheadline.weight(.medium))
                 Text("The first pass covers everything on disk and takes a few seconds.")
             } else {
                 Text("No usage yet")
                     .font(.subheadline.weight(.medium))
-                Text("Start a Claude Code or Codex session and it shows up here about a second after the turn finishes.")
+                Text("Start a Claude Code, Codex or Copilot CLI session and it shows up here about a second after the turn finishes.")
             }
         }
         .font(.caption)
@@ -129,6 +130,8 @@ private struct TokenClassGrid: View {
 
     var body: some View {
         Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 2) {
+            // Two equal columns, so the grid spans the pane instead of
+            // bunching against the left with dead space to the right.
             GridRow {
                 cell("Input", tokens.input)
                 cell("Output", tokens.output)
@@ -140,48 +143,66 @@ private struct TokenClassGrid: View {
         }
     }
 
+    /// `maxWidth: .infinity` so the two columns split the popover's width
+    /// evenly rather than hugging the left edge with a gap beside them, and
+    /// so "Cache read" lines up under "Output" instead of drifting.
     private func cell(_ label: String, _ count: Int) -> some View {
         HStack(spacing: 4) {
             Text(label)
                 .foregroundStyle(.secondary)
             Text(UsageFormat.compactTokens(count))
                 .monospacedDigit()
+            Spacer(minLength: 0)
         }
-        .font(.caption2)
+        .font(.caption)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
 private struct ModelRow: View {
     let row: ModelUsageRow
 
-    private static let barWidth: CGFloat = 108
+    /// Column widths, and the reasoning behind them, live in `PopoverMetrics`
+    /// so the budget can be asserted in a test.
+    private typealias Metrics = PopoverMetrics.ModelRow
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: Metrics.columnSpacing) {
             Text(row.identity.displayName)
-                .font(.caption)
+                .font(.callout)
                 .lineLimit(1)
-                .frame(width: 74, alignment: .leading)
+                // Last resort only. A name long enough to need this shrinks
+                // slightly instead of losing its tail, which is the difference
+                // between reading small and not reading at all.
+                .minimumScaleFactor(0.85)
+                .frame(width: Metrics.nameWidth, alignment: .leading)
 
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(.quaternary)
-                Capsule()
-                    .fill(tint)
-                    .frame(width: max(3, Self.barWidth * row.share))
-            }
-            .frame(width: Self.barWidth, height: 5)
+            Capsule()
+                .fill(.quaternary)
+                .frame(maxWidth: .infinity)
+                .frame(height: Metrics.barHeight)
+                // GeometryReader inside an overlay, so the share can be a
+                // fraction of a width this view does not get to choose. It
+                // reads the already-resolved track bounds and imposes no size
+                // of its own.
+                .overlay(alignment: .leading) {
+                    GeometryReader { proxy in
+                        Capsule()
+                            .fill(tint)
+                            .frame(width: max(3, proxy.size.width * row.share))
+                    }
+                }
 
             Text(shareText)
-                .font(.caption2)
+                .font(.caption)
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
-                .frame(width: 30, alignment: .trailing)
+                .frame(width: Metrics.shareWidth, alignment: .trailing)
 
             Text(UsageFormat.compactTokens(row.tokens.total))
-                .font(.caption2)
+                .font(.caption)
                 .monospacedDigit()
-                .frame(width: 46, alignment: .trailing)
+                .frame(width: Metrics.totalWidth, alignment: .trailing)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(

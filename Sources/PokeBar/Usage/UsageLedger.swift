@@ -73,8 +73,13 @@ struct UsageLedger: Sendable, Codable, Equatable {
                 delta = entry.tokens
             }
 
-            daily[entry.localDay, default: [:]][entry.model, default: .zero] += delta
+            daily[entry.localDay, default: [:]][
+                UsageSource.ledgerKey(model: entry.model, source: entry.source), default: .zero
+            ] += delta
 
+            // Pricing lookup stays on the exact, unprefixed model id (invariant
+            // 4), never on the ledger key: the Copilot marker exists only to
+            // keep two sources' totals from merging under one dictionary key.
             let multiplier = pricing.tierMultiplier(for: entry.model)
                 ?? ModelPricing.unknownModelTierMultiplier
             weightedTokens += Double(delta.total) * multiplier

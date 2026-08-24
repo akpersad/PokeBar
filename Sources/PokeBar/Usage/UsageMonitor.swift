@@ -61,18 +61,26 @@ final class UsageMonitor {
 
     private var ledger = UsageLedger()
     private var cursors: [String: FileCursor] = [:]
+    /// Highest Copilot CLI `assistant_usage_events.id` already credited. An
+    /// `Int64` cursor rather than a byte offset, matching invariant 24's
+    /// reasoning in reverse: here the source itself guarantees a stable,
+    /// monotonic id, so there is no positional-fallback trap to guard against.
+    private var copilotCursor: Int64 = 0
     private var pricing = ModelPricing()
     private var loop: Task<Void, Never>?
+    private let copilotDatabaseURL: URL
 
     init(
         scanner: UsageScanner = UsageScanner(),
         catalog: PricingCatalog = PricingCatalog(),
         stateURL: URL = UsageMonitor.defaultStateURL(),
+        copilotDatabaseURL: URL = CopilotUsageParser.defaultDatabaseURL(),
         calendar: Calendar = .current
     ) {
         self.scanner = scanner
         self.catalog = catalog
         self.stateURL = stateURL
+        self.copilotDatabaseURL = copilotDatabaseURL
         self.calendar = calendar
     }
 
@@ -114,7 +122,13 @@ final class UsageMonitor {
         // change is buffered by the AsyncStream and drained immediately below.
         // Draining a few redundant ticks is free: cursors make a no-op pass read
         // zero bytes.
-        let changes = DirectoryWatcher.changes(in: scanner.roots)
+        //
+        // The Copilot database's containing directory is watched too, so a
+        // WAL write there ticks the same stream. It is not one of `scanner.roots`:
+        // that scanner only ever walks for `*.jsonl`, and folding a SQLite tree
+        // into it would just be dead enumeration.
+        let watchedRoots = scanner.roots + [copilotDatabaseURL.deletingLastPathComponent()]
+        let changes = DirectoryWatcher.changes(in: watchedRoots)
         await scanAndCredit()
 
         state = .watching
@@ -135,23 +149,30 @@ final class UsageMonitor {
     private func scanAndCredit() async {
         let scanner = self.scanner
         let cursors = self.cursors
+        let copilotDatabaseURL = self.copilotDatabaseURL
+        let copilotCursor = self.copilotCursor
         // Off the main actor: a cold pass parses hundreds of megabytes.
-        let result = await Task.detached(priority: .utility) {
-            scanner.scan(cursors: cursors)
+        let (result, copilotResult) = await Task.detached(priority: .utility) {
+            (
+                scanner.scan(cursors: cursors),
+                CopilotUsageParser.scan(databaseURL: copilotDatabaseURL, cursor: copilotCursor)
+            )
         }.value
 
         self.cursors = result.cursors
+        self.copilotCursor = copilotResult.cursor
+        let entries = result.entries + copilotResult.entries
         // The weighted delta, read across the credit rather than returned by it.
         // `credit` already reports the raw tokens added; XP needs the tier-
         // weighted figure, which is the one coins are minted from, and taking it
         // this way leaves the ledger's signature and its tests alone.
         let weightedBefore = ledger.weightedTokens
-        let added = ledger.credit(result.entries, pricing: pricing)
+        let added = ledger.credit(entries, pricing: pricing)
         let weightedAdded = ledger.weightedTokens - weightedBefore
         publish()
         game?.credit(weightedTokens: weightedAdded, coinsEarned: ledger.coins)
 
-        if added.total > 0 || !result.entries.isEmpty {
+        if added.total > 0 || !entries.isEmpty {
             lastUpdated = Date()
             persist()
         }
@@ -186,7 +207,8 @@ final class UsageMonitor {
         coins = ledger.coins
 
         todayWeightedTokens = byModelToday.reduce(into: 0.0) { total, pair in
-            let multiplier = pricing.tierMultiplier(for: pair.key)
+            let model = UsageSource.model(fromLedgerKey: pair.key)
+            let multiplier = pricing.tierMultiplier(for: model)
                 ?? ModelPricing.unknownModelTierMultiplier
             total += Double(pair.value.total) * multiplier
         }
@@ -205,7 +227,10 @@ final class UsageMonitor {
         of byModel: [String: TokenCounts], pricing: ModelPricing, incomplete: inout Bool
     ) -> Double {
         var total = 0.0
-        for (model, tokens) in byModel {
+        for (key, tokens) in byModel {
+            // `key` may carry the Copilot ledger marker; pricing is keyed on
+            // the real, unprefixed model id (invariant 4).
+            let model = UsageSource.model(fromLedgerKey: key)
             if let rate = pricing.rate(for: model) {
                 total += rate.costUSD(for: tokens)
             } else if tokens.total > 0 {
@@ -220,6 +245,7 @@ final class UsageMonitor {
     struct PersistedState: Codable {
         var ledger: UsageLedger
         var cursors: [String: FileCursor]
+        var copilotCursor: Int64 = 0
     }
 
     private func load() {
@@ -228,13 +254,32 @@ final class UsageMonitor {
         else { return }
         ledger = decoded.ledger
         cursors = decoded.cursors
+        copilotCursor = decoded.copilotCursor
     }
 
     private func persist() {
-        let snapshot = PersistedState(ledger: ledger, cursors: cursors)
+        let snapshot = PersistedState(ledger: ledger, cursors: cursors, copilotCursor: copilotCursor)
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         // Atomic so a crash mid-write cannot leave a truncated ledger, which
         // would silently reset earned currency.
         try? data.write(to: stateURL, options: .atomic)
+    }
+}
+
+/// `copilotCursor` decodes with `decodeIfPresent` and a default, per invariant
+/// 23: a state file written before Copilot support existed has no such key, and
+/// the synthesized decoder throws on a missing key even where the property has a
+/// default. `load()` cannot tell "unreadable" from "no state yet", so that throw
+/// would silently restart the ledger, and the earned coin balance, from zero.
+///
+/// In an extension rather than in the type on purpose: declaring `init(from:)`
+/// inside the struct suppresses the memberwise initialiser `persist()` uses, and
+/// hand-writing that back is two more places for a new field to be forgotten.
+extension UsageMonitor.PersistedState {
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        ledger = try container.decode(UsageLedger.self, forKey: .ledger)
+        cursors = try container.decode([String: FileCursor].self, forKey: .cursors)
+        copilotCursor = try container.decodeIfPresent(Int64.self, forKey: .copilotCursor) ?? 0
     }
 }

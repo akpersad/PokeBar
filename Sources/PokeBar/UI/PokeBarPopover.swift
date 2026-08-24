@@ -28,11 +28,14 @@ struct PokeBarPopover: View {
             header
             currency
 
-            Picker("", selection: $pane) {
-                ForEach(Pane.allCases) { Text($0.rawValue).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            // `SegmentedTabs`, not `Picker`, and the reason is in that file:
+            // SwiftUI's segmented picker fits each segment to its own label and
+            // then centres the lot, so the four tabs sat in the middle of the
+            // popover with dead space either side however it was framed.
+            SegmentedTabs(
+                tabs: Pane.allCases.map { (label: $0.rawValue, value: $0) },
+                selection: $pane)
+            .frame(maxWidth: .infinity)
 
             if let message {
                 Text(message)
@@ -57,8 +60,8 @@ struct PokeBarPopover: View {
             Divider()
             footer
         }
-        .padding(14)
-        .frame(width: 340)
+        .padding(PopoverMetrics.padding)
+        .frame(width: PopoverMetrics.width)
         .onChange(of: pane) { message = nil }
     }
 

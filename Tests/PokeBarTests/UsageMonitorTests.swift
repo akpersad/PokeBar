@@ -77,13 +77,21 @@ final class UsageMonitorTests: XCTestCase {
         try handle.write(contentsOf: Data(text.utf8))
     }
 
-    private func makeMonitor(root: URL, stateURL: URL) -> UsageMonitor {
+    /// `copilotDatabaseURL` defaults to a path that does not exist, never to the
+    /// real `~/.copilot/session-store.db`: this machine has genuine Copilot CLI
+    /// usage recorded, and crediting it here would pollute every assertion on
+    /// totals in this file with live data that changes between runs.
+    private func makeMonitor(
+        root: URL, stateURL: URL, copilotDatabaseURL: URL? = nil
+    ) -> UsageMonitor {
         UsageMonitor(
             scanner: UsageScanner(roots: [root]),
             catalog: PricingCatalog(
                 cacheURL: FileManager.default.temporaryDirectory
                     .appendingPathComponent("pokebar-pricing-\(UUID().uuidString).json")),
-            stateURL: stateURL)
+            stateURL: stateURL,
+            copilotDatabaseURL: copilotDatabaseURL
+                ?? CopilotFixture.scratchURL("copilot-absent"))
     }
 
     /// Polls rather than sleeping a fixed interval, so the test is neither flaky
@@ -258,5 +266,90 @@ final class UsageMonitorTests: XCTestCase {
         XCTAssertEqual(monitor.coins, 2, "re-publishing must not mint coins")
         XCTAssertEqual(monitor.allTimeTokens, tokens)
         XCTAssertEqual(monitor.allTimeCostUSD, cost, accuracy: 1e-12)
+    }
+
+    // MARK: Copilot CLI
+
+    /// The end-to-end shape of the whole feature: a Copilot row and a Claude
+    /// Code turn on the *same* model are both credited, both priced off the same
+    /// unprefixed model id, and land in two separate breakdown rows rather than
+    /// merging into one total.
+    func testCreditsCopilotRowsAlongsideClaudeCodeWithoutMerging() async throws {
+        let (root, stateURL) = try makeTree()
+        try append(
+            assistantLine(
+                messageID: "m1", requestID: "r1", model: "claude-sonnet-5", output: 100),
+            to: root.appendingPathComponent("session.jsonl"))
+
+        let database = CopilotFixture.scratchURL("copilot-monitor")
+        scratch.append(database)
+        try CopilotFixture.makeDatabase(
+            at: database,
+            rows: [.init(model: "claude-sonnet-5", input: 60, output: 40, cacheRead: 10)])
+
+        let monitor = makeMonitor(
+            root: root, stateURL: stateURL, copilotDatabaseURL: database)
+        monitor.start()
+        defer { monitor.stop() }
+
+        // 100 from Claude Code, plus (60 - 10) input + 40 output + 10 cache read.
+        await waitFor({ monitor.allTimeTokens.total == 200 }, label: "both sources credited")
+
+        XCTAssertEqual(monitor.byModelToday["claude-sonnet-5"]?.total, 100, "Claude Code row")
+        XCTAssertEqual(
+            monitor.byModelToday["copilot:claude-sonnet-5"]?.total, 100, "Copilot row")
+
+        // Priced, not silently unknown: the prefix must never reach the pricing
+        // table. sonnet-5 is $3/MTok in, $15/MTok out, $0.30/MTok cache read.
+        XCTAssertFalse(
+            monitor.costIsIncomplete,
+            "a prefixed key reaching the pricing table would flag the cost incomplete")
+        XCTAssertGreaterThan(monitor.allTimeCostUSD, 0)
+
+        // Two rows in the breakdown, distinguishable on screen.
+        let names = ModelBreakdown.rows(from: monitor.byModelToday).map(\.identity.displayName)
+        XCTAssertEqual(Set(names), ["Sonnet 5", "Sonnet 5 (Copilot)"])
+    }
+
+    /// The Copilot cursor has to survive a relaunch or every launch re-credits
+    /// every row ever written. Coins are frozen at credit time, so that
+    /// inflation would be permanent (invariant 3).
+    func testCopilotCursorPersistsSoARelaunchCreditsNothingTwice() async throws {
+        let (root, stateURL) = try makeTree()
+        let database = CopilotFixture.scratchURL("copilot-relaunch")
+        scratch.append(database)
+        try CopilotFixture.makeDatabase(
+            at: database, rows: [.init(input: 100, output: 100)])
+
+        let first = makeMonitor(root: root, stateURL: stateURL, copilotDatabaseURL: database)
+        first.start()
+        await waitFor({ first.allTimeTokens.total == 200 }, label: "first launch credits")
+        first.stop()
+
+        let second = makeMonitor(root: root, stateURL: stateURL, copilotDatabaseURL: database)
+        second.start()
+        defer { second.stop() }
+        await waitFor({ second.allTimeTokens.total == 200 }, label: "restored totals")
+        // Give a second pass time to double-credit if the cursor were lost.
+        try? await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertEqual(second.allTimeTokens.total, 200, "a relaunch must credit nothing again")
+    }
+
+    /// Invariant 23, on the usage side. A state file written before Copilot
+    /// support existed has no `copilotCursor` key, and the synthesized decoder
+    /// throws on a missing key even where the property has a default. `load()`
+    /// cannot tell that throw from "no state yet", so it would silently restart
+    /// the ledger, and the coin balance, from zero.
+    func testStateFileWrittenBeforeCopilotSupportStillDecodes() throws {
+        let json = """
+            {"ledger":{"daily":{"2026-08-22":{"claude-opus-5":\
+            {"input":10,"output":20,"cacheWrite":0,"cacheRead":0}}},\
+            "weightedTokens":30,"inFlight":{}},"cursors":{}}
+            """
+        let decoded = try JSONDecoder().decode(
+            UsageMonitor.PersistedState.self, from: Data(json.utf8))
+        XCTAssertEqual(decoded.ledger.weightedTokens, 30)
+        XCTAssertEqual(decoded.ledger.tokens(forDay: "2026-08-22").total, 30)
+        XCTAssertEqual(decoded.copilotCursor, 0, "absent key defaults, it does not throw")
     }
 }

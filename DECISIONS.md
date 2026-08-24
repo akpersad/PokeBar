@@ -18,13 +18,74 @@ runtime from PokéAPI, nothing is redistributed, nothing is sold. The upstream
 project's legal exposure came from shipping a public product built on ripped
 game assets, which does not apply here.
 
-**Claude Code and Codex are the usage sources.** Reversed 2026-08-24, at the
-user's request. Copilot CLI, Cursor and the other upstream providers remain out
-of scope.
+**Claude Code, Codex, and Copilot CLI are the usage sources.** Reversed again
+2026-08-24, hours after the entry below was written: Copilot CLI usage now
+exists on this machine (this very session), so the premise that ruled it out
+("that file does not exist... nothing to read") no longer holds. Cursor and the
+other upstream providers remain out of scope.
 
-- Copilot: upstream expects `~/.copilot/session-store.db` with an
-  `assistant_usage_events` table. That file does not exist on this machine; only
-  `config.json`, IDE locks and process logs. Nothing to read.
+- Copilot CLI logs to `~/.copilot/session-store.db`, a live SQLite database in
+  WAL mode, not append-only JSONL like the other two sources. Its
+  `assistant_usage_events` table carries `model`, `input_tokens`, `output_tokens`,
+  `cache_read_tokens`, `cache_write_tokens` and `created_at` per completed
+  request, plus an autoincrement `id`.
+- Verified against this machine's live session: `id`, once written, is never
+  rewritten. Row 8's 44,036 input tokens read back identically 40+ minutes and
+  ten more rows later. A Claude Code turn is rewritten ~2.4 times as it streams,
+  which is why *that* parser needs keep-max dedup on `(message.id, requestId)`;
+  Copilot needs only a cursor on the monotonic `id`, since a row is written once,
+  after the request finishes.
+- `input_tokens` reports the whole request, cache classes included, the same
+  shape Codex's field has: `claude-sonnet-5` rows measured input_tokens minus
+  (cache_read + cache_write) landing at 2-3 on every row, i.e. a handful of
+  tokens outside both cache classes, never negative. Same treatment as Codex:
+  subtract both cache classes from the total to get ordinary input.
+- Scoped **globally**, not to sessions run inside this repository, at the user's
+  explicit choice: Claude Code and Codex are not filtered to
+  "sessions opened inside PokeBar" either, so scoping only Copilot would be an
+  inconsistency, not a parity.
+- Pricing reuses the existing bundled table unmodified, keyed on the source's
+  exact model string (`claude-sonnet-5`, `gpt-5.6-luna`, ...), which already
+  covers every model observed in Copilot CLI's own events on this machine.
+- **The same model from two sources must not merge into one ledger row.** The
+  user's explicit requirement: `claude-opus-5` used through Claude Code and
+  through Copilot CLI should read as two lines, one tagged. Claude Code and
+  Codex render identically to today (bare model name, no change to their copy).
+  Solved with a ledger-grouping key, not a new field on `TokenCounts`: Copilot
+  entries group under `"copilot:" + model` instead of the bare model id, while
+  `entry.model` itself stays the exact, unprefixed id pricing needs (invariant 4
+  is about the pricing lookup, not the ledger's dictionary key). `ModelIdentity`
+  recognises the prefix and renders `"<name> (Copilot)"`; every other caller of
+  the ledger key strips it back to the real model id before looking up a rate.
+- **A failed read is reported, a missing database is not.** No database is the
+  ordinary state of a machine that has never run Copilot CLI, so that is silent.
+  Anything past it prints, because the visible symptom of a failed open or a
+  failed query is Copilot usage that simply never appears, which is the exact
+  silent-failure shape this project keeps getting bitten by. `print` rather than
+  a log subsystem, matching how `GameMonitor` reports an unreadable save.
+- **On a mid-read failure the cursor still advances to the highest row seen.**
+  The tempting alternative, leaving it where it was so the rest is retried, is
+  wrong twice over. `ORDER BY id` means the rows read form a contiguous prefix,
+  so everything unread is still `> maxID` and arrives on the next tick anyway;
+  and a cursor that did not move would re-offer the same rows every tick, which
+  is harmless only until they age past the ledger's 2 day growth window, after
+  which the re-offer is credited a second time and the coins are frozen. A row
+  that cannot be parsed is skipped for the same reason: wedging the cursor on one
+  bad row would block every later row for good.
+- **`reasoning_tokens` is deliberately dropped.** It is a subset of
+  `output_tokens`, not a fifth class. Over the 108 live rows no row has
+  reasoning > output, and the row's own `token_details_json` prices input, cache
+  read, cache write and output only, with no reasoning line. Adding it in would
+  double-count thinking tokens and mint coins for them twice. There is a test,
+  because the field is sitting right there in the schema looking like an
+  omission.
+- **Opened read-only, never `immutable=1`.** Read-only means a concurrent CLI
+  write under WAL is never blocked or corrupted by this process. `immutable=1`
+  would skip the WAL, and measured here the main database file was 4 KiB against
+  a 3.4 MiB WAL, so ignoring the WAL means reading essentially nothing. A
+  read-only connection does still create the `-shm` index file when no other
+  process holds the database open, which is fine: it is the user's own
+  `~/.copilot`.
 - Codex was originally excluded because this machine had no rollout JSONL and
   its SQLite `threads.tokens_used` field lacked an input/output/cache split.
   Current Codex now persists `~/.codex/sessions/**/*.jsonl` with a `token_count`
@@ -51,12 +112,20 @@ of scope.
   reason to do it properly anyway is that the ratio can change any week, and
   coins are frozen at credit time so a wrong weight can never be corrected.
 
-**No `UsageProvider` protocol.** Both sources are append-only JSONL and normalize
-directly into `UsageEntry`, so a provider abstraction would still add indirection
-without isolating different lifecycle behavior.
+**No `UsageProvider` protocol, still.** Three sources now, still no shared
+protocol. Claude Code and Codex are append-only JSONL and normalize directly
+into `UsageEntry`; Copilot is a live SQLite table read through its own parser
+with its own (id-based, not byte-offset) cursor type. The three do not share
+enough lifecycle behavior to make an abstraction pay for itself, and forcing one
+would mean designing a cursor type able to represent both "byte offset in a
+file" and "highest row id in a table", which is not a real abstraction, just a
+sum type wearing a protocol.
 
-**No SQLite dependency.** Claude Code and current Codex usage are both
-append-only JSONL. Cursor, Copilot and Kiro remain out of scope.
+**SQLite dependency added, scoped narrowly.** Reversed from the entry below.
+`libsqlite3` ships with the OS, so this is `.linkedLibrary("sqlite3")` in
+`Package.swift`, not a package dependency: no new supply chain, no version to
+track. Confined to `CopilotUsageParser.swift`; nothing else in the usage layer
+knows SQLite exists.
 
 **GPT rates are bundled and never refreshed, and Sol's is a promotional rate.**
 Two departures from how the Claude rows work, both deliberate, both with a cost.
@@ -1293,6 +1362,49 @@ counterpart to pricing resolving to `nil` rather than `0`: a model newer than ou
 tables must look unknown, never blank and never free. A hardcoded name table would
 go stale on the same launch day the pricing table does, which is the upstream
 failure this project already fixed once.
+
+**Popover geometry is a testable constant table, not literals in view bodies.
+Decided 2026-08-24**, when adding a third usage source made the model rows
+outgrow their columns. The popover is a chosen 340pt with 14pt padding, so a pane
+lays out in 312pt, and `PopoverMetrics` now owns that arithmetic. Three things
+were wrong on screen and all three had the same cause, a leading-aligned `VStack`
+handing each child its ideal width and letting the rest of the row go to waste:
+
+- The segmented tab picker sat bunched against the left edge. `maxWidth:
+  .infinity` widened the container and left the control **centred** inside it,
+  which is a second wrong answer rather than a fix. SwiftUI wraps
+  `NSSegmentedControl` at `segmentDistribution = .fit`, sizing each segment to
+  its own label, and exposes no way to change it, so the control is now bridged
+  directly as `SegmentedTabs` with `.fillEqually`. Reimplementing the tab bar in
+  SwiftUI was the alternative and it costs more than it buys: the native look is
+  already right and a hand-built copy would drift from it on the next OS.
+- The token-class grid hugged the left with a gap beside it. Its cells now split
+  the width evenly, which incidentally lines "Cache read" up under "Output".
+- The model rows spent 282 of 312pt and gave the name column 74 of them, so
+  `"Sonnet 5 (Copilot)"` rendered as `"Sonnet 5 (Co..."`. The name column is now
+  fixed at 132pt at 12pt type and the **bar** is what flexes.
+
+The name-fixed-bar-flexes direction is the load-bearing part. It is the only
+arrangement that both fills the row and keeps every bar starting and ending on
+the same x, which is what makes the bars comparable down the column at all. The
+widths were measured with `NSFont.systemFont` rather than estimated: at 12pt the
+widest name this can produce is `"GPT 5.6 Terra (Copilot)"` at 130.8pt, and the
+two numeric columns hold `"100%"` at 28.6pt and `"76.7M"` at 31.2pt. A test
+asserts the budget still leaves the bar at least 60pt, because overrunning it is
+silent: the row lays out fine and the bar just collapses to its 3pt minimum and
+stops meaning anything. `minimumScaleFactor(0.85)` is the last resort behind
+that, on the grounds that a name reading slightly small beats a name losing its
+tail.
+
+Not fixed by widening the popover, which was the other option. 340pt was chosen
+against the menu bar, not against this content, and the space to fill was already
+there.
+
+All three **approved on screen by the user 2026-08-24**, which is the only way
+rendered pixels get verified here. It took two rounds: the first fixed the rows
+and the grid and left the tabs centred, and the user caught that from a
+screenshot. Worth remembering as the same lesson the menu bar sprite taught, that
+a layout change is not verified until somebody looks at it.
 
 **The per-model breakdown collapses everything past five rows into "Other".**
 A layout guard, not cosmetics: the popover is a fixed-width menu bar window, and a

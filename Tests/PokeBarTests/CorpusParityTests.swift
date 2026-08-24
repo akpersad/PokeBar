@@ -2,7 +2,8 @@ import XCTest
 
 @testable import PokeBar
 
-/// Runs the real scanner over the real Claude Code and Codex trees.
+/// Runs the real scanner over the real Claude Code and Codex trees, and the
+/// real Copilot parser over the real `~/.copilot/session-store.db`.
 ///
 /// Opt-in via `POKEBAR_CORPUS=1` because it is not hermetic: it reads hundreds
 /// of megabytes and its numbers grow every time Claude Code is used. Its job is
@@ -205,5 +206,100 @@ final class CorpusParityTests: XCTestCase {
         XCTAssertEqual(
             second.cursors.count, first.cursors.count,
             "cursor set changed size across an idle pass")
+    }
+
+    /// Reads the live Copilot database through the parser and checks it against
+    /// the same figures computed independently with SQL through the `sqlite3`
+    /// CLI. Two code paths, one answer, which is the only way to know the C API
+    /// reads here are picking up the right columns.
+    ///
+    /// Also the only place the read-only-under-WAL open is exercised against a
+    /// database another process is actively writing. The main file measured 272
+    /// KiB against a 3.4 MiB WAL, so a reader that missed the WAL would come
+    /// back nearly empty rather than fail, which a fixture cannot catch.
+    func testCopilotParserAgreesWithSQL() throws {
+        try XCTSkipUnless(enabled, "set POKEBAR_CORPUS=1 to run against the live corpus")
+        let database = CopilotUsageParser.defaultDatabaseURL()
+        try XCTSkipUnless(
+            FileManager.default.fileExists(atPath: database.path),
+            "no Copilot CLI database at \(database.path)")
+
+        let result = CopilotUsageParser.scan(databaseURL: database, cursor: 0)
+
+        let reference = try sqlQuery(
+            database,
+            """
+            SELECT count(*), max(id),
+                   sum(input_tokens - cache_read_tokens - cache_write_tokens),
+                   sum(output_tokens), sum(cache_write_tokens), sum(cache_read_tokens)
+            FROM assistant_usage_events
+            WHERE input_tokens > 0 OR output_tokens > 0
+            """)
+        let expected = reference.split(separator: "|").map { Int($0) ?? 0 }
+        try XCTSkipUnless(expected.count == 6 && expected[0] > 0, "no rows recorded yet")
+
+        var totals = TokenCounts.zero
+        var byModel: [String: TokenCounts] = [:]
+        for entry in result.entries {
+            totals += entry.tokens
+            byModel[entry.model, default: .zero] += entry.tokens
+            XCTAssertEqual(entry.source, .copilotCLI)
+        }
+
+        print("""
+
+        ── PokeBar Copilot scan ────────────────────────────────────────
+        rows credited  : \(result.entries.count)
+        cursor         : \(result.cursor)
+        input          : \(totals.input)
+        output         : \(totals.output)
+        cache write    : \(totals.cacheWrite)
+        cache read     : \(totals.cacheRead)
+        GRAND TOTAL    : \(totals.total)
+        models         : \(byModel.keys.sorted().joined(separator: ", "))
+        ────────────────────────────────────────────────────────────────
+        """)
+
+        XCTAssertEqual(result.entries.count, expected[0], "row count")
+        XCTAssertEqual(Int(result.cursor), expected[1], "cursor is the highest row id")
+        XCTAssertEqual(totals.input, expected[2], "input net of both cache classes")
+        XCTAssertEqual(totals.output, expected[3], "output, with no reasoning added in")
+        XCTAssertEqual(totals.cacheWrite, expected[4])
+        XCTAssertEqual(totals.cacheRead, expected[5])
+
+        // Every model the CLI has actually used must resolve in the pricing
+        // table, or its usage silently earns at the unknown-model floor.
+        for model in byModel.keys {
+            XCTAssertNotNil(
+                ModelPricing().rate(for: model),
+                "\(model) is in use through Copilot CLI but has no bundled rate")
+        }
+
+        // Rescanning from the returned cursor must not surface anything already
+        // credited, which is the property the whole no-keep-max decision rests
+        // on. Compared by id set, not by ordering: these ids sort
+        // lexicographically, so "copilot|9" would look larger than
+        // "copilot|108".
+        let credited = Set(result.entries.map(\.id))
+        let rescan = CopilotUsageParser.scan(databaseURL: database, cursor: result.cursor)
+        XCTAssertTrue(
+            rescan.entries.allSatisfy { !credited.contains($0.id) },
+            "a rescan may only surface rows written since, never one already credited")
+    }
+
+    /// One value out of `sqlite3`, so the reference figures are computed by
+    /// something other than the code under test.
+    private func sqlQuery(_ database: URL, _ sql: String) throws -> String {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/sqlite3")
+        // Read-only, so a live Copilot CLI session is never disturbed by a test.
+        process.arguments = ["file:\(database.path)?mode=ro", sql]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        try process.run()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        XCTAssertEqual(process.terminationStatus, 0, "reference query must succeed")
+        return String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

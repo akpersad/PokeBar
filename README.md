@@ -1,7 +1,7 @@
 # PokeBar
 
-A macOS menu bar app that turns Claude Code and Codex token usage into a Pokémon
-collection. Personal build, not distributed.
+A macOS menu bar app that turns Claude Code, Codex and GitHub Copilot CLI token
+usage into a Pokémon collection. Personal build, not distributed.
 
 ## Status
 
@@ -11,6 +11,7 @@ layer, and the game. Live plan limits were considered and rejected, with reasons
 
 - [x] Bounded-memory JSONL streaming with resumable offsets
 - [x] Claude Code and Codex usage parsers with incremental JSONL scanning
+- [x] Copilot CLI usage read from its live SQLite store, on a row-id cursor
 - [x] Incremental scanner (cold scan 17s, warm pass 0 bytes)
 - [x] Accumulating ledger (survives relaunch, credits only growth)
 - [x] FSEvents watchers replacing timer polling

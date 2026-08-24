@@ -27,9 +27,12 @@ let package = Package(
                 // Surface data races at compile time rather than as the
                 // generation-counter whack-a-mole the upstream defect log records.
                 .swiftLanguageMode(.v6),
-            ]
-            // No sqlite3 link: both Claude Code and current Codex usage are
-            // append-only JSONL. Cursor, Copilot and Kiro remain out of scope.
+            ],
+            // Copilot CLI usage lives in `~/.copilot/session-store.db`, a live
+            // SQLite database, not append-only JSONL like Claude Code and Codex.
+            // `libsqlite3` ships with the OS; this only needs linking, not a
+            // package dependency. Cursor and Kiro remain out of scope.
+            linkerSettings: [.linkedLibrary("sqlite3")]
         ),
         .testTarget(
             name: "PokeBarTests",
