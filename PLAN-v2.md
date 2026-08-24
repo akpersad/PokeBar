@@ -1,6 +1,6 @@
 # PokeBar v2 work plan
 
-Written 2026-08-24. **Steps 0 to 3 are built; steps 4 to 7 are not started.**
+Written 2026-08-24. **Steps 0 to 5 are built; steps 6 and 7 are not started.**
 Priority order is the user's, set in the brainstorm that produced this file:
 **the team comes first.**
 
@@ -291,7 +291,7 @@ identical figure with it on, both flags round trip through a save, and off means
 
 ---
 
-## Step 4: the UI for steps 1 to 3
+## Step 4: the UI for steps 1 to 3 — DONE 2026-08-24
 
 Views hold no logic, so everything here routes through `GameFormat`. Tests go
 there, not in view bodies.
@@ -309,9 +309,38 @@ there, not in view bodies.
 - **`FloatingPetPanel` follows slot 1**, matching the menu bar.
 - Copy rule: no em dashes in anything rendered.
 
+**As built.** All seven of those, plus the Exp Share shop row that step 3 held
+back. Six calls the spec left open, all recorded in DECISIONS.md under "the team
+on screen":
+
+- **The card is the selected member and the rows are the rest**, with the selected
+  member's row skipped. Six cards do not fit in 312pt, and the useful side effect
+  is that a team of one renders exactly what it rendered before v2.
+- **Selection is the target for all three aimed things**: Rare Candy, Everstone,
+  promote. Three controls per row was the alternative.
+- **Promote, not drag.** Slots 2 to 6 take the same share, so their order is
+  cosmetic and "Make lead" covers every reorder that changes anything. A drag list
+  in a 340pt popover is also untestable.
+- **The Dex button labels itself** through `Trainer.raiseAction`: "Resume at level
+  47" or "Raise a new one". Two very different outcomes behind one unlabelled click
+  is how a stray press leaves a junk level 1 duplicate in the roster.
+- **The bench is best first and capped at six rows**, with a count of what is
+  hidden. It grows without limit because nothing is ever deleted.
+- **The scroll area is measured and clamped** (140 to 250) rather than pinned like
+  the Dex and Shop panes, because this one is a single card on a fresh install and
+  six slots plus a bench of twenty later.
+
+Deleted, as promised: `Trainer.switchTo`, `evolveActive`, `Trainer.active`, and the
+lead-only `useRareCandy` and `setEverstone` overloads. Every verb names its
+individual now.
+
+**Awaiting the user's eyes.** Rendered pixels can only be confirmed by asking.
+Also newly reachable: the live Charizard is level 51, so the Dex **silver ring**
+can finally be looked at.
+
 ---
 
-## Step 5: docs
+## Step 5: docs — DONE 2026-08-24, alongside each step
 
 CLAUDE.md invariants, the architecture block, the game-layer figures table, and
 the state section. New invariants earned by steps 0 to 3: the backup-before-read

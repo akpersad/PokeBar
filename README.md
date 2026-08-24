@@ -29,13 +29,13 @@ layer, and the game. Live plan limits were considered and rejected, with reasons
 - [x] Levels persist per individual: switching away costs nothing at all
 - [x] A team of up to 6 gains XP from the same credit, lead at 1.0 and bench at 0.8
 - [x] Exp Share: 10,000 coins to put every bench slot on the lead's rate
+- [x] The team on screen: six slots, a bench you can bring anyone back from
 
-v1 is feature-complete and **v2 is underway**. The game rules are in: levels that
-persist per individual, a dated backup of the save file, team XP, and the Exp
-Share. **None of it is reachable from the popover yet**, which is the next step and
-the one that makes any of it visible. Still ahead after that: per-project
-attribution and a login item. The plan is [PLAN-v2.md](PLAN-v2.md) and the
-decisions behind it are in [DECISIONS.md](DECISIONS.md).
+v1 is feature-complete and **v2 is most of the way there**. Levels persist per
+individual, the save file is backed up daily, a team of six gains XP together, the
+Exp Share is in the shop, and all of it is in the Raise pane. Still ahead:
+per-project attribution and a login item. The plan is [PLAN-v2.md](PLAN-v2.md) and
+the decisions behind it are in [DECISIONS.md](DECISIONS.md).
 
 The v1 tuning that is left is deliberately not scheduled: the Dust prices are
 generous on purpose and will be adjusted on hitting the wall, not before. See

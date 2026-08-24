@@ -170,6 +170,98 @@ final class GameFormatTests: XCTestCase {
             "waypoints are not tallied")
     }
 
+    // MARK: The team
+
+    func testTeamSummaryCarriesTheMultiplier() {
+        XCTAssertEqual(GameFormat.teamSummary(occupied: 1, capacity: 6, expShare: false),
+                       "Team 1 of 6 · 1x XP")
+        XCTAssertEqual(GameFormat.teamSummary(occupied: 2, capacity: 6, expShare: false),
+                       "Team 2 of 6 · 1.8x XP")
+        XCTAssertEqual(GameFormat.teamSummary(occupied: 6, capacity: 6, expShare: false),
+                       "Team 6 of 6 · 5x XP")
+        XCTAssertEqual(GameFormat.teamSummary(occupied: 6, capacity: 6, expShare: true),
+                       "Team 6 of 6 · 6x XP")
+        XCTAssertEqual(GameFormat.teamSummary(occupied: 0, capacity: 6, expShare: false),
+                       "Team 0 of 6 · 0x XP")
+    }
+
+    /// A trailing zero on a round number reads like false precision.
+    func testMultiplierDropsAPointlessDecimal() {
+        XCTAssertEqual(GameFormat.multiplier(5.0), "5x")
+        XCTAssertEqual(GameFormat.multiplier(2.6), "2.6x")
+        XCTAssertEqual(GameFormat.multiplier(1.7999999), "1.8x")
+        XCTAssertEqual(GameFormat.multiplier(0.8), "0.8x")
+    }
+
+    /// Slot 1 is the only one that means anything, so it is the only one with a
+    /// name rather than a number.
+    func testSlotLabelsAndShares() {
+        XCTAssertEqual(GameFormat.slotLabel(0), "Lead")
+        XCTAssertEqual(GameFormat.slotLabel(1), "Slot 2")
+        XCTAssertEqual(GameFormat.slotLabel(5), "Slot 6")
+        XCTAssertEqual(GameFormat.shareLine(slot: 0, expShare: false), "Full XP")
+        XCTAssertEqual(GameFormat.shareLine(slot: 3, expShare: false), "80% XP")
+        XCTAssertEqual(GameFormat.shareLine(slot: 3, expShare: true), "Full XP")
+    }
+
+    /// A graduated member's share is deliberately not redistributed, so the
+    /// player has to be told rather than quietly compensated.
+    func testTheWastedSlotNoteOnlyAppearsWhenThereIsWaste() {
+        XCTAssertNil(GameFormat.wastedSlotNote(graduated: 0))
+        XCTAssertEqual(
+            GameFormat.wastedSlotNote(graduated: 1),
+            "1 graduated Pokemon is taking a team slot and earning nothing. Bench to free the share.")
+        XCTAssertTrue(
+            try XCTUnwrap(GameFormat.wastedSlotNote(graduated: 3)).hasPrefix("3 graduated Pokemon are"))
+    }
+
+    /// The Dex button says which of two very different things it will do.
+    func testRaiseActionTitles() {
+        let id = UUID()
+        XCTAssertEqual(
+            GameFormat.raiseActionTitle(.resume(raiseID: id, level: 47)), "Resume at level 47")
+        XCTAssertEqual(GameFormat.raiseActionTitle(.startNew), "Raise a new one")
+        XCTAssertEqual(GameFormat.raiseActionTitle(.alreadyRaising), "On your team")
+        XCTAssertEqual(GameFormat.raiseActionTitle(.teamFull), "Team is full")
+        XCTAssertEqual(GameFormat.raiseActionTitle(.notOwned), "Not caught yet")
+
+        XCTAssertTrue(GameFormat.canRaise(.resume(raiseID: id, level: 1)))
+        XCTAssertTrue(GameFormat.canRaise(.startNew))
+        for refusal: Trainer.RaiseAction in [.alreadyRaising, .teamFull, .notOwned] {
+            XCTAssertFalse(GameFormat.canRaise(refusal), "\(refusal)")
+        }
+    }
+
+    /// The bench grows without limit because nothing is ever deleted, so the pane
+    /// summarises past one screen. A count under exactly as many rows is noise.
+    func testBenchOverflowNoteOnlyAppearsWhenSomethingIsHidden() {
+        XCTAssertNil(GameFormat.benchOverflowNote(total: 1))
+        XCTAssertNil(GameFormat.benchOverflowNote(total: GameFormat.benchRowLimit))
+        XCTAssertEqual(
+            GameFormat.benchOverflowNote(total: 23), "Showing the 6 furthest along of 23.")
+    }
+
+    func testRareCandyAlwaysNamesItsTarget() {
+        XCTAssertEqual(
+            GameFormat.rareCandyTarget("Charizard"), "10,000 XP for Charizard.")
+        XCTAssertEqual(
+            GameFormat.rareCandyTarget(nil), "Select a Pokemon to use it on.")
+    }
+
+    /// The shop line is derived from the curve, so turning the bench dial cannot
+    /// leave it advertising the old rate.
+    func testExpShareCopyIsDerivedFromTheCurve() {
+        XCTAssertEqual(
+            GameFormat.expShareDetail(enabled: nil),
+            "Every Pokemon on the bench earns at the lead's rate. A full team goes from 5x XP to 6x XP, forever.")
+        XCTAssertEqual(
+            GameFormat.expShareDetail(enabled: true),
+            "On. Every slot earns the lead's rate, so a full team is 6x XP.")
+        XCTAssertEqual(
+            GameFormat.expShareDetail(enabled: false),
+            "Off. Bench slots are back to 0.8x each, so a full team is 5x XP.")
+    }
+
     /// Every user-facing string in this project avoids em dashes, including the
     /// ones assembled at runtime.
     func testNoEmDashesInGeneratedCopy() throws {
@@ -194,6 +286,23 @@ final class GameFormatTests: XCTestCase {
             GameFormat.describe(.levelledUp(raiseID: UUID(), to: 5), dex: dex),
         ]
         strings += dex.entries.prefix(200).flatMap(\.evolutions).map(GameFormat.requirement)
+        strings += [
+            GameFormat.teamSummary(occupied: 3, capacity: 6, expShare: true),
+            GameFormat.slotLabel(2),
+            GameFormat.shareLine(slot: 1, expShare: false),
+            GameFormat.wastedSlotNote(graduated: 2) ?? "",
+            GameFormat.raiseActionTitle(.resume(raiseID: UUID(), level: 9)),
+            GameFormat.raiseActionTitle(.teamFull),
+            GameFormat.benchOverflowNote(total: 40) ?? "",
+            GameFormat.rareCandyTarget("Lapras"),
+            GameFormat.rareCandyTarget(nil),
+            GameFormat.expShareDetail(enabled: nil),
+            GameFormat.expShareDetail(enabled: true),
+            GameFormat.expShareDetail(enabled: false),
+            GameFormat.describe(Trainer.GameError.teamFull),
+            GameFormat.describe(Trainer.GameError.alreadyOnTeam),
+            GameFormat.describe(Trainer.GameError.unknownIndividual(UUID())),
+        ]
         for text in strings {
             XCTAssertFalse(text.contains("\u{2014}"), text)
             XCTAssertFalse(text.contains("\u{2013}"), text)

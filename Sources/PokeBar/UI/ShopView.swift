@@ -41,6 +41,7 @@ struct ShopView: View {
                             detail: "Shiny odds go from 1 in \(Prices.shinyOdds) to 1 in \(Prices.shinyOddsWithCharm), forever",
                             held: 0)
                     }
+                    expShare
                 }
                 section("EVOLUTION ITEMS") {
                     Text("Held items unlock the 95 evolutions that no amount of levelling will.")
@@ -56,6 +57,46 @@ struct ShopView: View {
             .padding(.trailing, 4)
         }
         .frame(height: 280)
+    }
+
+    /// Every bench slot on the lead's rate.
+    ///
+    /// **A boost, never a split.** The whole credit still goes to slot 1 and the
+    /// whole credit goes to each bench slot too, so this takes a full team from
+    /// 5x to 6x. An item that divided one credit six ways would have made a paid
+    /// purchase slower than the free default.
+    ///
+    /// The toggle lives here rather than in the Raise pane because this is where
+    /// the item is. What it *does* is visible there, in the team's multiplier.
+    @ViewBuilder
+    private var expShare: some View {
+        if game.trainer.hasExpShare {
+            VStack(alignment: .leading, spacing: 1) {
+                Toggle(isOn: Binding(
+                    get: { game.trainer.expShareEnabled },
+                    set: { game.setExpShare($0) })
+                ) {
+                    HStack(spacing: 5) {
+                        Label("Exp Share", systemImage: "square.stack.3d.up.fill")
+                            .font(.callout)
+                        Text("Owned")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+                Text(GameFormat.expShareDetail(enabled: game.trainer.expShareEnabled))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        } else {
+            row(
+                .expShare, name: "Exp Share",
+                detail: GameFormat.expShareDetail(enabled: nil),
+                held: 0)
+        }
     }
 
     private func section(

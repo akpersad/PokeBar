@@ -56,6 +56,104 @@ enum GameFormat {
         return "over a month"
     }
 
+    // MARK: The team
+
+    /// "Team 3 of 6 · 2.6x XP". The multiplier is there because "why is a team
+    /// worth having" deserves a number rather than a paragraph.
+    static func teamSummary(occupied: Int, capacity: Int, expShare: Bool) -> String {
+        let rate = XPCurve.teamMultiplier(occupiedSlots: occupied, expShare: expShare)
+        return "Team \(occupied) of \(capacity) · \(multiplier(rate)) XP"
+    }
+
+    /// "2.6x", and "5x" rather than "5.0x": a trailing zero on a round number
+    /// reads like false precision.
+    static func multiplier(_ rate: Double) -> String {
+        let rounded = (rate * 10).rounded() / 10
+        return rounded == rounded.rounded()
+            ? "\(Int(rounded))x" : String(format: "%.1fx", rounded)
+    }
+
+    /// Slot 1 is the only one that means anything, so it gets a name and the rest
+    /// get numbers.
+    static func slotLabel(_ slot: Int) -> String {
+        slot == 0 ? "Lead" : "Slot \(slot + 1)"
+    }
+
+    /// What one bench slot is currently earning, for the caption under a row.
+    static func shareLine(slot: Int, expShare: Bool) -> String {
+        let share = XPCurve.share(forSlot: slot, expShare: expShare)
+        return share >= XPCurve.leadShare
+            ? "Full XP" : "\(Int((share * 100).rounded()))% XP"
+    }
+
+    /// A graduated Pokemon in the team is wasting a share, and its share is
+    /// deliberately not redistributed, so the player has to be told rather than
+    /// quietly compensated. Nil when there is nothing to say.
+    static func wastedSlotNote(graduated: Int) -> String? {
+        guard graduated > 0 else { return nil }
+        let subject = graduated == 1
+            ? "1 graduated Pokemon is" : "\(graduated) graduated Pokemon are"
+        return "\(subject) taking a team slot and earning nothing. Bench to free the share."
+    }
+
+    /// What the Dex button will do, said before it is pressed.
+    static func raiseActionTitle(_ action: Trainer.RaiseAction) -> String {
+        switch action {
+        case .resume(_, let level): "Resume at level \(level)"
+        case .startNew: "Raise a new one"
+        case .alreadyRaising: "On your team"
+        case .teamFull: "Team is full"
+        case .notOwned: "Not caught yet"
+        }
+    }
+
+    /// Whether that button should be pressable. The two refusals are states, not
+    /// errors: the player is being told why, not stopped with a message.
+    static func canRaise(_ action: Trainer.RaiseAction) -> Bool {
+        switch action {
+        case .resume, .startNew: true
+        case .alreadyRaising, .teamFull, .notOwned: false
+        }
+    }
+
+    /// How many bench rows the Raise pane draws before it summarises.
+    ///
+    /// The bench grows without limit, because nothing is ever deleted and every
+    /// switch adds to it. Six is one screen's worth and matches the team it feeds.
+    static let benchRowLimit = 6
+
+    /// "Showing the 6 furthest along of 23." Nil when everything is on screen: a
+    /// count that says "of 4" under exactly 4 rows is noise.
+    static func benchOverflowNote(total: Int) -> String? {
+        guard total > benchRowLimit else { return nil }
+        return "Showing the \(benchRowLimit) furthest along of \(total)."
+    }
+
+    /// The Rare Candy is always aimed, so the button says at whom.
+    static func rareCandyTarget(_ name: String?) -> String {
+        guard let name else { return "Select a Pokemon to use it on." }
+        return "\(UsageFormat.groupedInt(Int(Prices.rareCandyXP))) XP for \(name)."
+    }
+
+    /// The Exp Share, in the shop. Nil `enabled` means it is not owned yet, so
+    /// the line has to sell it rather than describe a switch.
+    ///
+    /// The figures are derived, never typed in, so turning the bench dial in
+    /// `XPCurve` cannot leave the shop advertising the old rate.
+    static func expShareDetail(enabled: Bool?) -> String {
+        let full = multiplier(XPCurve.teamMultiplier(occupiedSlots: Trainer.teamCapacity))
+        let boosted = multiplier(
+            XPCurve.teamMultiplier(occupiedSlots: Trainer.teamCapacity, expShare: true))
+        switch enabled {
+        case nil:
+            return "Every Pokemon on the bench earns at the lead's rate. A full team goes from \(full) XP to \(boosted) XP, forever."
+        case true:
+            return "On. Every slot earns the lead's rate, so a full team is \(boosted) XP."
+        case false:
+            return "Off. Bench slots are back to \(multiplier(XPCurve.benchShare)) each, so a full team is \(full) XP."
+        }
+    }
+
     // MARK: Collection
 
     /// "412 of 1,083 seen (38%)". Percentages are floored, never rounded up: a

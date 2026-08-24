@@ -86,6 +86,27 @@ enum PopoverMetrics {
     /// What a pane actually gets to lay out in: 312pt.
     static var contentWidth: CGFloat { width - 2 * padding }
 
+    /// The scrolling part of the Raise pane: the card, the other slots and the
+    /// bench.
+    ///
+    /// **Sized to its content and then clamped**, rather than pinned at one
+    /// height like the Dex and Shop panes. Those two are always full, so a fixed
+    /// frame is honest for them. This one is a card and nothing else on a fresh
+    /// install and six slots plus a bench of twenty later, so a fixed frame would
+    /// mean either dead space at the start or a popover 900pt tall at the end.
+    enum RaisePane {
+        /// Enough for the card, so the pane does not flash short on first layout
+        /// before the content has been measured.
+        static let minHeight: CGFloat = 140
+        /// Past this it scrolls. Chosen so the pane plus the currency row, the
+        /// tabs, the buttons and the feed still fit a laptop screen.
+        static let maxHeight: CGFloat = 250
+
+        static func height(forContent height: CGFloat) -> CGFloat {
+            min(max(height, minHeight), maxHeight)
+        }
+    }
+
     /// One row of the per-model breakdown: `name | bar | share | total`.
     ///
     /// The name column is fixed and the **bar** flexes, which is the way round

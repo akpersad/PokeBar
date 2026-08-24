@@ -70,7 +70,7 @@ struct MenuBarLabel: View {
         case .scanning: return coins + ", reading usage history"
         case .failed: return coins + ", usage reading failed"
         case .idle, .watching:
-            if let raise = game.active, let entry = game.activeEntry {
+            if let raise = game.lead, let entry = game.leadEntry {
                 coins += ", raising \(entry.name) at level \(raise.level)"
             } else if let name = sprite.entry?.name {
                 coins += ", showing \(name)"

@@ -56,17 +56,46 @@ final class GameMonitor {
 
     var coins: Int { trainer.coins(earned: coinsEarned) }
     var dust: Int { trainer.dust }
-    var active: Raise? { trainer.active }
     var log: CatchLog { trainer.log }
-    /// Every individual ever raised, and the ones not currently training. What
-    /// the bench picker will read; nothing here is ever deleted.
+
+    /// Team slot 1. What the status item and the desktop pet draw, and the only
+    /// member on the full XP share.
+    var lead: Raise? { trainer.lead }
+
+    /// Every individual ever raised, and the ones not currently training. Nothing
+    /// here is ever deleted, which is what makes the bench picker possible.
     var roster: [Raise] { trainer.roster }
     var benched: [Raise] { trainer.benched }
 
-    /// The entry being raised, resolved. Nil before the first hatch.
-    var activeEntry: DexEntry? {
-        guard let dex, let active else { return nil }
-        return dex.entry(id: active.entryID)
+    /// The team in slot order, each resolved to what it is right now.
+    var teamMembers: [(slot: Int, raise: Raise, entry: DexEntry)] {
+        guard let dex else { return [] }
+        return trainer.teamRaises.enumerated().compactMap { slot, raise in
+            guard let entry = dex.entry(id: raise.entryID) else { return nil }
+            return (slot, raise, entry)
+        }
+    }
+
+    /// The bench, resolved, **best first**. "Bring back my strongest" is the
+    /// question this list exists to answer.
+    var benchMembers: [(raise: Raise, entry: DexEntry)] {
+        guard let dex else { return [] }
+        return trainer.benched
+            .sorted { $0.totalXP > $1.totalXP }
+            .compactMap { raise in
+                guard let entry = dex.entry(id: raise.entryID) else { return nil }
+                return (raise, entry)
+            }
+    }
+
+    /// Members in the team that have graduated and are therefore earning nothing.
+    /// Surfaced rather than compensated for, per invariant 32.
+    var graduatedInTeam: Int { trainer.teamRaises.filter(\.isGraduated).count }
+
+    /// The lead entry, resolved. Nil before the first hatch.
+    var leadEntry: DexEntry? {
+        guard let dex, let lead else { return nil }
+        return dex.entry(id: lead.entryID)
     }
 
     /// What the status item should draw: the active Pokemon, or the daily
@@ -78,8 +107,8 @@ final class GameMonitor {
     /// stranger.
     func statusItem(on date: Date = Date()) -> (entry: DexEntry, variant: SpriteVariant)? {
         guard let dex else { return nil }
-        if let active, let entry = dex.entry(id: active.entryID) {
-            return (entry, active.variant(in: dex))
+        if let lead, let entry = dex.entry(id: lead.entryID) {
+            return (entry, lead.variant(in: dex))
         }
         guard let featured = dex.featured(on: date) else { return nil }
         return (featured, .normal)
@@ -98,11 +127,27 @@ final class GameMonitor {
 
     func canAfford(_ item: Trainer.ShopItem) -> Bool { coins >= item.priceInCoins }
 
-    /// Evolutions the player could take right now, including ones waiting on a
-    /// choice. What the popover offers as buttons.
-    var pendingEvolutions: [(edge: Evolution, target: DexEntry)] {
+    /// Every team member with an evolution waiting, in slot order, resolved.
+    ///
+    /// A list rather than a single prompt, because one credit can leave several
+    /// members waiting on the player at once and hiding five of them behind a
+    /// selection would mean a decision nobody knows they are holding up.
+    var teamPendingEvolutions: [(raise: Raise, entry: DexEntry, options: [(edge: Evolution, target: DexEntry)])] {
         guard let dex else { return [] }
-        return trainer.pendingEvolutions(dex: dex)
+        return trainer.teamPendingEvolutions(dex: dex).compactMap { pending in
+            guard let raise = trainer.raise(id: pending.raiseID),
+                  let entry = dex.entry(id: raise.entryID)
+            else { return nil }
+            return (raise, entry, pending.options)
+        }
+    }
+
+    /// What "raise this one" would do for a dex entry, so the button can say so.
+    func raiseAction(entryID: Int, shiny: Bool = false, gender: Gender? = nil)
+        -> Trainer.RaiseAction
+    {
+        guard let dex else { return .notOwned }
+        return trainer.raiseAction(entryID: entryID, shiny: shiny, gender: gender, dex: dex)
     }
 
     /// Settles notification permission once the player has something to raise.
@@ -110,7 +155,7 @@ final class GameMonitor {
     /// Called from the status item, which is the one view alive for the whole run,
     /// so this does not depend on the popover ever being opened.
     func prepareNotifications() async {
-        guard trainer.active != nil else { return }
+        guard trainer.lead != nil else { return }
         await notifier.requestIfNeeded()
     }
 
@@ -154,15 +199,15 @@ final class GameMonitor {
         persist()
     }
 
-    func useRareCandy() throws {
+    func useRareCandy(on raiseID: UUID) throws {
         guard let dex else { return }
-        record(try trainer.useRareCandy(dex: dex))
+        record(try trainer.useRareCandy(on: raiseID, dex: dex))
         persist()
     }
 
-    func evolveActive(into targetID: Int) throws {
+    func evolve(_ raiseID: UUID, into targetID: Int) throws {
         guard let dex else { return }
-        record(try trainer.evolveActive(into: targetID, dex: dex))
+        record(try trainer.evolve(raiseID, into: targetID, dex: dex))
         persist()
     }
 
@@ -184,18 +229,17 @@ final class GameMonitor {
         persist()
     }
 
-    func setEverstone(_ held: Bool) {
+    func setEverstone(_ held: Bool, on raiseID: UUID) {
         guard let dex else { return }
-        record(trainer.setEverstone(held, dex: dex))
+        record(trainer.setEverstone(held, of: raiseID, dex: dex))
         persist()
     }
 
-    /// The one switch the popover can express: make this the Pokemon being
-    /// raised. Resumes an individual of that sprite if the roster holds one, at
-    /// the level it stopped at, and starts a new one otherwise.
-    func switchTo(entryID: Int, shiny: Bool = false, gender: Gender? = nil) throws {
+    /// Resumes a benched individual of this entry, or starts a new one. What the
+    /// Dex button does, and `raiseAction` is how it labelled itself first.
+    func raiseOrResume(entryID: Int, shiny: Bool = false, gender: Gender? = nil) throws {
         guard let dex else { return }
-        try trainer.switchTo(entryID: entryID, shiny: shiny, gender: gender, dex: dex)
+        try trainer.raiseOrResume(entryID: entryID, shiny: shiny, gender: gender, dex: dex)
         persist()
     }
 
@@ -208,6 +252,12 @@ final class GameMonitor {
     /// Stops training an individual without losing anything it earned.
     func bench(raiseID: UUID) {
         guard trainer.removeFromTeam(raiseID: raiseID) else { return }
+        persist()
+    }
+
+    /// Moves a member to slot 1: the full XP share, and the menu bar.
+    func promoteToLead(raiseID: UUID) throws {
+        try trainer.promoteToLead(raiseID: raiseID)
         persist()
     }
 

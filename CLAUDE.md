@@ -110,7 +110,7 @@ Sources/PokeBar/
     MenuBarLabel.swift          status item: sprite + coin count
     PokeBarPopover.swift        the menu bar window: chrome, currency, tabs
     SegmentedTabs.swift         NSSegmentedControl bridge; the tabs that fill
-    CompanionView.swift         the Pokemon being raised, and what changes it
+    CompanionView.swift         the team, the bench, and what changes them
     DexView.swift               1,083 tiles plus a detail pane
     ShopView.swift              what coins buy
     SpriteTile.swift            one still sprite, fetched on appearance
@@ -373,15 +373,19 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     would make filling the team a downgrade, which is incoherent for the thing the
     player is working towards. XP that would go to a graduated individual is simply
     not granted: redistributing it would quietly change what the lead slot means
-    the moment it hits 100. The bench figure is the dial and lives in `XPCurve`
-    alone. The 5x is affordable only because what it accelerates is *graduation*,
+    the moment it hits 100. The waste is *surfaced* instead, by
+    `GameFormat.wastedSlotNote` in the team header. The bench figure is the dial
+    and lives in `XPCurve` alone. The 5x is affordable only because what it accelerates is *graduation*,
     and graduation deliberately pays out nothing.
 
 33. **Rare Candy feeds one individual, never the team.** `useRareCandy` calls
     `grant` against one `raiseID`, not `credit`. Routed through `credit` it would
     hand 10,000 XP to all six for 250 coins, turning the one targeted item in the
     game into a permanent 5x team boost and the only sensible purchase in the shop.
-    It defaults to the lead until step 4 gives the button a picker.
+    There is deliberately no "use it on whoever is
+    in front" form: with six members that is a silent choice made on the player's
+    behalf for the one item whose whole point is choosing. The Raise pane aims it
+    at the selected member.
 
 34. **Same-kind alerts from one credit are grouped into one banner.**
     `Notifier.announcements(for:dex:)`, not `announcement(for:)` per event. Volume
@@ -474,37 +478,35 @@ writing, which a fixture cannot reproduce.
 
 ## State
 
-**Phases 1 through 4: complete.** 329 tests, 0 failures (330 with
+**Phases 1 through 4: complete.** 340 tests, 0 failures (341 with
 `POKEBAR_CORPUS=1`).
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
 
-**Next action, in one sentence: implement step 4 of [PLAN-v2.md](PLAN-v2.md), the
-UI for everything steps 1 to 3 built, because none of it is reachable from the
-popover today and the whole point of the team is currently invisible.**
+**Next action, in one sentence: ask the user to look at the rebuilt Raise pane and
+at Charizard's Dex tile, because steps 1 to 4 are code-complete and what is left on
+them is the one kind of verification that cannot be done from here.**
 
-v2 was scoped 2026-08-24. **Steps 0 to 3 are done**: the dated save backup
+v2 was scoped 2026-08-24. **Steps 0 to 4 are done**: the dated save backup
 (invariant 29), the roster (invariants 30 and 31), the team gaining XP together
-(invariants 32 to 34) and the Exp Share. Steps 4 onward are not started. The plan carries the
-ordering and the reasoning; DECISIONS.md carries the decisions.
+(invariants 32 to 34), the Exp Share, and the UI for all of it. Steps 6 and 7,
+per-project attribution and the LaunchAgent, are not started; step 5 is these docs.
+The plan carries the ordering and the reasoning; DECISIONS.md carries the
+decisions.
 
-**The model is ahead of the UI on purpose, and that is the thing to know before
-touching step 4.** `Trainer` supports a full team of 6 today, but nothing the
-popover offers can build one: `switchTo` clears the other slots, and hatching only
-starts a raise when the team is empty. So the shipped app still behaves as a team
-of one, and every team rule is currently covered by tests rather than by play.
-Step 4 is what makes steps 1 to 3 visible. The per-individual seams it needs are
-already there: `pendingEvolutions(of:)`, `teamPendingEvolutions(dex:)`,
-`evolve(_:into:)`, `useRareCandy(on:)` and `setEverstone(_:of:)`, plus
-`GameMonitor.resume(raiseID:)`, `bench(raiseID:)` and `setExpShare(_:)`. The Exp
-Share also still needs its shop row, deliberately left out until a team can exist.
-`Trainer.switchTo` is the transitional verb step 4 deletes.
+**The transitional shims are gone**, which is the thing to know before reading the
+game layer cold. `Trainer.switchTo`, `evolveActive`, the lead-only `useRareCandy`
+and `setEverstone`, and `Trainer.active` were all deleted in step 4: every verb now
+names the individual it acts on, and `lead` is the only word for team slot 1. The
+Dex button goes through `raiseAction` / `raiseOrResume`, which resume a benched
+individual rather than starting a new one.
 
-Still true and still unverified: the Dex silver ring at level 50 has never been
-looked at against the dark grid, because rendered pixels here can be confirmed
-only by asking the user to look. Nothing is half-built. The Dust prices were
+**Now reachable and still unverified: the Dex silver ring.** The live Charizard is
+level 51 with a recorded level 50 milestone, so its tile should draw a silver ring
+against the dark grid. Nobody has looked at it, because rendered pixels here can be
+confirmed only by asking the user. Nothing is half-built. The Dust prices were
 deliberately deferred by the user on 2026-08-24 rather than left pending, so do
 not treat them as the next step.
 
@@ -515,16 +517,18 @@ What the game does now:
 - **Hatch** an egg for 300 coins. Draws from the 570 hatchable entries weighted on
   raw `captureRate`, rolls shiny at 1/64 (1/48 with the charm) and sex from the
   species' real gender rate.
-- **Raise** one Pokemon at a time, and **never lose one**. Every individual ever
+- **Raise a team of up to 6**, and **never lose one**. Every individual ever
   raised sits in `Trainer.roster` with its levels, its XP and the stone it was
   holding; `Trainer.team` says who is training. Switching away costs nothing, and
   bringing a level 47 Charizard back resumes it rather than starting a new one.
   Every weighted token grants XP here *and* mints a coin in the ledger, in
-  parallel, never from a shared pool. Level 100 is 4.63 days at this machine's
-  throughput, or 0.93 days for a full team. **A team of up to 6 all gain XP from
-  the same credit**, slot 1 at full rate and each bench slot at 0.8, so a full team
-  absorbs 5.0x. The credit is never divided. Nothing in the popover can build a
-  team of more than one yet: that is step 4. See PLAN-v2.md.
+  parallel, never from a shared pool. **Every member gains from the same credit**,
+  slot 1 at the full rate and each bench slot at 0.8, so a full team absorbs 5.0x,
+  or 6.0x with an **Exp Share**. The credit is never divided. Level 100 is 4.63
+  days at this machine's throughput for one Pokemon, 0.93 for a full team. The
+  Raise pane shows the team, the bench and the multiplier; the Dex button resumes a
+  benched individual rather than starting a new one, and says which it will do
+  before it is pressed.
 - **Evolve.** Item-free edges fire on their own and chain; item edges wait for the
   stone; branching waits for the player. Shininess carries through. An **Everstone**
   toggle holds a Pokemon as it is, and queues rather than cancels: take it off and
@@ -558,15 +562,13 @@ The economy in one line each, all recorded in DECISIONS.md with the measurement:
 - Switching Pokémon is **free, with no level gate, and now costs nothing at all**.
   Levels persist per individual, permanently, in an append-only roster keyed on
   `Raise.id`. The v1 rule that a switch abandoned that individual's levels is
-  reversed and gone. See invariants 30 and 31.
+  reversed and gone. The bench list in the Raise pane is where they wait. See
+  invariants 30 and 31.
 - "Caught" is an **append-only event log** with the views derived, the same shape as
   `UsageLedger`. No `nature` field: there is no stat raising to feed it.
 - A variant is ownable **iff its sprite file exists**: 2,368 sprites, not 1,083 x 4.
-- Shop keeps Rare Candy, Shiny Charm and the **Exp Share** at 10,000. **Mint is
-  rejected**, not deferred. The Exp Share is bought and toggled in `Trainer` but is
-  deliberately **not listed in `ShopView` yet**: it only affects bench slots, and
-  nothing in the popover can build a team, so listing it would sell an item that
-  does nothing observable. The row goes in with step 4.
+- Shop keeps Rare Candy, Shiny Charm and the **Exp Share** at 10,000, whose
+  toggle sits under it once owned. **Mint is rejected**, not deferred.
 
 The app runs via `scripts/bundle.sh`. The status item shows the Pokemon being
 raised plus the coin count; the popover has four tabs (Raise, Dex, Shop, Usage) and
@@ -616,6 +618,13 @@ wrong answer, not a fix: it shipped bunched left, then centred, and both were
 caught on screen. `.fillEqually` is the only knob that works. Do not "simplify"
 this back to a `Picker`; the bug it fixes is invisible in code and only shows up
 in rendered pixels. **Approved on screen by the user 2026-08-24.**
+
+**The Raise pane's scroll area is measured and clamped, not pinned.** The Dex and
+Shop panes are always full so a fixed 280pt frame is honest for them; the Raise
+pane is one card on a fresh install and six slots plus a bench of twenty later.
+`PopoverMetrics.RaisePane` holds the bounds (140 to 250) and `onGeometryChange`
+feeds it the measured content height. A fixed frame here means dead space at one
+end or a 900pt popover at the other.
 
 **Popover geometry lives in `PopoverMetrics`, not in the view bodies.** The
 popover is a chosen 340pt with 14pt padding, so a pane lays out in 312pt, and the

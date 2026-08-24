@@ -1307,8 +1307,8 @@ Decisions only. The sequencing, the migration detail and the test list live in
 [PLAN-v2.md](PLAN-v2.md), and are deliberately not duplicated here: one copy of
 one fact, the same rule `CatchLog` follows.
 
-**Steps 0 to 3 are implemented, 2026-08-24.** Everything else below is not: the
-UI for any of it, per-project attribution and the LaunchAgent.
+**Steps 0 to 4 are implemented, 2026-08-24.** Everything else below is not:
+per-project attribution and the LaunchAgent.
 
 ### The save is copied aside before it is read
 
@@ -1459,10 +1459,9 @@ Three smaller calls:
   both defaulting to false. One combined field could not express "bought, switched
   off", and a save from before either existed has to mean neither.
 
-**Deliberately not in the shop UI yet.** The item only affects bench slots, and
-nothing the popover offers can build a team of more than one, so listing it today
-would sell a 10,000 coin item that does *nothing observable*. The row goes in with
-the team UI in step 4.
+It was deliberately kept out of the shop until the team UI existed, because until
+then it would have sold a 10,000 coin item that did nothing observable. It is
+listed now, and the toggle sits under it once owned.
 
 **The 5x to 6x XP inflation is accepted, and the reason is that graduation pays
 out nothing.** This looks like it contradicts "raising time is the bottleneck",
@@ -1488,6 +1487,58 @@ would leave holes that can never be backfilled, because the ledger credits each
 turn exactly once and cursors do not rewind. The toggle is therefore a display
 preference in `UserDefaults`, never in `game-state.json`: nothing re-derivable
 belongs in the one file that cannot be re-derived.
+
+### The team on screen
+
+Step 4 of the plan, implemented 2026-08-24. Every rule was already in `Trainer`;
+what this decided is how 6 slots, a bench and three aimed items fit in 312pt.
+
+**The card is the selected member, and the rows are the rest.** One detail view
+plus a list, not six cards: six of anything with a progress bar does not fit. The
+selected member's row is *skipped*, because the card above is that row expanded,
+and the useful side effect is that a team of one renders exactly what it rendered
+before any of this existed. The pane a returning v1 player sees is unchanged.
+
+**Selection answers three questions at once**, which is the only reason it exists:
+which Pokemon gets the Rare Candy, which one the Everstone is for, and which one
+is being promoted. Aiming each separately would be three controls per row, on a
+row 300pt wide. Selection is resolved on read and falls back to the lead, so
+benching or promoting cannot leave a stale target behind.
+
+**Promote, not drag-to-reorder.** Slots 2 to 6 all take the same share, so their
+order is *cosmetic*; slot 1 is the only slot that means anything. One "Make lead"
+button therefore covers every reorder that changes anything, and it is testable,
+which a drag list in a 340pt popover is not.
+
+**The Dex button says which of two things it will do before it is pressed.**
+"Resume at level 47" and "Raise a new one" are very different outcomes behind one
+click, and the roster is keyed by individual while the Dex is keyed by entry, so
+the button has to choose. `Trainer.raiseAction` resolves it without mutating
+anything and the label reads it: a stray double-click can no longer quietly leave
+a second level 1 Charizard in the roster. Not owned beats a full team beats
+resume, because a button offering to resume a Pokemon it cannot add is the worse
+lie.
+
+**The bench is sorted best first and capped at six rows.** "Bring back my
+strongest" is the question that list exists to answer. It is capped because
+nothing is ever deleted, so the bench grows without limit, and the pane says how
+many it is hiding rather than pretending that is all of them.
+
+**The Exp Share toggle lives in the Shop, next to the item.** What it *does* shows
+up in the Raise pane, in the team's multiplier, which is where a player would look
+to see whether it is working. Two controls for one fact would be worse than one in
+the less obvious place.
+
+**A graduated member is told about, not compensated for.** `GameFormat`
+`wastedSlotNote` puts it in the team header in orange. That is the other half of
+invariant 32: the share is deliberately not redistributed, so the player has to be
+able to see the waste.
+
+**The scroll area is measured and then clamped**, unlike the Dex and Shop panes
+which are pinned. Those two are always full so a fixed frame is honest for them.
+This one is one card on a fresh install and six slots plus a bench of twenty
+later: a fixed frame means dead space at one end or a 900pt popover at the other.
+`PopoverMetrics.RaisePane` holds the two bounds and a test pins the clamp.
 
 **Deferred by the user, not rejected:** widgets, and battles. Battles were liked
 but named as a risk of "losing the plot of a token use project", and would also

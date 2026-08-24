@@ -108,10 +108,6 @@ struct Trainer: Codable, Sendable, Equatable {
     /// Team slot 1: the lead, and the only member gaining XP until step 2.
     var lead: Raise? { team.first.flatMap(raise(id:)) }
 
-    /// v1's name for the lead, kept because the popover and the status item still
-    /// speak in one Pokemon. Step 4 gives the team a UI and takes this with it.
-    var active: Raise? { lead }
-
     func raise(id: UUID) -> Raise? { roster.first { $0.id == id } }
 
     /// The team, resolved and in slot order.
@@ -261,15 +257,9 @@ struct Trainer: Codable, Sendable, Equatable {
     /// turning the game's one targeted item into a 5x team boost and making it the
     /// only sensible thing to spend on. One candy, one Pokemon, as in the games.
     ///
-    /// Defaults to the lead because that is the only target the popover can name
-    /// today. Step 4 of PLAN-v2.md gives the button a picker and calls the
-    /// `on:` form.
-    @discardableResult
-    mutating func useRareCandy(dex: Pokedex, now: Date = Date()) throws -> [GameEvent] {
-        guard let leadID = team.first else { throw GameError.nothingActive }
-        return try useRareCandy(on: leadID, dex: dex, now: now)
-    }
-
+    /// **Always aimed.** There is no "use it on whoever is in front" form, because
+    /// with six members that would be a silent choice made on the player's behalf
+    /// for the one item whose whole point is choosing.
     @discardableResult
     mutating func useRareCandy(
         on raiseID: UUID, dex: Pokedex, now: Date = Date()
@@ -365,14 +355,8 @@ struct Trainer: Codable, Sendable, Equatable {
     /// **queues** evolutions rather than cancelling them. A Caterpie held past 7
     /// and 10 becomes a Butterfree the moment the stone comes off, in order, so
     /// nothing is ever lost by waiting and there is no point of no return.
-    @discardableResult
-    mutating func setEverstone(_ held: Bool, dex: Pokedex, now: Date = Date()) -> [GameEvent] {
-        guard let leadID = team.first else { return [] }
-        return setEverstone(held, of: leadID, dex: dex, now: now)
-    }
-
-    /// The same, for one named individual. A benched Pokemon keeps the stone it
-    /// was holding, because it is that Pokemon's item and not the trainer's.
+    /// Held by one individual, named. A benched Pokemon keeps the stone it was
+    /// holding, because it is that Pokemon's item and not the trainer's.
     @discardableResult
     mutating func setEverstone(
         _ held: Bool, of raiseID: UUID, dex: Pokedex, now: Date = Date()
@@ -385,14 +369,6 @@ struct Trainer: Codable, Sendable, Equatable {
     /// Edges the player could take right now by spending an item they hold, plus
     /// the ones a choice is pending on. What the UI offers as buttons.
     ///
-    /// The lead's, because that is the one the popover draws. Six members can each
-    /// be waiting on their own choice, which is what `teamPendingEvolutions` is
-    /// for and what step 4 renders as a list.
-    func pendingEvolutions(dex: Pokedex) -> [(edge: Evolution, target: DexEntry)] {
-        guard let leadID = team.first else { return [] }
-        return pendingEvolutions(of: leadID, dex: dex)
-    }
-
     func pendingEvolutions(
         of raiseID: UUID, dex: Pokedex
     ) -> [(edge: Evolution, target: DexEntry)] {
@@ -414,18 +390,10 @@ struct Trainer: Codable, Sendable, Equatable {
         }
     }
 
-    /// Takes an evolution the player chose for the lead, consuming its item if it
-    /// needs one.
-    @discardableResult
-    mutating func evolveActive(
-        into targetID: Int, dex: Pokedex, now: Date = Date()
-    ) throws -> [GameEvent] {
-        guard let leadID = team.first else { throw GameError.nothingActive }
-        return try evolve(leadID, into: targetID, dex: dex, now: now)
-    }
-
-    /// The same, for one named individual. Two team members can hold two
-    /// unrelated pending choices, so the decision has to say who it is about.
+    /// Takes an evolution the player chose, consuming its item if it needs one.
+    ///
+    /// Named, never implied: two team members can hold two unrelated pending
+    /// choices at the same time, so the decision has to say who it is about.
     @discardableResult
     mutating func evolve(
         _ raiseID: UUID, into targetID: Int, dex: Pokedex, now: Date = Date()
@@ -649,38 +617,82 @@ struct Trainer: Codable, Sendable, Equatable {
         return beginRaising(entryID: entryID, shiny: shiny, gender: sex, now: now)
     }
 
-    /// Makes one individual of an entry the whole team: v1's switch, minus the
-    /// loss. **Resumes rather than restarts** where it can.
+    /// Moves an individual to slot 1.
     ///
-    /// The popover offers exactly one "raise this one" button per entry, so this
-    /// is the only switch the UI can currently express, and it has to answer
-    /// "which individual" on the player's behalf. It answers it the way the player
-    /// means it: the **highest-level** individual of that exact sprite, because
-    /// "raise Charizard" said in front of a level 40 Charizard is not a request
-    /// for a new level 1 one. Nothing else in the roster is touched.
+    /// The only reorder that means anything, and worth saying why: slots 2 to 6
+    /// all take the same share, so their order is cosmetic. Slot 1 is the one that
+    /// takes the full share and the one the menu bar draws. So "promote" rather
+    /// than a drag-to-reorder list, which in a 340pt popover would be fiddly to
+    /// use and fiddly to test for no gain.
+    mutating func promoteToLead(raiseID: UUID) throws {
+        guard let slot = team.firstIndex(of: raiseID) else {
+            throw GameError.unknownIndividual(raiseID)
+        }
+        team.remove(at: slot)
+        team.insert(raiseID, at: 0)
+    }
+
+    /// What "raise this one" would do for an entry, so the button can say so
+    /// before it is pressed.
     ///
-    /// Transitional in one respect only: it clears the other slots. Step 4 of
-    /// PLAN-v2.md gives the team six slots and its own controls, and then callers
-    /// use `addToTeam` and `startRaising` directly and this goes away.
+    /// The Dex offers one button per *entry* and the roster is keyed by
+    /// individual, so the button has to answer "which one" itself. Two very
+    /// different things (bring back a level 47 Charizard, start a fresh level 1)
+    /// behind one unlabelled click is how a player loses track of what they have,
+    /// so the label says which it will be.
+    enum RaiseAction: Equatable, Sendable {
+        /// A benched individual of this exact sprite, at the level it stopped at.
+        case resume(raiseID: UUID, level: Int)
+        /// Nothing benched to bring back, so this starts a new one at level 1.
+        case startNew
+        /// Every individual of this sprite is already training.
+        case alreadyRaising
+        case teamFull
+        case notOwned
+    }
+
+    /// Resolves the button without changing anything.
+    ///
+    /// Order matters: **not owned** beats everything, then a full team, because a
+    /// button offering to resume a Pokemon it cannot add is a worse lie than one
+    /// that says the team is full. Among candidates the **highest level** wins,
+    /// which is what "raise Charizard" means in front of two of them.
+    func raiseAction(
+        entryID: Int, shiny: Bool = false, gender: Gender? = nil, dex: Pokedex
+    ) -> RaiseAction {
+        guard let sex = try? ownedVariant(
+            entryID: entryID, shiny: shiny, gender: gender, dex: dex)
+        else { return .notOwned }
+        let mine = roster.filter {
+            $0.entryID == entryID && $0.shiny == shiny && $0.gender == sex
+        }
+        guard team.count < Self.teamCapacity else { return .teamFull }
+        if let best = mine.filter({ !team.contains($0.id) }).max(by: { $0.totalXP < $1.totalXP }) {
+            return .resume(raiseID: best.id, level: best.level)
+        }
+        return mine.isEmpty ? .startNew : .alreadyRaising
+    }
+
+    /// Does whatever `raiseAction` said it would.
+    ///
+    /// One entry point rather than making the view choose between `addToTeam` and
+    /// `startRaising`, so the label and the behaviour cannot drift apart.
     @discardableResult
-    mutating func switchTo(
+    mutating func raiseOrResume(
         entryID: Int, shiny: Bool = false, gender: Gender? = nil, dex: Pokedex,
         now: Date = Date()
     ) throws -> UUID {
-        // Throws before anything mutates. A refused switch that had already
-        // emptied the team would be the worst kind of bug here: silent, and it
-        // stops XP accruing.
-        let sex = try ownedVariant(entryID: entryID, shiny: shiny, gender: gender, dex: dex)
-        let resumable = roster
-            .filter { $0.entryID == entryID && $0.shiny == shiny && $0.gender == sex }
-            .max { $0.totalXP < $1.totalXP }
-
-        team.removeAll()
-        guard let resumable else {
-            return beginRaising(entryID: entryID, shiny: shiny, gender: sex, now: now)
+        switch raiseAction(entryID: entryID, shiny: shiny, gender: gender, dex: dex) {
+        case .notOwned: throw GameError.notOwned
+        case .teamFull: throw GameError.teamFull
+        case .alreadyRaising: throw GameError.alreadyOnTeam
+        case .resume(let raiseID, _):
+            try addToTeam(raiseID: raiseID)
+            return raiseID
+        case .startNew:
+            return try startRaising(
+                entryID: entryID, shiny: shiny, gender: gender, dex: dex, now: now)
         }
-        team.append(resumable.id)
-        return resumable.id
     }
 
     // MARK: - Shop

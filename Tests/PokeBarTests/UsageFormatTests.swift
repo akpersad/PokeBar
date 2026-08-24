@@ -245,4 +245,16 @@ final class UsageFormatTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(
             PopoverMetrics.ModelRow.nameWidth, CGFloat(longest.count) * 5.7)
     }
+
+    /// The Raise pane is sized to its content and then clamped, because it holds
+    /// a single card on a fresh install and six slots plus a bench later. A fixed
+    /// frame would mean dead space at one end and a 900pt popover at the other.
+    func testRaisePaneClampsItsMeasuredHeight() {
+        let pane = PopoverMetrics.RaisePane.self
+        XCTAssertEqual(pane.height(forContent: 0), pane.minHeight, "before the first measure")
+        XCTAssertEqual(pane.height(forContent: 90), pane.minHeight)
+        XCTAssertEqual(pane.height(forContent: 200), 200, "a short team gets no dead space")
+        XCTAssertEqual(pane.height(forContent: 900), pane.maxHeight, "past this it scrolls")
+        XCTAssertLessThan(pane.minHeight, pane.maxHeight)
+    }
 }

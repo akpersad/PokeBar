@@ -65,6 +65,16 @@ enum XPCurve {
         slot == 0 || expShare ? leadShare : benchShare
     }
 
+    /// What a team of `occupied` slots absorbs, as a multiple of one credit.
+    ///
+    /// 1.0 alone, 1.8 with one on the bench, up to 5.0 full, or 6.0 with an Exp
+    /// Share. This is the figure the Raise pane shows, because "why is my team
+    /// worth having" deserves a number rather than a paragraph.
+    static func teamMultiplier(occupiedSlots: Int, expShare: Bool = false) -> Double {
+        guard occupiedSlots > 0 else { return 0 }
+        return (0..<occupiedSlots).reduce(0) { $0 + share(forSlot: $1, expShare: expShare) }
+    }
+
     /// XP is a *parallel* derivation of the same tokens that mint coins, never a
     /// share of a pool. Training and saving happen at once, so there is no
     /// allocation choice to make and no week of training followed by a week of

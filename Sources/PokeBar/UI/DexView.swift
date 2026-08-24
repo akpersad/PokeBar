@@ -332,11 +332,16 @@ struct DexDetailView: View {
     private var actions: some View {
         VStack(alignment: .leading, spacing: 6) {
             if seen {
+                // The button says which of the two things it will do before it is
+                // pressed. "Resume at level 47" and "Raise a new one" are very
+                // different, and behind one unlabelled click a stray press
+                // silently starts a fresh level 1 individual.
+                let action = game.raiseAction(entryID: entry.id)
                 HStack(spacing: 8) {
-                    Button("Raise this one") {
-                        run { try game.switchTo(entryID: entry.id) }
+                    Button(GameFormat.raiseActionTitle(action)) {
+                        run { try game.raiseOrResume(entryID: entry.id) }
                     }
-                    .disabled(game.active?.entryID == entry.id)
+                    .disabled(!GameFormat.canRaise(action))
 
                     Button("Re-roll for \(Prices.reroll(entry.rarity)) Dust") {
                         run { try game.reroll(entryID: entry.id) }
