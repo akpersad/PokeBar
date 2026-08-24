@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The collection: 1,083 tiles, with a detail sheet behind each one.
+/// The collection: 1,083 tiles, with a detail pane behind each one.
 ///
 /// Unseen entries draw a glyph rather than a greyed sprite, for two reasons that
 /// happen to agree. It keeps the dex a thing you fill in rather than a catalogue
@@ -28,13 +28,17 @@ struct DexView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            summary
-            controls
-            grid
-        }
-        .sheet(item: $selected) { entry in
-            DexDetailView(entry: entry, game: game, store: store, onError: onError) {
-                selected = nil
+            // Detail replaces the grid in place rather than opening a sheet. A
+            // MenuBarExtra window is not a window a sheet can safely hang off:
+            // it closes on focus loss, which is exactly what presenting one does.
+            if let entry = selected {
+                DexDetailView(entry: entry, game: game, store: store, onError: onError) {
+                    selected = nil
+                }
+            } else {
+                summary
+                controls
+                grid
             }
         }
     }
@@ -158,8 +162,7 @@ struct DexDetailView: View {
             Divider()
             actions
         }
-        .padding(14)
-        .frame(width: 300)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var header: some View {
@@ -181,7 +184,12 @@ struct DexDetailView: View {
                 .foregroundStyle(.tertiary)
             }
             Spacer()
-            Button("Done", action: dismiss).controlSize(.small)
+            Button {
+                dismiss()
+            } label: {
+                Label("Back", systemImage: "chevron.left")
+            }
+            .controlSize(.small)
         }
     }
 
