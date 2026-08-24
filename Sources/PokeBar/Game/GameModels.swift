@@ -66,9 +66,11 @@ struct CatchEvent: Codable, Sendable, Hashable, Identifiable {
 /// Separate from `CatchEvent` because it records a different fact about a
 /// different thing: a catch is a sprite arriving in the collection, a milestone
 /// is an individual getting somewhere. It has to be recorded *somewhere* because
-/// nothing else in the game remembers it. `Raise` holds the level of the active
-/// Pokemon only, so the moment you switch, "that one made it" is gone, and the
-/// Dex has no way to show a mark it cannot derive.
+/// nothing else in the game remembers it *as a fact about a sprite*: the roster
+/// keeps this individual's level, but the Dex ring is per sprite and belongs to
+/// the form it was at the time, which a live level cannot answer once it evolves
+/// again. When this was written the roster did not exist either, and switching
+/// erased "that one made it" outright.
 ///
 /// Carries the level rather than being a graduation flag. Level 50 and level 100
 /// are the same kind of fact at different heights, and a boolean would have
@@ -121,13 +123,19 @@ struct MilestoneEvent: Codable, Sendable, Hashable, Identifiable {
     var isGraduation: Bool { level >= XPCurve.maxLevel }
 }
 
-/// The individual currently being raised.
+/// One individual being raised, whether it is training or benched.
 ///
-/// One at a time, which is the real constraint in this game: raising time caps
-/// throughput at roughly 1.7 raises/day no matter how many coins are banked, so
-/// coins accumulate faster than eggs can consume them. Switching is free and
-/// ungated; the cost is losing this individual's levels, and that is cost enough
-/// (DECISIONS.md). Whatever it reached stays in the log.
+/// **Levels belong to the individual and are never lost.** It lives in
+/// `Trainer.roster`, which is append-only, and `Trainer.team` decides who is
+/// currently earning XP; switching away is free and costs nothing at all. v1 held
+/// exactly one of these and threw it away on a switch, treating the lost levels as
+/// the price, and that is the half of the decision the user reversed: a week of
+/// Charizard should survive an afternoon of Pikachu (DECISIONS.md).
+///
+/// Identified by `id`, not by what it is: two Charmander raised separately are two
+/// of these with two levels, and this one's `entryID` changes under it as it
+/// evolves. Raising time is still the real constraint on throughput, which is why
+/// the useful sinks buy time or certainty rather than more eggs.
 struct Raise: Codable, Sendable, Identifiable, Equatable {
     let id: UUID
     /// The entry it is *now*. Changes as it evolves.

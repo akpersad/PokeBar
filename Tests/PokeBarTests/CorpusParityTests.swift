@@ -287,6 +287,53 @@ final class CorpusParityTests: XCTestCase {
             "a rescan may only surface rows written since, never one already credited")
     }
 
+    /// **The live save, decoded through the roster migration.**
+    ///
+    /// The only save that actually matters is the one on this disk, and no
+    /// fixture can stand in for it: a fixture proves the code handles the shape
+    /// I *expected*, and this proves it handles the file the app will read on its
+    /// next launch. Same reason the Copilot parity test exists.
+    ///
+    /// Read-only, and the app's own `SaveBackup` has already copied this file
+    /// aside, so there is nothing here that can cost the collection.
+    func testTheLiveSaveMigratesIntoTheRoster() throws {
+        try XCTSkipUnless(enabled, "set POKEBAR_CORPUS=1 to read the live save")
+        // Built by hand rather than through `GameMonitor.defaultStateURL()`,
+        // which is `@MainActor` and would drag this whole test onto the main
+        // actor for a string.
+        let url = FileManager.default
+            .urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("PokeBar/game-state.json")
+        try XCTSkipUnless(
+            FileManager.default.fileExists(atPath: url.path), "no save at \(url.path)")
+
+        let data = try Data(contentsOf: url)
+        let raw = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let trainer = try JSONDecoder().decode(Trainer.self, from: data)
+
+        if let legacy = raw["active"] as? [String: Any], raw["roster"] == nil {
+            let individual = try XCTUnwrap(trainer.roster.first, "the legacy key was dropped")
+            XCTAssertEqual(trainer.roster.count, 1)
+            XCTAssertEqual(trainer.team, [individual.id], "and it is training, not benched")
+            XCTAssertEqual(individual.id.uuidString, legacy["id"] as? String)
+            XCTAssertEqual(individual.totalXP, legacy["totalXP"] as? Double)
+            XCTAssertEqual(individual.entryID, legacy["entryID"] as? Int)
+            print(
+                "live save: migrated #\(individual.entryID) at level \(individual.level), "
+                    + "\(individual.totalXP) XP, into team slot 1")
+        } else {
+            print("live save: already on the roster shape, \(trainer.roster.count) individual(s)")
+        }
+
+        // Round trips: what this build writes back, this build reads identically.
+        let rewritten = try JSONEncoder().encode(trainer)
+        XCTAssertEqual(try JSONDecoder().decode(Trainer.self, from: rewritten), trainer)
+        let rewrittenRaw = try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: rewritten) as? [String: Any])
+        XCTAssertNil(rewrittenRaw["active"], "the legacy key is read, never written")
+    }
+
     /// One value out of `sqlite3`, so the reference figures are computed by
     /// something other than the code under test.
     private func sqlQuery(_ database: URL, _ sql: String) throws -> String {

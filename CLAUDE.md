@@ -102,7 +102,8 @@ Sources/PokeBar/
     GameModels.swift            CatchEvent, Raise, GameEvent, Prices
     CatchLog.swift              append-only catches and milestones; derived indexes
     HatchRoll.swift             weighted draw, shiny odds, gender roll
-    Trainer.swift               every game rule. No clock, no RNG, no disk
+    Trainer.swift               every game rule, plus the roster and the team.
+                                No clock, no RNG, no disk
     GameMonitor.swift           @MainActor @Observable; owns and persists one Trainer
     SaveBackup.swift            dated copy of game-state.json, taken before load()
   UI/
@@ -345,6 +346,26 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     is `yyyy-MM-dd`; modification date says when a copy was taken, not which day's
     state it holds.
 
+30. **An individual's identity is `Raise.id`, and the roster is append-only.**
+    `Trainer.roster` holds every individual ever raised with its levels intact and
+    `Trainer.team` is an ordered list of up to 6 ids into it, so benching is a
+    change to `team` and **nothing ever deletes a `Raise`**. A `VariantSlot` cannot
+    be the key, because a `Raise` mutates its own `entryID` as it evolves and a
+    slot-keyed store would have to be rekeyed on every evolution: the "two copies
+    of one fact" smell `CatchLog.filledSlots` exists to avoid. Two Charmander
+    raised separately are two rows with two levels; what the *collection* owns is
+    still the log's question, per sprite, per invariant 18.
+
+31. **`Trainer` reads the legacy `active` key forever and never writes it**, the
+    pattern `CatchLog` already uses for `graduations`. A v1 save seeds a
+    one-individual roster in team slot 1 with its XP intact. Two further halves of
+    the same rule: the **old** keys (`log`, `coinsSpent`, `dust`, `inventory`,
+    `hasShinyCharm`) stay *required* while only new keys use `decodeIfPresent`,
+    because a decoder where everything is optional turns a nonsense file into a
+    brand new empty trainer and invariant 23's quarantine never fires; and `team`
+    is **sanitised on decode** (unknown ids dropped, repeats collapsed, capped at
+    6) because it is the one part of the save that can contradict itself.
+
 ---
 
 ## UI copy rules
@@ -423,20 +444,27 @@ writing, which a fixture cannot reproduce.
 
 ## State
 
-**Phases 1 through 4: complete.** 293 tests, 0 failures.
+**Phases 1 through 4: complete.** 306 tests, 0 failures (307 with
+`POKEBAR_CORPUS=1`).
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
 
-**Next action, in one sentence: implement step 1 of [PLAN-v2.md](PLAN-v2.md), the
-roster that makes levels persist per individual, starting with the DECISIONS.md
-amendment and the bench-it-and-bring-it-back test.**
+**Next action, in one sentence: implement step 2 of [PLAN-v2.md](PLAN-v2.md), the
+team gaining XP together, which is `XPCurve.leadShare` / `benchShare`, a `credit`
+that calls `grant` once per occupied slot, and a `raiseID` on the four `GameEvent`
+cases that currently assume a single subject.**
 
-v2 was scoped 2026-08-24. **Step 0, the dated save backup, is done** (invariant 29,
-`SaveBackup.swift`, 9 tests); steps 1 onward are not started. Priority is the
-user's: levels-always-persist and a team of 6 come next. The plan carries the
-ordering and the reasoning; DECISIONS.md carries the decisions.
+v2 was scoped 2026-08-24. **Steps 0 and 1 are done**: the dated save backup
+(invariant 29, `SaveBackup.swift`) and the roster (invariants 30 and 31,
+`Trainer.roster` / `Trainer.team`). Steps 2 onward are not started. The plan
+carries the ordering and the reasoning; DECISIONS.md carries the decisions.
+
+The seams step 1 deliberately left, so step 2 is small: `Trainer.grant(xp:to:)` is
+already per individual and already scoped by `raiseID`, `setEverstone` already has
+a per-individual overload, and `team` is already capped at 6 and persisted. What
+step 2 adds is the distribution and the event plumbing, not the model.
 
 Still true and still unverified: the Dex silver ring at level 50 has never been
 looked at against the dark grid, because rendered pixels here can be confirmed
@@ -451,10 +479,14 @@ What the game does now:
 - **Hatch** an egg for 300 coins. Draws from the 570 hatchable entries weighted on
   raw `captureRate`, rolls shiny at 1/64 (1/48 with the charm) and sex from the
   species' real gender rate.
-- **Raise** one Pokemon at a time. Every weighted token grants XP here *and* mints
-  a coin in the ledger, in parallel, never from a shared pool. Level 100 is 4.63
-  days at this machine's throughput. **Reversed in v2**: a team of up to 6, all
-  gaining XP at once. See PLAN-v2.md.
+- **Raise** one Pokemon at a time, and **never lose one**. Every individual ever
+  raised sits in `Trainer.roster` with its levels, its XP and the stone it was
+  holding; `Trainer.team` says who is training. Switching away costs nothing, and
+  bringing a level 47 Charizard back resumes it rather than starting a new one.
+  Every weighted token grants XP here *and* mints a coin in the ledger, in
+  parallel, never from a shared pool. Level 100 is 4.63 days at this machine's
+  throughput. **Still to come in v2**: the team gains XP together, all 6 at once.
+  Today only slot 1 earns. See PLAN-v2.md.
 - **Evolve.** Item-free edges fire on their own and chain; item edges wait for the
   stone; branching waits for the player. Shininess carries through. An **Everstone**
   toggle holds a Pokemon as it is, and queues rather than cancels: take it off and
@@ -485,10 +517,10 @@ The economy in one line each, all recorded in DECISIONS.md with the measurement:
 - **XP and coins are parallel derivations of the same tokens, never a shared pool.**
 - **Raising time is the bottleneck, not coins.** One active Pokémon caps throughput
   at ~1.7 raises/day, so useful sinks buy time or certainty, not more eggs.
-- Switching Pokémon is **free, with no level gate**. The cost is losing that
-  individual's levels; the log keeps everything already earned. **The losing-levels
-  half is reversed in v2**: levels persist per individual, permanently. It is the
-  first thing being built. See PLAN-v2.md.
+- Switching Pokémon is **free, with no level gate, and now costs nothing at all**.
+  Levels persist per individual, permanently, in an append-only roster keyed on
+  `Raise.id`. The v1 rule that a switch abandoned that individual's levels is
+  reversed and gone. See invariants 30 and 31.
 - "Caught" is an **append-only event log** with the views derived, the same shape as
   `UsageLedger`. No `nature` field: there is no stat raising to feed it.
 - A variant is ownable **iff its sprite file exists**: 2,368 sprites, not 1,083 x 4.

@@ -14,9 +14,37 @@ import Foundation
 struct Trainer: Codable, Sendable, Equatable {
 
     var log = CatchLog()
-    /// The one Pokemon currently gaining XP. One at a time, which is the real
-    /// constraint in this game.
-    var active: Raise?
+
+    /// Every individual ever raised, oldest first, levels intact.
+    ///
+    /// **Append-only.** Nothing here is ever deleted, the same rule the two logs
+    /// follow: benching changes `team`, not this. That is the point of the type
+    /// existing at all. v1 held a single `active: Raise?` and threw it away on a
+    /// switch, and losing a week of Charizard for trying a Pikachu is the thing
+    /// the user asked to have back (DECISIONS.md).
+    ///
+    /// Identity is `Raise.id`, never a `VariantSlot`: a `Raise` mutates its own
+    /// `entryID` as it evolves, so a slot-keyed store would have to be rekeyed on
+    /// every evolution. Two Charmander raised separately are two rows here with
+    /// two levels, which is what "my progress on this one" means; what the
+    /// *collection* owns stays the log's question, per sprite.
+    var roster: [Raise] = []
+
+    /// Who is gaining XP, in order, by `Raise.id`. Slot 1 is the lead, and is
+    /// what the status item draws.
+    ///
+    /// Only slot 1 earns anything today. Distributing one credit across the whole
+    /// team is step 2 of PLAN-v2.md; the cap is here now so the save format does
+    /// not have to change again when it lands.
+    ///
+    /// The one part of the save that can be internally inconsistent, because it
+    /// is a list of references. It is sanitised on decode rather than checked at
+    /// every use site.
+    var team: [UUID] = []
+
+    /// Six, as the games do it.
+    static let teamCapacity = 6
+
     var coinsSpent = 0
     /// Minted only by duplicate egg hatches. Buys choice, never volume.
     var dust = 0
@@ -35,6 +63,9 @@ struct Trainer: Codable, Sendable, Equatable {
         case evolutionNotAvailable
         case emptyPool
         case notStartingOut
+        case teamFull
+        case alreadyOnTeam
+        case unknownIndividual(UUID)
 
         var description: String {
             switch self {
@@ -48,6 +79,9 @@ struct Trainer: Codable, Sendable, Equatable {
             case .evolutionNotAvailable: "that evolution is not available"
             case .emptyPool: "the hatch pool is empty"
             case .notStartingOut: "the first pick has already been made"
+            case .teamFull: "the team is full at \(Trainer.teamCapacity)"
+            case .alreadyOnTeam: "already on the team"
+            case .unknownIndividual(let id): "no individual \(id)"
             }
         }
     }
@@ -58,6 +92,28 @@ struct Trainer: Codable, Sendable, Equatable {
     func coins(earned: Int) -> Int { max(0, earned - coinsSpent) }
 
     func count(ofItem slug: String) -> Int { inventory[slug] ?? 0 }
+
+    // MARK: - The roster and the team
+
+    /// Team slot 1: the lead, and the only member gaining XP until step 2.
+    var lead: Raise? { team.first.flatMap(raise(id:)) }
+
+    /// v1's name for the lead, kept because the popover and the status item still
+    /// speak in one Pokemon. Step 4 gives the team a UI and takes this with it.
+    var active: Raise? { lead }
+
+    func raise(id: UUID) -> Raise? { roster.first { $0.id == id } }
+
+    /// The team, resolved and in slot order.
+    var teamRaises: [Raise] { team.compactMap(raise(id:)) }
+
+    /// Everyone in the roster who is not currently training. Nothing has been
+    /// lost: this is where a benched Charizard waits, at the level it reached.
+    var benched: [Raise] { roster.filter { !team.contains($0.id) } }
+
+    private func index(of raiseID: UUID) -> Int? {
+        roster.firstIndex { $0.id == raiseID }
+    }
 
     private mutating func spend(coins amount: Int, earned: Int) throws {
         let have = coins(earned: earned)
@@ -98,25 +154,42 @@ struct Trainer: Codable, Sendable, Equatable {
     mutating func credit(
         weightedTokens: Double, dex: Pokedex, now: Date = Date()
     ) -> [GameEvent] {
-        guard weightedTokens > 0, var raise = active else { return [] }
-        let before = raise.level
+        guard weightedTokens > 0, let leadID = team.first else { return [] }
+        // Slot 1 only, and at the full rate: identical to v1. Handing the same
+        // credit to slots 2 to 6 as well is step 2, and it calls `grant` once per
+        // member rather than changing anything below it.
+        return grant(
+            xp: XPCurve.xp(forWeightedTokens: weightedTokens), to: leadID, dex: dex, now: now)
+    }
+
+    /// One individual's share of a credit: XP, then evolutions, then marks.
+    ///
+    /// Split out of `credit` because the pipeline is per individual and the
+    /// distribution is not, so step 2 can hand out six shares without touching
+    /// any of the rules. Everything here is scoped to `raiseID`, including the
+    /// milestone it records.
+    @discardableResult
+    private mutating func grant(
+        xp: Double, to raiseID: UUID, dex: Pokedex, now: Date
+    ) -> [GameEvent] {
+        guard let index = index(of: raiseID) else { return [] }
+        let before = roster[index].level
         let ceiling = Double(XPCurve.totalXP(forLevel: XPCurve.maxLevel))
-        raise.totalXP = min(ceiling, raise.totalXP + XPCurve.xp(forWeightedTokens: weightedTokens))
-        active = raise
+        roster[index].totalXP = min(ceiling, roster[index].totalXP + xp)
+        let after = roster[index].level
 
         var events: [GameEvent] = []
-        let after = raise.level
         if after > before { events.append(.levelledUp(to: after)) }
-        events += resolveEvolutions(dex: dex, now: now)
-        // Read `active` again rather than `raise`: an evolution resolved just
-        // above may have changed what this individual is, and it reaches the
-        // mark as whatever it is now.
+        events += resolveEvolutions(of: raiseID, dex: dex, now: now)
+        // Read the roster again rather than reusing a copy from above: an
+        // evolution resolved just now may have changed what this individual is,
+        // and it reaches the mark as whatever it is now.
         //
         // Every level crossed, not just the highest. One credit can clear both
         // marks at once (a Rare Candy, or a quiet hour on a busy machine), and
         // the log should say it passed 50 rather than silently skipping it. Same
         // reason `resolveEvolutions` loops.
-        if let climber = active {
+        if let climber = raise(id: raiseID) {
             for level in Self.milestoneLevels where before < level && after >= level {
                 if let entry = dex.entry(id: climber.entryID) {
                     log.recordMilestone(
@@ -140,7 +213,7 @@ struct Trainer: Codable, Sendable, Equatable {
     /// scarce resource: raising time, not more eggs.
     @discardableResult
     mutating func useRareCandy(dex: Pokedex, now: Date = Date()) throws -> [GameEvent] {
-        guard active != nil else { throw GameError.nothingActive }
+        guard lead != nil else { throw GameError.nothingActive }
         guard count(ofItem: Self.rareCandySlug) > 0 else {
             throw GameError.missingItem(Self.rareCandySlug)
         }
@@ -175,9 +248,13 @@ struct Trainer: Codable, Sendable, Equatable {
     ///
     /// Loops because one credit can cross several thresholds. A Rare Candy at
     /// level 5 takes a Caterpie past both 7 and 10.
-    private mutating func resolveEvolutions(dex: Pokedex, now: Date) -> [GameEvent] {
+    private mutating func resolveEvolutions(
+        of raiseID: UUID, dex: Pokedex, now: Date
+    ) -> [GameEvent] {
         var events: [GameEvent] = []
-        while let raise = active, !raise.everstone, let entry = dex.entry(id: raise.entryID) {
+        while let raise = raise(id: raiseID), !raise.everstone,
+              let entry = dex.entry(id: raise.entryID)
+        {
             let itemFree = entry.evolutions.filter { $0.item == nil }
             let ready = itemFree.filter { raise.level >= $0.minLevel }
             guard itemFree.count == 1, let edge = ready.first else {
@@ -187,7 +264,8 @@ struct Trainer: Codable, Sendable, Equatable {
                 }
                 break
             }
-            guard let event = apply(edge: edge, to: entry, dex: dex, now: now) else { break }
+            guard let event = apply(edge: edge, to: entry, of: raiseID, dex: dex, now: now)
+            else { break }
             events += event
         }
         return events
@@ -199,11 +277,13 @@ struct Trainer: Codable, Sendable, Equatable {
     /// Shininess carrying over is the point: evolving a shiny Charmander is how
     /// the shiny Charizard slot gets filled, and there is no other way to fill it.
     private mutating func apply(
-        edge: Evolution, to entry: DexEntry, dex: Pokedex, now: Date
+        edge: Evolution, to entry: DexEntry, of raiseID: UUID, dex: Pokedex, now: Date
     ) -> [GameEvent]? {
-        guard var raise = active, let target = dex.entry(id: edge.to) else { return nil }
-        raise.entryID = target.id
-        active = raise
+        guard let index = index(of: raiseID), let target = dex.entry(id: edge.to) else {
+            return nil
+        }
+        let raise = roster[index]
+        roster[index].entryID = target.id
 
         let event = CatchEvent(
             entryID: target.id,
@@ -224,16 +304,25 @@ struct Trainer: Codable, Sendable, Equatable {
     /// nothing is ever lost by waiting and there is no point of no return.
     @discardableResult
     mutating func setEverstone(_ held: Bool, dex: Pokedex, now: Date = Date()) -> [GameEvent] {
-        guard var raise = active, raise.everstone != held else { return [] }
-        raise.everstone = held
-        active = raise
-        return held ? [] : resolveEvolutions(dex: dex, now: now)
+        guard let leadID = team.first else { return [] }
+        return setEverstone(held, of: leadID, dex: dex, now: now)
+    }
+
+    /// The same, for one named individual. A benched Pokemon keeps the stone it
+    /// was holding, because it is that Pokemon's item and not the trainer's.
+    @discardableResult
+    mutating func setEverstone(
+        _ held: Bool, of raiseID: UUID, dex: Pokedex, now: Date = Date()
+    ) -> [GameEvent] {
+        guard let index = index(of: raiseID), roster[index].everstone != held else { return [] }
+        roster[index].everstone = held
+        return held ? [] : resolveEvolutions(of: raiseID, dex: dex, now: now)
     }
 
     /// Edges the player could take right now by spending an item they hold, plus
     /// the ones a choice is pending on. What the UI offers as buttons.
     func pendingEvolutions(dex: Pokedex) -> [(edge: Evolution, target: DexEntry)] {
-        guard let raise = active, let entry = dex.entry(id: raise.entryID) else { return [] }
+        guard let raise = lead, let entry = dex.entry(id: raise.entryID) else { return [] }
         return dex.availableEvolutions(
             of: entry, atLevel: raise.level, items: Set(inventory.filter { $0.value > 0 }.keys))
     }
@@ -243,7 +332,7 @@ struct Trainer: Codable, Sendable, Equatable {
     mutating func evolveActive(
         into targetID: Int, dex: Pokedex, now: Date = Date()
     ) throws -> [GameEvent] {
-        guard let raise = active else { throw GameError.nothingActive }
+        guard let raise = lead else { throw GameError.nothingActive }
         guard let entry = dex.entry(id: raise.entryID) else {
             throw GameError.unknownEntry(raise.entryID)
         }
@@ -254,10 +343,10 @@ struct Trainer: Codable, Sendable, Equatable {
             guard count(ofItem: item) > 0 else { throw GameError.missingItem(item) }
             inventory[item] = count(ofItem: item) - 1
         }
-        var events = apply(edge: edge, to: entry, dex: dex, now: now) ?? []
+        var events = apply(edge: edge, to: entry, of: raise.id, dex: dex, now: now) ?? []
         // A stone can leave the new form immediately eligible for a level edge it
         // already passed.
-        events += resolveEvolutions(dex: dex, now: now)
+        events += resolveEvolutions(of: raise.id, dex: dex, now: now)
         return events
     }
 
@@ -308,8 +397,12 @@ struct Trainer: Codable, Sendable, Equatable {
                 events.append(.duplicate(entryID: entry.id, dust: 0))
             }
         }
-        if active == nil {
-            active = Raise(entryID: entry.id, shiny: shiny, gender: gender, startedAt: now)
+        // Nothing that acquires a Pokemon disturbs a raise in progress: it starts
+        // one only when nothing is training. That is what makes a shiny hunt
+        // usable, because the point is to keep fishing while the current one
+        // climbs.
+        if team.isEmpty {
+            beginRaising(entryID: entry.id, shiny: shiny, gender: gender, now: now)
         }
         return events
     }
@@ -366,8 +459,8 @@ struct Trainer: Codable, Sendable, Equatable {
             entryID: entry.id, variant: variant, gender: gender, date: now,
             source: .targetedPick)
         log.append(event)
-        if active == nil {
-            active = Raise(entryID: entry.id, shiny: false, gender: gender, startedAt: now)
+        if team.isEmpty {
+            beginRaising(entryID: entry.id, shiny: false, gender: gender, now: now)
         }
         return [.caught(event)]
     }
@@ -388,24 +481,106 @@ struct Trainer: Codable, Sendable, Equatable {
 
     // MARK: - Switching
 
-    /// Starts raising something already in the collection, from level 1.
+    /// Appends a new individual and puts it straight on the team.
     ///
-    /// Free and ungated on purpose. With 570 hatchable entries drawn at random,
-    /// hatching something you do not care about is the common case rather than
-    /// the exception, and a level gate punishes the player for the game's own
-    /// randomness. The cost is already built in and needs no rule: the current
-    /// individual's levels are abandoned. Nothing is lost from the collection,
-    /// only from the individual.
-    mutating func setActive(
-        entryID: Int, shiny: Bool = false, gender: Gender? = nil, dex: Pokedex,
-        now: Date = Date()
-    ) throws {
+    /// Takes no view on ownership or capacity: every caller has already answered
+    /// those, and the two acquisition paths have no capacity question because they
+    /// only reach here when the team is empty.
+    @discardableResult
+    private mutating func beginRaising(
+        entryID: Int, shiny: Bool, gender: Gender, now: Date
+    ) -> UUID {
+        let raise = Raise(entryID: entryID, shiny: shiny, gender: gender, startedAt: now)
+        roster.append(raise)
+        team.append(raise.id)
+        return raise.id
+    }
+
+    /// Validates that the player owns the sprite being asked for, and resolves
+    /// the sex. Shared by the two ways of starting, so neither can drift.
+    private func ownedVariant(
+        entryID: Int, shiny: Bool, gender: Gender?, dex: Pokedex
+    ) throws -> Gender {
         guard let entry = dex.entry(id: entryID) else { throw GameError.unknownEntry(entryID) }
         let sex = gender ?? HatchRoll.canonicalGender(for: entry)
         guard log.owns(VariantSlot(
             entryID: entryID, variant: sex.spriteVariant(shiny: shiny, for: entry)))
         else { throw GameError.notOwned }
-        active = Raise(entryID: entryID, shiny: shiny, gender: sex, startedAt: now)
+        return sex
+    }
+
+    /// Puts an individual already in the roster back to work, **at the level it
+    /// stopped at**.
+    ///
+    /// This is the verb v1 could not say. `setActive(entryID:)` took a species and
+    /// could only ever mean "start a fresh one", so "bring my Charizard back" and
+    /// "start a second Charmander" were the same call and the first one was
+    /// impossible.
+    mutating func addToTeam(raiseID: UUID) throws {
+        guard raise(id: raiseID) != nil else { throw GameError.unknownIndividual(raiseID) }
+        guard !team.contains(raiseID) else { throw GameError.alreadyOnTeam }
+        guard team.count < Self.teamCapacity else { throw GameError.teamFull }
+        team.append(raiseID)
+    }
+
+    /// Benches an individual without deleting it. It keeps its level, its XP and
+    /// the stone it was holding, and can be brought back by `addToTeam`.
+    @discardableResult
+    mutating func removeFromTeam(raiseID: UUID) -> Bool {
+        guard let slot = team.firstIndex(of: raiseID) else { return false }
+        team.remove(at: slot)
+        return true
+    }
+
+    /// Starts a brand new individual of an entry the player owns, at level 1.
+    ///
+    /// Free and ungated on purpose. With 570 hatchable entries drawn at random,
+    /// hatching something you do not care about is the common case rather than
+    /// the exception, and a level gate punishes the player for the game's own
+    /// randomness. It no longer costs anything either: whatever was training keeps
+    /// its levels on the bench.
+    @discardableResult
+    mutating func startRaising(
+        entryID: Int, shiny: Bool = false, gender: Gender? = nil, dex: Pokedex,
+        now: Date = Date()
+    ) throws -> UUID {
+        let sex = try ownedVariant(entryID: entryID, shiny: shiny, gender: gender, dex: dex)
+        guard team.count < Self.teamCapacity else { throw GameError.teamFull }
+        return beginRaising(entryID: entryID, shiny: shiny, gender: sex, now: now)
+    }
+
+    /// Makes one individual of an entry the whole team: v1's switch, minus the
+    /// loss. **Resumes rather than restarts** where it can.
+    ///
+    /// The popover offers exactly one "raise this one" button per entry, so this
+    /// is the only switch the UI can currently express, and it has to answer
+    /// "which individual" on the player's behalf. It answers it the way the player
+    /// means it: the **highest-level** individual of that exact sprite, because
+    /// "raise Charizard" said in front of a level 40 Charizard is not a request
+    /// for a new level 1 one. Nothing else in the roster is touched.
+    ///
+    /// Transitional in one respect only: it clears the other slots. Step 4 of
+    /// PLAN-v2.md gives the team six slots and its own controls, and then callers
+    /// use `addToTeam` and `startRaising` directly and this goes away.
+    @discardableResult
+    mutating func switchTo(
+        entryID: Int, shiny: Bool = false, gender: Gender? = nil, dex: Pokedex,
+        now: Date = Date()
+    ) throws -> UUID {
+        // Throws before anything mutates. A refused switch that had already
+        // emptied the team would be the worst kind of bug here: silent, and it
+        // stops XP accruing.
+        let sex = try ownedVariant(entryID: entryID, shiny: shiny, gender: gender, dex: dex)
+        let resumable = roster
+            .filter { $0.entryID == entryID && $0.shiny == shiny && $0.gender == sex }
+            .max { $0.totalXP < $1.totalXP }
+
+        team.removeAll()
+        guard let resumable else {
+            return beginRaising(entryID: entryID, shiny: shiny, gender: sex, now: now)
+        }
+        team.append(resumable.id)
+        return resumable.id
     }
 
     // MARK: - Shop
@@ -430,6 +605,72 @@ struct Trainer: Codable, Sendable, Equatable {
             }
         }
     }
+
+    // MARK: - Persistence
+
+    private enum CodingKeys: String, CodingKey {
+        case log, roster, team, coinsSpent, dust, inventory, hasShinyCharm
+        /// v1's single individual. **Read forever, never written**, the pattern
+        /// `CatchLog` already uses for `graduations`.
+        case active
+    }
+
+    init() {}
+
+    /// Hand-written for invariant 23, and for the migration off `active`.
+    ///
+    /// The new keys use `decodeIfPresent` with a default, because the synthesized
+    /// decoder throws on a missing key even where the property has one, and
+    /// `GameMonitor` cannot tell "no save yet" from "save I could not read".
+    ///
+    /// **The old keys stay required, deliberately.** Making every field optional
+    /// looks like the safer move and is the opposite: a save that decoded to a
+    /// brand new empty trainer would never be quarantined, and the next `persist`
+    /// would write it over the real one. Every save ever written carries these
+    /// five, so a file missing them is not a save.
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        log = try c.decode(CatchLog.self, forKey: .log)
+        coinsSpent = try c.decode(Int.self, forKey: .coinsSpent)
+        dust = try c.decode(Int.self, forKey: .dust)
+        inventory = try c.decode([String: Int].self, forKey: .inventory)
+        hasShinyCharm = try c.decode(Bool.self, forKey: .hasShinyCharm)
+
+        if let saved = try c.decodeIfPresent([Raise].self, forKey: .roster) {
+            roster = saved
+            team = try c.decodeIfPresent([UUID].self, forKey: .team) ?? []
+        } else if let legacy = try c.decodeIfPresent(Raise.self, forKey: .active) {
+            // A v1 save: one individual, and it goes on the team at its own level
+            // with its XP intact. This is the whole reason the key is still read.
+            roster = [legacy]
+            team = [legacy.id]
+        }
+
+        // The team is a list of references, so it is the one thing in the save
+        // that can contradict itself. Sanitised here rather than guarded at every
+        // use site, the same way the slot index is rebuilt on decode.
+        var seen = Set<UUID>()
+        let known = Set(roster.map(\.id))
+        team = team
+            .filter { known.contains($0) && seen.insert($0).inserted }
+            .prefix(Self.teamCapacity)
+            .map(\.self)
+    }
+
+    /// Writes the current shape only. `active` is never encoded: read the old
+    /// key, write the new one, never both.
+    func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(log, forKey: .log)
+        try c.encode(roster, forKey: .roster)
+        try c.encode(team, forKey: .team)
+        try c.encode(coinsSpent, forKey: .coinsSpent)
+        try c.encode(dust, forKey: .dust)
+        try c.encode(inventory, forKey: .inventory)
+        try c.encode(hasShinyCharm, forKey: .hasShinyCharm)
+    }
+
+    // MARK: - Shop, continued
 
     /// Buys an item into the inventory.
     mutating func buy(_ item: ShopItem, coinsEarned: Int) throws {

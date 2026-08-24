@@ -848,11 +848,12 @@ hatch starts at 1. Whatever was reached stays in the log, so switching is never
 destructive to the collection, only to the individual. Shiny re-rolling is governed
 by the re-roll price, which is a separate knob from swapping.
 
-**The abandon-levels half of that is reversed for v2, 2026-08-24.** The gate
-rejection stands; what does not is treating lost levels as the cost. The user's
-words: "I shouldn't lose my progress on Charizard if I want to switch out to
-another pokemon for a week." Levels will persist per individual. See the v2
-section below.
+**The abandon-levels half of that is reversed, and shipped 2026-08-24.** The
+gate rejection stands; what does not is treating lost levels as the cost. The
+user's words: "I shouldn't lose my progress on Charizard if I want to switch out
+to another pokemon for a week." Levels now persist per individual, in
+`Trainer.roster`, and switching costs *nothing at all*. Details under "the roster"
+below.
 
 ### Evolution triggers: two thirds are levels, one third needs a rule
 
@@ -1075,8 +1076,9 @@ re-rolling and the targeted pick all land in the log and assign an active raise
 only when there is none. It matters most for re-rolling, which would be unusable
 otherwise: the point of a shiny hunt is to keep fishing while the current one
 climbs, and a re-roll of the species being raised is the case a careless
-implementation would overwrite. Switching is still the one thing that costs levels,
-and it is the one thing the player asks for explicitly.
+implementation would overwrite. Switching used to be the one thing that cost
+levels; since the roster landed it costs nothing, and every individual keeps what
+it earned whether it is training or benched.
 
 **Notifications are quiet by default.** What earns an alert is an event that
 happens on its own while the window is closed, which is the set token accrual
@@ -1170,9 +1172,10 @@ or the economy. The recorded principle is that useful sinks buy time or certaint
 charging for a preference buys neither, and it would put a price on the one feature
 whose whole purpose is attachment.
 
-**It is held by the individual, not set by the player.** Switching starts the next
-Pokemon without one, which is what "held item" means and also the behaviour that
-needs no explaining.
+**It is held by the individual, not set by the player.** A newly started Pokemon
+begins without one, which is what "held item" means and also the behaviour that
+needs no explaining. Since the roster landed, a benched individual keeps the stone
+it was holding along with its levels: it is that Pokemon's item, not the trainer's.
 
 **A hold queues, it does not cancel, so there is no point of no return.** Taking
 the stone off resolves immediately and fires everything the level passed, in order:
@@ -1298,7 +1301,7 @@ Decisions only. The sequencing, the migration detail and the test list live in
 [PLAN-v2.md](PLAN-v2.md), and are deliberately not duplicated here: one copy of
 one fact, the same rule `CatchLog` follows.
 
-**Step 0 is implemented, 2026-08-24.** Everything else below is not.
+**Steps 0 and 1 are implemented, 2026-08-24.** Everything else below is not.
 
 ### The save is copied aside before it is read
 
@@ -1334,12 +1337,55 @@ Three calls inside that, each with a plausible alternative:
 Local calendar for the stamp, matching invariant 9: a UTC stamp rolls over
 mid-evening here and would file a copy under tomorrow.
 
-**Levels persist per individual, permanently.** Reverses the paragraph above.
-`Trainer.active: Raise?` becomes a roster plus an ordered team, and identity is
-`Raise.id` rather than `VariantSlot`, because a `Raise` mutates its own `entryID`
-as it evolves and a slot-keyed store would need rekeying on every evolution.
-`MilestoneEvent.raiseID` already exists and its doc comment already wants two
-Pikachu to be two individuals, so this is the shape the log was written for.
+### The roster, and why identity is `Raise.id`
+
+Step 1 of the plan, implemented 2026-08-24. `Trainer.active: Raise?` is now
+`roster: [Raise]` plus `team: [UUID]`, and **nothing ever deletes a `Raise`**: the
+roster is append-only like the two logs. Switching away no longer costs anything,
+which is the reversal the user asked for in as many words.
+
+**Identity is `Raise.id`, not `VariantSlot`.** A slot cannot be the key, because a
+`Raise` mutates its own `entryID` as it evolves, so a slot-keyed store would have
+to be rekeyed on every evolution: the same "two copies of one fact" smell that
+`CatchLog.filledSlots` exists to avoid. `MilestoneEvent.raiseID` already pointed
+at `Raise.id` and its doc comment already wanted two Pikachu to be two
+individuals, so this is the shape the log was written for.
+
+**Two verbs, not one.** v1's `setActive(entryID:)` could not express the
+difference between "bring Charizard back" and "start a second Charmander", and
+once levels persist that difference is the whole feature. So `addToTeam(raiseID:)`
+resumes an existing individual at its stored level, `startRaising(entryID:...)`
+creates a new one at level 1, and `removeFromTeam(raiseID:)` benches without
+deleting. Starting is still free and ungated.
+
+**`active` survives as the name for team slot 1**, and only until the team gets a
+UI. One stored fact, two readers: the popover and the status item still speak in
+one Pokemon, and renaming them is step 4's job rather than something to smear
+across two steps.
+
+**A duplicate individual is allowed and is not a duplicate.** Two Charmander
+raised separately are two rows in the roster with two levels, because that is what
+"my progress on this one" means. Ownership is still per sprite, per invariant 18,
+and is still the log's question, not the roster's.
+
+**Migration reads the legacy key forever and never writes it**, the pattern
+`CatchLog` already uses for `graduations`. A save with `active` and no `roster`
+seeds a one-individual roster with its XP intact and puts it in slot 1. Old keys
+that every save has ever carried stay *required*, which matters more than it
+looks: if every field were `decodeIfPresent`, a nonsense object would decode as a
+brand new empty trainer instead of throwing, and invariant 23's quarantine would
+never fire. New keys are optional, old keys are not.
+
+**The team is sanitised on decode, not trusted.** Unknown ids dropped, duplicates
+collapsed, capped at 6. It is a list of references into the roster, so it is the
+one part of the save that can be internally inconsistent, and the fix belongs
+where the data is read rather than at every use site. Same instinct as invariant
+22 rebuilding the slot index on decode.
+
+### Still to build: steps 2 onward
+
+The `team` list exists and is capped at 6 as of step 1. What does not exist yet is
+any of what follows.
 
 **A team of up to 6 gains XP simultaneously.** Slot 1 at 1.0, slots 2 to 6 at
 0.8 each, per occupied slot, so a team of two is 1.8x and the ramp is smooth.

@@ -26,10 +26,12 @@ layer, and the game. Live plan limits were considered and rejected, with reasons
 - [x] Pokédex view, browse and claim from the popover
 - [x] Shop, notifications, and a floating desktop pet
 - [x] Milestone rings in the Dex: silver at level 50, gold at 100
+- [x] Levels persist per individual: switching away costs nothing at all
 
-v1 is feature-complete and **v2 is scoped but not started**: levels that persist
-per individual, a team of up to 6 raised at once, and an Exp Share item. The plan
-is [PLAN-v2.md](PLAN-v2.md) and the decisions behind it are in
+v1 is feature-complete and **v2 is underway**. Levels that persist per individual
+are in, along with a dated backup of the save file. Still ahead: a team of up to 6
+raised at once, an Exp Share item, and per-project attribution. The plan is
+[PLAN-v2.md](PLAN-v2.md) and the decisions behind it are in
 [DECISIONS.md](DECISIONS.md).
 
 The v1 tuning that is left is deliberately not scheduled: the Dust prices are

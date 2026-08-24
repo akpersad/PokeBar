@@ -58,6 +58,10 @@ final class GameMonitor {
     var dust: Int { trainer.dust }
     var active: Raise? { trainer.active }
     var log: CatchLog { trainer.log }
+    /// Every individual ever raised, and the ones not currently training. What
+    /// the bench picker will read; nothing here is ever deleted.
+    var roster: [Raise] { trainer.roster }
+    var benched: [Raise] { trainer.benched }
 
     /// The entry being raised, resolved. Nil before the first hatch.
     var activeEntry: DexEntry? {
@@ -180,9 +184,24 @@ final class GameMonitor {
         persist()
     }
 
-    func setActive(entryID: Int, shiny: Bool = false, gender: Gender? = nil) throws {
+    /// The one switch the popover can express: make this the Pokemon being
+    /// raised. Resumes an individual of that sprite if the roster holds one, at
+    /// the level it stopped at, and starts a new one otherwise.
+    func switchTo(entryID: Int, shiny: Bool = false, gender: Gender? = nil) throws {
         guard let dex else { return }
-        try trainer.setActive(entryID: entryID, shiny: shiny, gender: gender, dex: dex)
+        try trainer.switchTo(entryID: entryID, shiny: shiny, gender: gender, dex: dex)
+        persist()
+    }
+
+    /// Brings a benched individual back at its stored level.
+    func resume(raiseID: UUID) throws {
+        try trainer.addToTeam(raiseID: raiseID)
+        persist()
+    }
+
+    /// Stops training an individual without losing anything it earned.
+    func bench(raiseID: UUID) {
+        guard trainer.removeFromTeam(raiseID: raiseID) else { return }
         persist()
     }
 

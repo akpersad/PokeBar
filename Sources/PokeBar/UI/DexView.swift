@@ -334,7 +334,7 @@ struct DexDetailView: View {
             if seen {
                 HStack(spacing: 8) {
                     Button("Raise this one") {
-                        run { try game.setActive(entryID: entry.id) }
+                        run { try game.switchTo(entryID: entry.id) }
                     }
                     .disabled(game.active?.entryID == entry.id)
 

@@ -1,8 +1,8 @@
 # PokeBar v2 work plan
 
-Written 2026-08-24. **Step 0 is built; steps 1 to 7 are not started.** Priority
-order is the user's, set in the brainstorm that produced this file: **the team
-comes first.**
+Written 2026-08-24. **Steps 0 and 1 are built; steps 2 to 7 are not started.**
+Priority order is the user's, set in the brainstorm that produced this file:
+**the team comes first.**
 
 Read DECISIONS.md before starting any step. Every step below that changes a
 directional call names the DECISIONS.md section it has to amend *first*.
@@ -113,7 +113,7 @@ that is both backed up and quarantined.
 
 ---
 
-## Step 1: a roster, so levels persist
+## Step 1: a roster, so levels persist — DONE 2026-08-24
 
 Pure `Trainer` and `GameModels` work. No UI, no team yet. This step alone
 delivers "I should not lose my progress on Charizard".
@@ -162,6 +162,29 @@ feature in one assertion and it should be written first.
 **DECISIONS.md:** amend "Switching Pokémon is free, with no level gate" and the
 `Raise` doc comment. The reversal and its reason go in the record before the code
 changes, per the project rule.
+
+**As built.** Invariants 30 and 31. Three things went differently from the spec
+above, all deliberate:
+
+- **A third verb, `switchTo(entryID:)`, and it resumes.** The popover offers one
+  "raise this one" button per *entry*, so until step 4 there is no UI that can name
+  an individual, and `addToTeam(raiseID:)` alone would have left the headline
+  feature unreachable from the app. `switchTo` picks the **highest-level**
+  individual of that exact sprite and makes it the whole team, starting a new one
+  only when the roster has none. Transitional in one respect only: it clears the
+  other slots. Step 4 deletes it in favour of the two verbs.
+- **`active` survives as a computed alias for team slot 1**, so `MenuBarLabel`,
+  `CompanionView` and `DexView` are untouched. Renaming them belongs with the team
+  UI rather than smeared across two steps.
+- **`credit` split into `credit` + `grant(xp:to:)`.** Step 2 is now a loop over
+  `teamRaises` calling `grant` once per slot: the level-up detection, the evolution
+  chain and the milestone recording are already scoped to one `raiseID` and do not
+  change. `setEverstone` gained a per-individual overload for the same reason.
+
+Also built: the ownership check happens **before** anything mutates, because a
+refused switch that had already emptied the team would silently stop XP accruing;
+and the live save is decoded by a `POKEBAR_CORPUS=1` test rather than only by a
+fixture. It migrates: Charizard, level 47, 224,081 XP, into slot 1.
 
 ---
 

@@ -177,6 +177,10 @@ enum GameFormat {
         case .missingItem(let slug): return "You do not have a \(itemName(slug))."
         case .evolutionNotAvailable: return "That evolution is not available yet."
         case .emptyPool: return "There is nothing left to hatch."
+        case .teamFull:
+            return "Your team is full at \(Trainer.teamCapacity). Bench one first."
+        case .alreadyOnTeam: return "That one is already on your team."
+        case .unknownIndividual: return "That one is no longer in your roster."
         }
     }
 
