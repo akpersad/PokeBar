@@ -1,11 +1,7 @@
 # PokeBar
 
-A macOS menu bar app that turns Claude Code token usage into a Pokémon
+A macOS menu bar app that turns Claude Code and Codex token usage into a Pokémon
 collection. Personal build, not distributed.
-
-Inspired by [chattymin/PokeTokenBar](https://github.com/chattymin/PokeTokenBar)
-(MIT), which was audited in full first. Some Claude Code parsing logic is lifted
-from it, marked in the source where it is.
 
 ## Status
 
@@ -14,7 +10,7 @@ layer, and the game. Live plan limits were considered and rejected, with reasons
 [DECISIONS.md](DECISIONS.md).
 
 - [x] Bounded-memory JSONL streaming with resumable offsets
-- [x] Claude Code usage parser with keep-max dedup
+- [x] Claude Code and Codex usage parsers with incremental JSONL scanning
 - [x] Incremental scanner (cold scan 17s, warm pass 0 bytes)
 - [x] Accumulating ledger (survives relaunch, credits only growth)
 - [x] FSEvents watchers replacing timer polling
@@ -102,8 +98,8 @@ Five worth knowing up front:
 
 ## Privacy
 
-Reads `~/.claude/projects/**/*.jsonl` locally to extract token counts. It holds no
-credentials and reads no Keychain item.
+Reads `~/.claude/projects/**/*.jsonl` and `~/.codex/sessions/**/*.jsonl` locally
+to extract token counts. It holds no credentials and reads no Keychain item.
 
 It writes its own files under `~/Library/Application Support/PokeBar/`:
 `usage-state.json`, the token ledger and scan cursors; `game-state.json`, the

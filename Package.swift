@@ -28,9 +28,8 @@ let package = Package(
                 // generation-counter whack-a-mole the upstream defect log records.
                 .swiftLanguageMode(.v6),
             ]
-            // No sqlite3 link: Claude Code usage is append-only JSONL. The
-            // upstream project needed SQLite only for Codex, Cursor, Copilot
-            // and Kiro, all of which we deliberately do not track.
+            // No sqlite3 link: both Claude Code and current Codex usage are
+            // append-only JSONL. Cursor, Copilot and Kiro remain out of scope.
         ),
         .testTarget(
             name: "PokeBarTests",

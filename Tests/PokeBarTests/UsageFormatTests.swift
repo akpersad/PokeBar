@@ -96,6 +96,8 @@ final class UsageFormatTests: XCTestCase {
         XCTAssertEqual(ModelIdentity("claude-opus-5").displayName, "Opus 5")
         XCTAssertEqual(ModelIdentity("claude-opus-4-8").displayName, "Opus 4.8")
         XCTAssertEqual(ModelIdentity("claude-sonnet-5").displayName, "Sonnet 5")
+        XCTAssertEqual(ModelIdentity("gpt-5.6-sol").displayName, "GPT 5.6 Sol")
+        XCTAssertEqual(ModelIdentity("gpt-5.6-sol").family, .gpt)
     }
 
     /// Snapshot ids carry a trailing date that is not a version component.
@@ -122,8 +124,20 @@ final class UsageFormatTests: XCTestCase {
         XCTAssertEqual(identity.family, .unknown)
     }
 
-    func testNonClaudeIdentifiersFallBackToRaw() {
-        for raw in ["gpt-4o", "Other", "<synthetic>", "claude-", ""] {
+    /// A GPT id older or newer than `gpt-5.6-*` still has to render. The
+    /// number-vs-word branch is the whole point: version components stay as
+    /// written, names get capitalised.
+    func testGPTDisplayNamesKeepVersionsAndCapitaliseNames() {
+        XCTAssertEqual(ModelIdentity("gpt-4o").displayName, "GPT 4o")
+        XCTAssertEqual(ModelIdentity("gpt-4o").family, .gpt)
+        XCTAssertEqual(ModelIdentity("gpt-5.6-terra").displayName, "GPT 5.6 Terra")
+        XCTAssertEqual(ModelIdentity("gpt-5.6-luna").displayName, "GPT 5.6 Luna")
+    }
+
+    func testUnknownProviderIdentifiersFallBackToRaw() {
+        // "gpt-" is the GPT-side counterpart of "claude-": a prefix with
+        // nothing after it renders as the raw id, not as "GPT ".
+        for raw in ["Other", "<synthetic>", "claude-", "gpt-", ""] {
             let identity = ModelIdentity(raw)
             XCTAssertEqual(identity.displayName, raw)
             XCTAssertEqual(identity.family, .unknown)

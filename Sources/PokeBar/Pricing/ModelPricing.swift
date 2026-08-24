@@ -2,10 +2,12 @@ import Foundation
 
 /// Per-token USD rates for one model.
 ///
-/// All four classes are stored even though, across every current Claude model,
-/// they sit in a fixed ratio to input (output 5x, cache write 1.25x, cache read
-/// 0.1x). Storing the ratio instead of the rates would bake in an assumption
-/// that a future model is free to break.
+/// All four classes are stored explicitly rather than derived from a ratio.
+/// Across every current Claude model they sit in a fixed ratio to input (output
+/// 5x, cache write 1.25x, cache read 0.1x), but that is a property of one
+/// provider's price list, not a law: `gpt-5.6-sol` prices output at 5x while
+/// Terra and Luna use 6x. Storing the ratio would bake in an assumption the
+/// next model is free to break, and one already does.
 struct ModelRate: Sendable, Equatable, Codable {
     let input: Double
     let output: Double
@@ -67,6 +69,29 @@ struct ModelPricing: Sendable {
         "claude-haiku-4-5": .perMillion(input: 1, output: 5, cacheWrite: 1.25, cacheRead: 0.1),
         "claude-haiku-4-5-20251001":
             .perMillion(input: 1, output: 5, cacheWrite: 1.25, cacheRead: 0.1),
+        // OpenAI published rates, re-verified 2026-08-24 against
+        // developers.openai.com. Codex rollout input is decomposed into these
+        // non-overlapping classes before costing.
+        //
+        // Two departures from the Claude entries above, both deliberate:
+        //
+        // 1. `gpt-5.6-sol` carries a **promotional** rate, unlike
+        //    `claude-sonnet-5` which carries list. OpenAI cut Sol 2026-08-22 and
+        //    publishes no list price to fall back to, so the promo is the only
+        //    published number. It holds "at least through 2026-11-21"; when it
+        //    lapses this entry goes stale silently, because `PricingCatalog`
+        //    keeps `claude-` keys only and will never refresh a GPT rate.
+        // 2. The within-model ratios are not uniform the way they are across
+        //    Claude. Cache write is 1.25x input and cache read 0.1x input for
+        //    all three, but output is 5x input on Sol and 6x on Terra and Luna,
+        //    so `testWithinModelRatiosAreUniform` is scoped to Claude.
+        //
+        // Only `gpt-5.6-sol` appears in this machine's corpus. Terra and Luna
+        // are carried so a model switch does not silently fall back to the
+        // unknown-model weight of 1.0.
+        "gpt-5.6-sol":    .perMillion(input: 4, output: 20, cacheWrite: 5, cacheRead: 0.4),
+        "gpt-5.6-terra":  .perMillion(input: 2, output: 12, cacheWrite: 2.5, cacheRead: 0.2),
+        "gpt-5.6-luna":   .perMillion(input: 0.2, output: 1.2, cacheWrite: 0.25, cacheRead: 0.02),
     ]
 
     /// The model whose input rate defines a tier multiplier of exactly 1.0.

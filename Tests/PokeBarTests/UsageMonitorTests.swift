@@ -2,7 +2,7 @@ import XCTest
 
 @testable import PokeBar
 
-/// End-to-end over a synthetic Claude project tree: watch, scan, credit, publish,
+/// End-to-end over a synthetic usage tree: watch, scan, credit, publish,
 /// persist, relaunch.
 @MainActor
 final class UsageMonitorTests: XCTestCase {

@@ -10,9 +10,13 @@ struct FileCursor: Sendable, Equatable, Codable {
     var inode: UInt64
     var size: UInt64
     var offset: UInt64
+    /// Codex writes the model on `turn_context`, separately from later usage
+    /// events. Carry it across incremental scans in case a scan boundary falls
+    /// between those two lines. Nil for Claude files and old persisted cursors.
+    var codexModel: String? = nil
 }
 
-/// Walks the Claude Code project tree and turns appended lines into entries.
+/// Walks the Claude Code and Codex session trees and turns appended lines into entries.
 ///
 /// The upstream design re-scanned on a 1 to 15 minute `Timer`, softened by an
 /// mtime window. That is 528 MB of repeated work to answer a question whose
@@ -31,17 +35,26 @@ struct UsageScanner: Sendable {
         var bytesRead: UInt64 = 0
     }
 
-    /// Default is `~/.claude/projects`. `CLAUDE_CONFIG_DIR` relocates the whole
-    /// Claude config tree, and upstream had a live bug where the hardcoded path
-    /// was consulted anyway, so we honour it.
+    /// Defaults to both `~/.claude/projects` and `~/.codex/sessions`.
+    /// Each tool's supported environment variable relocates its config tree.
     static func defaultRoots(
         environment: [String: String] = ProcessInfo.processInfo.environment,
         home: URL = FileManager.default.homeDirectoryForCurrentUser
     ) -> [URL] {
+        let claudeRoot: URL
         if let configured = environment["CLAUDE_CONFIG_DIR"], !configured.isEmpty {
-            return [URL(fileURLWithPath: configured).appendingPathComponent("projects")]
+            claudeRoot = URL(fileURLWithPath: configured).appendingPathComponent("projects")
+        } else {
+            claudeRoot = home.appendingPathComponent(".claude/projects")
         }
-        return [home.appendingPathComponent(".claude/projects")]
+
+        let codexRoot: URL
+        if let configured = environment["CODEX_HOME"], !configured.isEmpty {
+            codexRoot = URL(fileURLWithPath: configured).appendingPathComponent("sessions")
+        } else {
+            codexRoot = home.appendingPathComponent(".codex/sessions")
+        }
+        return [claudeRoot, codexRoot]
     }
 
     var roots: [URL]
@@ -74,11 +87,13 @@ struct UsageScanner: Sendable {
                 guard stat.size > start else {
                     // Nothing appended. Carry the cursor forward untouched.
                     result.cursors[path] = FileCursor(
-                        inode: stat.inode, size: stat.size, offset: start)
+                        inode: stat.inode, size: stat.size, offset: start,
+                        codexModel: previous[path]?.codexModel)
                     continue
                 }
 
                 var consumed = start
+                var codexModel = previous[path]?.codexModel
                 // Counts every line seen in this file, so an id-less line gets a
                 // genuinely unique fallback key. Using the byte offset here would
                 // not work: the offset is only advanced after the read returns.
@@ -86,12 +101,34 @@ struct UsageScanner: Sendable {
                 do {
                     consumed = try JSONLStreamer.read(file, from: start) { line in
                         lineIndex += 1
-                        // Cheap prefilter. Most lines in these files are not
-                        // assistant turns, and skipping the JSON parse for them
-                        // is the difference between a fast scan and a slow one.
-                        guard line.contains("\"usage\"") else { return }
-                        if let entry = ClaudeUsageParser.entry(
-                            fromLine: line, fallbackID: "\(path)#\(start)+\(lineIndex)") {
+                        let fallbackID = "\(path)#\(start)+\(lineIndex)"
+                        // Two cheap prefilters, in that order. Most lines in
+                        // either tree are not usage records, and skipping the
+                        // JSON parse for them is the difference between a fast
+                        // scan and a slow one.
+                        //
+                        // The Codex markers are matched on raw text, so they
+                        // could in principle appear inside a Claude turn's
+                        // content. Falling *through* rather than branching
+                        // else-if means a false positive costs one wasted parse
+                        // instead of silently dropping that turn's usage. A
+                        // genuine Codex record cannot reach the Claude branch:
+                        // its only "usage" substring is `last_token_usage`,
+                        // which has no opening quote before `usage`.
+                        if line.contains("\"turn_context\"") || line.contains("\"token_count\"") {
+                            if let entry = CodexUsageParser.consume(
+                                line: line,
+                                sessionKey: file.lastPathComponent,
+                                fallbackID: "codex|\(fallbackID)",
+                                currentModel: &codexModel) {
+                                raw.append(entry)
+                                return
+                            }
+                        }
+                        if line.contains("\"usage\""),
+                           let entry = ClaudeUsageParser.entry(
+                            fromLine: line,
+                            fallbackID: "claude|\(fallbackID)") {
                             raw.append(entry)
                         }
                     }
@@ -104,7 +141,8 @@ struct UsageScanner: Sendable {
                 result.filesRead += 1
                 result.bytesRead += consumed - start
                 result.cursors[path] = FileCursor(
-                    inode: stat.inode, size: stat.size, offset: consumed)
+                    inode: stat.inode, size: stat.size, offset: consumed,
+                    codexModel: codexModel)
             }
         }
 

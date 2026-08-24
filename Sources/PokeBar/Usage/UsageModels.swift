@@ -1,6 +1,6 @@
 import Foundation
 
-/// The four token classes Claude Code reports. Kept separate rather than
+/// The four non-overlapping token classes Claude Code and Codex report. Kept separate rather than
 /// collapsed to a total because they differ in price by up to ~60x
 /// (cache read vs output), so a single number cannot be costed.
 struct TokenCounts: Sendable, Equatable, Codable {
@@ -24,8 +24,7 @@ struct TokenCounts: Sendable, Equatable, Codable {
     static func += (a: inout TokenCounts, b: TokenCounts) { a = a + b }
 }
 
-/// One assistant turn's usage, parsed from a line of
-/// `~/.claude/projects/**/*.jsonl`.
+/// One assistant turn's usage, parsed from a Claude Code or Codex JSONL line.
 struct UsageEntry: Sendable, Equatable, Identifiable, Codable {
     /// Stable across rescans so re-reading a file cannot double-count.
     /// Claude Code writes a `requestId` per turn; where absent we fall back to
