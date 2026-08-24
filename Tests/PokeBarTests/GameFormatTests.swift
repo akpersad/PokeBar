@@ -128,7 +128,7 @@ final class GameFormatTests: XCTestCase {
         XCTAssertEqual(GameFormat.describe(hatched, dex: dex), "Hatched Shiny Pikachu")
 
         XCTAssertEqual(
-            GameFormat.describe(.evolved(from: pikachu.id, to: raichu.id), dex: dex),
+            GameFormat.describe(.evolved(raiseID: UUID(), from: pikachu.id, to: raichu.id), dex: dex),
             "Pikachu evolved into Raichu")
         XCTAssertEqual(
             GameFormat.describe(.duplicate(entryID: pikachu.id, dust: 3), dex: dex),
@@ -137,7 +137,7 @@ final class GameFormatTests: XCTestCase {
             GameFormat.describe(.duplicate(entryID: pikachu.id, dust: 0), dex: dex),
             "Duplicate Pikachu")
         XCTAssertEqual(
-            GameFormat.describe(.graduated(entryID: raichu.id), dex: dex),
+            GameFormat.describe(.graduated(raiseID: UUID(), entryID: raichu.id), dex: dex),
             "Raichu graduated at level 100")
     }
 
@@ -190,8 +190,8 @@ final class GameFormatTests: XCTestCase {
             GameFormat.dexTileLabel(name: "Lapras", id: 131, seen: false, milestone: nil),
         ]
         strings += [
-            GameFormat.describe(.evolutionChoice(from: pikachu.id, options: [26]), dex: dex),
-            GameFormat.describe(.levelledUp(to: 5), dex: dex),
+            GameFormat.describe(.evolutionChoice(raiseID: UUID(), from: pikachu.id, options: [26]), dex: dex),
+            GameFormat.describe(.levelledUp(raiseID: UUID(), to: 5), dex: dex),
         ]
         strings += dex.entries.prefix(200).flatMap(\.evolutions).map(GameFormat.requirement)
         for text in strings {

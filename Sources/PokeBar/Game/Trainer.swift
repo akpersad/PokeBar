@@ -147,19 +147,34 @@ struct Trainer: Codable, Sendable, Equatable {
     /// are parallel derivations of the same usage, never a shared pool, so there
     /// is no allocation choice to make: you train and save at the same time.
     ///
-    /// Crediting with nothing active is a no-op rather than an error. Coins still
+    /// Crediting with an empty team is a no-op rather than an error. Coins still
     /// accrue, which is the correct behaviour for a machine that was busy while
     /// its last Pokemon was already graduated.
+    ///
+    /// **The whole team earns, and the credit is never divided.** Slot 1 takes
+    /// `leadShare` of it and each of slots 2 to 6 takes `benchShare` *of the same
+    /// credit*, so a team of two absorbs 1.8x and a full team 5.0x. Splitting one
+    /// credit six ways was considered and rejected: it would make filling the team
+    /// a downgrade, which is incoherent for the thing the player is being asked to
+    /// work towards.
+    ///
+    /// **A capped member's share is not redistributed.** XP that would go to a
+    /// graduated individual is simply not granted, because redistribution would
+    /// quietly change what the lead slot means the moment it hits 100. A graduated
+    /// Pokemon sitting in the team is wasting a share, and the answer to that is
+    /// to tell the player rather than to compensate silently.
     @discardableResult
     mutating func credit(
         weightedTokens: Double, dex: Pokedex, now: Date = Date()
     ) -> [GameEvent] {
-        guard weightedTokens > 0, let leadID = team.first else { return [] }
-        // Slot 1 only, and at the full rate: identical to v1. Handing the same
-        // credit to slots 2 to 6 as well is step 2, and it calls `grant` once per
-        // member rather than changing anything below it.
-        return grant(
-            xp: XPCurve.xp(forWeightedTokens: weightedTokens), to: leadID, dex: dex, now: now)
+        guard weightedTokens > 0 else { return [] }
+        var events: [GameEvent] = []
+        for (slot, raiseID) in team.enumerated() {
+            events += grant(
+                xp: XPCurve.xp(forWeightedTokens: weightedTokens * XPCurve.share(forSlot: slot)),
+                to: raiseID, dex: dex, now: now)
+        }
+        return events
     }
 
     /// One individual's share of a credit: XP, then evolutions, then marks.
@@ -179,7 +194,7 @@ struct Trainer: Codable, Sendable, Equatable {
         let after = roster[index].level
 
         var events: [GameEvent] = []
-        if after > before { events.append(.levelledUp(to: after)) }
+        if after > before { events.append(.levelledUp(raiseID: raiseID, to: after)) }
         events += resolveEvolutions(of: raiseID, dex: dex, now: now)
         // Read the roster again rather than reusing a copy from above: an
         // evolution resolved just now may have changed what this individual is,
@@ -202,24 +217,40 @@ struct Trainer: Codable, Sendable, Equatable {
                             date: now))
                 }
                 if level >= XPCurve.maxLevel {
-                    events.append(.graduated(entryID: climber.entryID))
+                    events.append(.graduated(raiseID: raiseID, entryID: climber.entryID))
                 }
             }
         }
         return events
     }
 
-    /// 10,000 XP in one go. The most important coin sink, because it buys the
-    /// scarce resource: raising time, not more eggs.
+    /// 10,000 XP in one go, **to one Pokemon**. The most important coin sink,
+    /// because it buys the scarce resource: raising time, not more eggs.
+    ///
+    /// It feeds one individual and not the team, which is not a detail. Routing it
+    /// through `credit` would hand 10,000 XP to all six for 250 coins, quietly
+    /// turning the game's one targeted item into a 5x team boost and making it the
+    /// only sensible thing to spend on. One candy, one Pokemon, as in the games.
+    ///
+    /// Defaults to the lead because that is the only target the popover can name
+    /// today. Step 4 of PLAN-v2.md gives the button a picker and calls the
+    /// `on:` form.
     @discardableResult
     mutating func useRareCandy(dex: Pokedex, now: Date = Date()) throws -> [GameEvent] {
-        guard lead != nil else { throw GameError.nothingActive }
+        guard let leadID = team.first else { throw GameError.nothingActive }
+        return try useRareCandy(on: leadID, dex: dex, now: now)
+    }
+
+    @discardableResult
+    mutating func useRareCandy(
+        on raiseID: UUID, dex: Pokedex, now: Date = Date()
+    ) throws -> [GameEvent] {
+        guard raise(id: raiseID) != nil else { throw GameError.unknownIndividual(raiseID) }
         guard count(ofItem: Self.rareCandySlug) > 0 else {
             throw GameError.missingItem(Self.rareCandySlug)
         }
         inventory[Self.rareCandySlug] = count(ofItem: Self.rareCandySlug) - 1
-        return credit(
-            weightedTokens: Prices.rareCandyXP * XPCurve.weightedTokensPerXP, dex: dex, now: now)
+        return grant(xp: Prices.rareCandyXP, to: raiseID, dex: dex, now: now)
     }
 
     static let rareCandySlug = "rare-candy"
@@ -260,7 +291,8 @@ struct Trainer: Codable, Sendable, Equatable {
             guard itemFree.count == 1, let edge = ready.first else {
                 if !ready.isEmpty, itemFree.count > 1 {
                     events.append(
-                        .evolutionChoice(from: entry.id, options: ready.map(\.to)))
+                        .evolutionChoice(
+                            raiseID: raiseID, from: entry.id, options: ready.map(\.to)))
                 }
                 break
             }
@@ -293,7 +325,9 @@ struct Trainer: Codable, Sendable, Equatable {
         // by eggs, and an evolution is not a roll: the target was determined the
         // moment the edge was taken.
         log.append(event)
-        return [.evolved(from: entry.id, to: target.id), .caught(event)]
+        return [
+            .evolved(raiseID: raiseID, from: entry.id, to: target.id), .caught(event),
+        ]
     }
 
     /// Puts an Everstone on the active Pokemon, or takes it off.
@@ -321,18 +355,55 @@ struct Trainer: Codable, Sendable, Equatable {
 
     /// Edges the player could take right now by spending an item they hold, plus
     /// the ones a choice is pending on. What the UI offers as buttons.
+    ///
+    /// The lead's, because that is the one the popover draws. Six members can each
+    /// be waiting on their own choice, which is what `teamPendingEvolutions` is
+    /// for and what step 4 renders as a list.
     func pendingEvolutions(dex: Pokedex) -> [(edge: Evolution, target: DexEntry)] {
-        guard let raise = lead, let entry = dex.entry(id: raise.entryID) else { return [] }
+        guard let leadID = team.first else { return [] }
+        return pendingEvolutions(of: leadID, dex: dex)
+    }
+
+    func pendingEvolutions(
+        of raiseID: UUID, dex: Pokedex
+    ) -> [(edge: Evolution, target: DexEntry)] {
+        guard let raise = raise(id: raiseID), let entry = dex.entry(id: raise.entryID) else {
+            return []
+        }
         return dex.availableEvolutions(
             of: entry, atLevel: raise.level, items: Set(inventory.filter { $0.value > 0 }.keys))
     }
 
-    /// Takes an evolution the player chose, consuming its item if it needs one.
+    /// Everyone on the team with something waiting, in slot order. Empty entries
+    /// are dropped, so this is also "how many decisions am I holding up".
+    func teamPendingEvolutions(
+        dex: Pokedex
+    ) -> [(raiseID: UUID, options: [(edge: Evolution, target: DexEntry)])] {
+        team.compactMap { raiseID in
+            let options = pendingEvolutions(of: raiseID, dex: dex)
+            return options.isEmpty ? nil : (raiseID, options)
+        }
+    }
+
+    /// Takes an evolution the player chose for the lead, consuming its item if it
+    /// needs one.
     @discardableResult
     mutating func evolveActive(
         into targetID: Int, dex: Pokedex, now: Date = Date()
     ) throws -> [GameEvent] {
-        guard let raise = lead else { throw GameError.nothingActive }
+        guard let leadID = team.first else { throw GameError.nothingActive }
+        return try evolve(leadID, into: targetID, dex: dex, now: now)
+    }
+
+    /// The same, for one named individual. Two team members can hold two
+    /// unrelated pending choices, so the decision has to say who it is about.
+    @discardableResult
+    mutating func evolve(
+        _ raiseID: UUID, into targetID: Int, dex: Pokedex, now: Date = Date()
+    ) throws -> [GameEvent] {
+        guard let raise = raise(id: raiseID) else {
+            throw GameError.unknownIndividual(raiseID)
+        }
         guard let entry = dex.entry(id: raise.entryID) else {
             throw GameError.unknownEntry(raise.entryID)
         }

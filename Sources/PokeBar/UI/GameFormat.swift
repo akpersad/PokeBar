@@ -115,14 +115,17 @@ enum GameFormat {
             return dust > 0
                 ? "Duplicate \(name(entryID)), traded for \(dust) Dust"
                 : "Duplicate \(name(entryID))"
-        case .levelledUp(let level):
+        // The feed names the species, which is what the player recognises, so the
+        // `raiseID` these carry is for pairing an event with a team slot rather
+        // than for reading out.
+        case .levelledUp(_, let level):
             return "Reached level \(level)"
-        case .evolved(let from, let to):
+        case .evolved(_, let from, let to):
             return "\(name(from)) evolved into \(name(to))"
-        case .evolutionChoice(let from, let options):
+        case .evolutionChoice(_, let from, let options):
             let names = options.map(name).joined(separator: " or ")
             return "\(name(from)) is ready to evolve into \(names)"
-        case .graduated(let entryID):
+        case .graduated(_, let entryID):
             return "\(name(entryID)) graduated at level 100"
         }
     }

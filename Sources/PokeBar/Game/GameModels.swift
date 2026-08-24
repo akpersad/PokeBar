@@ -216,12 +216,17 @@ struct Raise: Codable, Sendable, Identifiable, Equatable {
 /// Something worth telling the player about. Returned rather than posted, so the
 /// game logic stays testable and the notification decision lives at the edge.
 enum GameEvent: Sendable, Equatable {
-    case levelledUp(to: Int)
-    case evolved(from: Int, to: Int)
+    /// The four cases below name the individual they happened to. One credit now
+    /// reaches up to six of them at once, so "it levelled up" is not a fact until
+    /// you know *which one*, and the `raiseID` is what lets a caller pair an event
+    /// with a team slot.
+    case levelledUp(raiseID: UUID, to: Int)
+    case evolved(raiseID: UUID, from: Int, to: Int)
     /// Several edges are satisfied at once and the choice is the player's, which
-    /// is the honest answer for Eevee at level 36 and for Wurmple at 7.
-    case evolutionChoice(from: Int, options: [Int])
-    case graduated(entryID: Int)
+    /// is the honest answer for Eevee at level 36 and for Wurmple at 7. Six
+    /// members can be waiting on six different choices at the same time.
+    case evolutionChoice(raiseID: UUID, from: Int, options: [Int])
+    case graduated(raiseID: UUID, entryID: Int)
     case caught(CatchEvent)
     /// A hatch that filled no new slot. Pays Dust instead.
     case duplicate(entryID: Int, dust: Int)

@@ -27,10 +27,12 @@ layer, and the game. Live plan limits were considered and rejected, with reasons
 - [x] Shop, notifications, and a floating desktop pet
 - [x] Milestone rings in the Dex: silver at level 50, gold at 100
 - [x] Levels persist per individual: switching away costs nothing at all
+- [x] A team of up to 6 gains XP from the same credit, lead at 1.0 and bench at 0.8
 
 v1 is feature-complete and **v2 is underway**. Levels that persist per individual
-are in, along with a dated backup of the save file. Still ahead: a team of up to 6
-raised at once, an Exp Share item, and per-project attribution. The plan is
+are in, along with a dated backup of the save file and the team XP rules. The team
+is not yet buildable from the popover, which is the next visible step. Still ahead:
+the team UI, an Exp Share item, and per-project attribution. The plan is
 [PLAN-v2.md](PLAN-v2.md) and the decisions behind it are in
 [DECISIONS.md](DECISIONS.md).
 

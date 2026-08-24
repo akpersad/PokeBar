@@ -34,6 +34,32 @@ enum XPCurve {
     /// curve in the first place.
     static let weightedTokensPerXP: Double = 500
 
+    /// Team slot 1's share of a credit.
+    ///
+    /// A "share" **multiplies, it never splits**: the whole credit is handed to
+    /// slot 1 and the whole credit is handed again, discounted, to each of slots 2
+    /// to 6. A full team therefore absorbs 5.0x what one Pokemon does, and nothing
+    /// is taken from the lead to pay for the bench.
+    static let leadShare: Double = 1.0
+
+    /// What each of slots 2 to 6 gets, as a fraction of a credit.
+    ///
+    /// **This is the dial**, and it lives here alone so it can be turned: 0.8
+    /// gives a full team 5.0x, 0.5 gives 3.5x, 0.25 gives 2.25x. 0.8 is the user's
+    /// number, from the example that set it (10 XP for the lead, 8 for the bench).
+    ///
+    /// The 5x inflation is deliberate and is affordable for one reason: what it
+    /// speeds up is *graduation*, and graduation pays out nothing. Evolution was
+    /// already fast (level 36, the deepest common edge, is 0.6 days here) so the
+    /// team buys six evolution lines progressing at once, which is the point, and
+    /// inflates ring colours, which is cosmetic. See DECISIONS.md.
+    static let benchShare: Double = 0.8
+
+    /// A given team slot's share. Slot 0 is the lead.
+    static func share(forSlot slot: Int) -> Double {
+        slot == 0 ? leadShare : benchShare
+    }
+
     /// XP is a *parallel* derivation of the same tokens that mint coins, never a
     /// share of a pool. Training and saving happen at once, so there is no
     /// allocation choice to make and no week of training followed by a week of

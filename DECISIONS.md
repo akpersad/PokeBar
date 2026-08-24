@@ -839,6 +839,12 @@ therefore accumulate faster than eggs can consume them, and the useful sinks are
 ones that buy *time* (Rare Candy) or *certainty* (targeted pick), not the ones that
 buy more eggs.
 
+**Still true after the team landed, and 5x weaker.** Six members raising at once
+means six evolution lines progressing at once, so the cap is nearer 8.5 raises/day
+than 1.7. Raising time is still the bottleneck and coins still outrun eggs, but by
+less, and Rare Candy is relatively weaker for it. Watch it; do not pre-emptively
+reprice it. The reason the inflation is affordable is directly below.
+
 **Switching Pokemon is free and unrestricted, with no level gate.** A gate at level
 20 was considered and rejected. With 570 hatchable entries drawn at random, hatching
 something you do not care about is the common case, not the exception, and a gate
@@ -1301,7 +1307,8 @@ Decisions only. The sequencing, the migration detail and the test list live in
 [PLAN-v2.md](PLAN-v2.md), and are deliberately not duplicated here: one copy of
 one fact, the same rule `CatchLog` follows.
 
-**Steps 0 and 1 are implemented, 2026-08-24.** Everything else below is not.
+**Steps 0, 1 and 2 are implemented, 2026-08-24.** Everything else below is not:
+the Exp Share, the UI for any of it, per-project attribution and the LaunchAgent.
 
 ### The save is copied aside before it is read
 
@@ -1382,13 +1389,47 @@ one part of the save that can be internally inconsistent, and the fix belongs
 where the data is read rather than at every use site. Same instinct as invariant
 22 rebuilding the slot index on decode.
 
-### Still to build: steps 2 onward
+### The team gains XP together
 
-The `team` list exists and is capped at 6 as of step 1. What does not exist yet is
-any of what follows.
+Step 2 of the plan, implemented 2026-08-24. **A team of up to 6 gains XP
+simultaneously.** Slot 1 at 1.0, slots 2 to 6 at 0.8 each, per occupied slot, so
+a team of two is 1.8x and the ramp is smooth.
 
-**A team of up to 6 gains XP simultaneously.** Slot 1 at 1.0, slots 2 to 6 at
-0.8 each, per occupied slot, so a team of two is 1.8x and the ramp is smooth.
+The shares live in `XPCurve.leadShare` and `XPCurve.benchShare` and nowhere else,
+because the bench figure is the dial: 0.8 gives 5.0x, 0.5 gives 3.5x, 0.25 gives
+2.25x.
+
+**A capped member's share is not redistributed.** XP that would go to a graduated
+individual is simply not granted. Redistribution was the tempting alternative and
+is wrong: it would silently change what the lead slot means the moment it hits
+100, and the ceiling clamp already existed. A graduated Pokemon left in the team
+is wasting a share, and the right answer is to *tell the player*, which is a step
+4 job, not to compensate behind their back.
+
+**Rare Candy feeds one Pokemon, never the team.** It was routed through `credit`
+in v1 because "credit" and "the active one" were the same thing. With six members
+that would hand 10,000 XP to all of them for 250 coins, turning the one targeted
+item in the game into a permanent 5x team boost and the only sensible purchase in
+the shop. It now calls `grant` against one `raiseID`, defaulting to the lead until
+step 4 gives the button a picker. One candy, one Pokemon, as in the games.
+
+**Every event that concerns an individual now carries its `raiseID`.**
+`levelledUp`, `evolved`, `evolutionChoice` and `graduated` all assumed a single
+subject, which was true when there was one active Pokemon and is now false: one
+credit can level six of them. Display copy still names the *species*, because that
+is what the player recognises; the id is for pairing an event with a team slot.
+
+**Alerts of the same kind from one credit are grouped, not posted one by one.**
+Notification volume was already an explicit constraint (level ups are excluded on
+volume alone, at 99 per climb) and a team multiplies every count by six. An
+overnight batch that evolves four members would have posted four banners, which is
+how a user ends up turning notifications off, and then the one that mattered does
+not arrive either. `Notifier.announcements(for:dex:)` collapses each kind into one
+banner that names them all: "3 Pokemon evolved", body "Metapod, Kakuna and
+Ivysaur, all at once." Grouped per kind and never across kinds, because
+"5 updates" tells the player nothing. Three banners is the ceiling for any single
+credit. A batch of one still reads exactly as it did before the team existed, and
+a shiny is never grouped because it can only come from a single click.
 
 **Exp Share is a boost, not a split.** 10,000 coins, one-time, then a free
 toggle. If slot 1 gets 100 XP then slots 2 to 6 each get 100 XP; the credit is

@@ -80,6 +80,38 @@ final class XPCurveTests: XCTestCase {
         XCTAssertEqual(coinsPerClimb, 5_000, accuracy: 1)
     }
 
+    /// The team multiplier, pinned. This is the number the whole v2 throughput
+    /// argument rests on: a full team absorbs 5.0x one credit, which is
+    /// affordable only because what it accelerates is graduation and graduation
+    /// pays out nothing.
+    func testAFullTeamMultipliesACreditByFive() {
+        let full = XPCurve.leadShare + 5 * XPCurve.benchShare
+        XCTAssertEqual(full, 5.0, accuracy: 0.000_1)
+        XCTAssertEqual(XPCurve.share(forSlot: 0), XPCurve.leadShare)
+        for slot in 1...5 {
+            XCTAssertEqual(XPCurve.share(forSlot: slot), XPCurve.benchShare, "slot \(slot)")
+        }
+    }
+
+    /// A share multiplies, it never splits. If the bench were paid out of the
+    /// lead's share, filling the team would be a *downgrade*, which is the
+    /// reading the user rejected.
+    func testABenchSlotNeverCostsTheLeadAnything() {
+        XCTAssertEqual(XPCurve.leadShare, 1.0, "the lead always takes the whole credit")
+        XCTAssertGreaterThan(XPCurve.benchShare, 0)
+        XCTAssertLessThanOrEqual(XPCurve.benchShare, XPCurve.leadShare, "and never more")
+    }
+
+    /// Graduation gets 5x faster, and that is the cost being accepted. 4.63 days
+    /// of one Pokemon becomes 0.93 days of team-wide climbing.
+    func testTheTeamCompressesAFullClimbToUnderADay() {
+        let perDay = 108_000_000.0 / XPCurve.weightedTokensPerXP
+        let solo = Double(XPCurve.totalXP(forLevel: 100)) / perDay
+        let team = solo / (XPCurve.leadShare + 5 * XPCurve.benchShare)
+        XCTAssertEqual(solo, 4.63, accuracy: 0.01)
+        XCTAssertEqual(team, 0.93, accuracy: 0.01)
+    }
+
     func testProgressWithinALevel() {
         let (level, into, span) = XPCurve.progress(totalXP: Double(XPCurve.totalXP(forLevel: 10)))
         XCTAssertEqual(level, 10)

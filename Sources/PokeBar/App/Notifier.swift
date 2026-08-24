@@ -12,6 +12,12 @@ import UserNotifications
 /// deserves saying out loud even when you were watching.
 ///
 /// Level ups are excluded on volume alone. A full climb passes 99 of them.
+///
+/// **One credit can now reach six Pokemon at once**, which multiplies that volume
+/// problem by six: an overnight batch can evolve four of them in a single tick.
+/// So alerts of the same kind from one credit are *grouped* rather than posted one
+/// by one. Nothing is dropped, it is summarised: three banners is the ceiling for
+/// any single credit, and the names are all still in the body.
 @MainActor
 final class Notifier {
 
@@ -43,11 +49,11 @@ final class Notifier {
     ) -> (title: String, body: String)? {
         func name(_ id: Int) -> String { dex.entry(id: id)?.name ?? "#\(id)" }
         switch event {
-        case .evolved(let from, let to):
+        case .evolved(_, let from, let to):
             return ("\(name(from)) evolved", "It is now \(name(to)).")
-        case .graduated(let entryID):
+        case .graduated(_, let entryID):
             return ("\(name(entryID)) graduated", "Level 100. Time to raise something else.")
-        case .evolutionChoice(let from, let options):
+        case .evolutionChoice(_, let from, let options):
             let names = options.map(name).joined(separator: " or ")
             return ("\(name(from)) is ready to evolve", "Into \(names). Pick one in PokeBar.")
         case .caught(let event) where event.variant.shiny:
@@ -58,6 +64,79 @@ final class Notifier {
             return ("Shiny \(name(event.entryID))", "One in \(Prices.shinyOdds). Nice.")
         case .caught, .duplicate, .levelledUp:
             return nil
+        }
+    }
+
+    /// Every alert one batch of events deserves, with same-kind alerts grouped.
+    ///
+    /// A team of six turns "an evolution happened" into "four evolutions
+    /// happened", and six banners for one credit is the kind of thing that gets
+    /// notifications turned off entirely. One evolution still reads as itself;
+    /// several become one banner that names them all. Grouping is per kind rather
+    /// than across kinds, because "3 updates" tells the player nothing and
+    /// "3 Pokemon evolved" tells them everything.
+    ///
+    /// Shinies are never grouped: they only come from a hatch or a re-roll, which
+    /// are single clicks, so a batch cannot contain two.
+    nonisolated static func announcements(
+        for events: [GameEvent], dex: Pokedex
+    ) -> [(title: String, body: String)] {
+        func name(_ id: Int) -> String { dex.entry(id: id)?.name ?? "#\(id)" }
+
+        var evolved: [(from: Int, to: Int)] = []
+        var graduated: [Int] = []
+        var waiting: [(from: Int, options: [Int])] = []
+        var others: [(title: String, body: String)] = []
+
+        for event in events {
+            switch event {
+            case .evolved(_, let from, let to): evolved.append((from, to))
+            case .graduated(_, let entryID): graduated.append(entryID)
+            case .evolutionChoice(_, let from, let options): waiting.append((from, options))
+            default:
+                // Everything else keeps its own copy and its own banner, which
+                // today means a shiny and nothing more.
+                if let alert = announcement(for: event, dex: dex) { others.append(alert) }
+            }
+        }
+
+        // A batch of one is not a batch: it uses the single-event copy, so the
+        // common case reads exactly as it did before the team existed.
+        var alerts: [(title: String, body: String)] = []
+        if evolved.count > 1 {
+            alerts.append((
+                "\(evolved.count) Pokemon evolved",
+                list(evolved.map { name($0.to) }) + ", all at once."))
+        } else if let one = evolved.first {
+            alerts.append(("\(name(one.from)) evolved", "It is now \(name(one.to))."))
+        }
+        if graduated.count > 1 {
+            alerts.append((
+                "\(graduated.count) Pokemon graduated",
+                list(graduated.map(name)) + " all reached level 100."))
+        } else if let one = graduated.first {
+            alerts.append(
+                ("\(name(one)) graduated", "Level 100. Time to raise something else."))
+        }
+        if waiting.count > 1 {
+            alerts.append((
+                "\(waiting.count) Pokemon are ready to evolve",
+                list(waiting.map { name($0.from) }) + " are each waiting on a choice."))
+        } else if let one = waiting.first {
+            alerts.append((
+                "\(name(one.from)) is ready to evolve",
+                "Into \(one.options.map(name).joined(separator: " or ")). Pick one in PokeBar."))
+        }
+        return alerts + others
+    }
+
+    /// "A", "A and B", "A, B and C". No Oxford comma, and no em dash anywhere
+    /// near it: this is user-facing copy.
+    nonisolated static func list(_ names: [String]) -> String {
+        switch names.count {
+        case 0: return ""
+        case 1: return names[0]
+        default: return names.dropLast().joined(separator: ", ") + " and " + names[names.count - 1]
         }
     }
 
@@ -95,7 +174,7 @@ final class Notifier {
     /// does not arrive anyway.
     func post(_ events: [GameEvent], dex: Pokedex) async {
         guard Self.isAvailable, authorized == true else { return }
-        for alert in events.compactMap({ Self.announcement(for: $0, dex: dex) }) {
+        for alert in Self.announcements(for: events, dex: dex) {
             await deliver(title: alert.title, body: alert.body)
         }
     }

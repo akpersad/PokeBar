@@ -1,6 +1,6 @@
 # PokeBar v2 work plan
 
-Written 2026-08-24. **Steps 0 and 1 are built; steps 2 to 7 are not started.**
+Written 2026-08-24. **Steps 0, 1 and 2 are built; steps 3 to 7 are not started.**
 Priority order is the user's, set in the brainstorm that produced this file:
 **the team comes first.**
 
@@ -188,7 +188,7 @@ fixture. It migrates: Charizard, level 47, 224,081 XP, into slot 1.
 
 ---
 
-## Step 2: the team gains XP together
+## Step 2: the team gains XP together — DONE 2026-08-24
 
 **Constants**, in one place so the dial is turnable:
 
@@ -235,6 +235,30 @@ land against the right `raiseID`.
 table above and the reason the inflation is acceptable (graduation pays out
 nothing). Amend "Raising time is the bottleneck" rather than deleting it: it is
 still true, just 5x weaker.
+
+**As built.** Invariants 32, 33 and 34. Everything above landed as specified, plus
+two things the spec did not name:
+
+- **Rare Candy had to stop going through `credit`.** It called it because in v1
+  "credit" and "the active one" were the same thing; with six members that hands
+  10,000 XP to all of them for 250 coins, which makes the game's one targeted item
+  a permanent 5x team boost. It now calls `grant` against one `raiseID`, and
+  `useRareCandy(on:)` is what step 4's picker will call. Invariant 33.
+- **Notification grouping is a real behaviour, not just a cap.**
+  `Notifier.announcements(for:dex:)` collapses same-kind alerts from one credit
+  into one banner that names them all ("3 Pokemon evolved" / "Metapod, Kakuna and
+  Ivysaur, all at once."), per kind and never across kinds. A batch of one reads
+  exactly as before. Invariant 34.
+
+Also added rather than deferred: `pendingEvolutions(of:)`,
+`teamPendingEvolutions(dex:)` and `evolve(_:into:)`, so two members can hold two
+unrelated pending choices and either can be settled without touching the other.
+There is a test for exactly that. Step 4 renders it.
+
+**Not visible in the app yet**, and that is expected: nothing the popover offers
+can build a team of more than one, because `switchTo` clears the other slots and
+hatching only starts a raise when the team is empty. Step 4 is what makes step 2
+observable outside the tests.
 
 ---
 

@@ -56,8 +56,11 @@ final class TrainerTests: XCTestCase {
         // 25,500 XP short of nothing: level 1 starts at 100, so this reaches 25,600.
         let events = trainer.credit(
             weightedTokens: 25_500 * XPCurve.weightedTokensPerXP, dex: dex)
-        XCTAssertEqual(trainer.active?.level, 16)
-        XCTAssertTrue(events.contains(.levelledUp(to: 16)))
+        let raise = try XCTUnwrap(trainer.active)
+        XCTAssertEqual(raise.level, 16)
+        XCTAssertTrue(
+            events.contains(.levelledUp(raiseID: raise.id, to: 16)),
+            "and the event names which individual did it")
     }
 
     /// Coins accrue whether or not something is being raised, so a quiet slot
@@ -238,7 +241,8 @@ final class TrainerTests: XCTestCase {
         let events = trainer.credit(
             weightedTokens: 10_000 * XPCurve.weightedTokensPerXP, dex: dex)
         XCTAssertEqual(trainer.active?.entryID, ivysaur.id)
-        XCTAssertTrue(events.contains(.evolved(from: bulbasaur.id, to: ivysaur.id)))
+        XCTAssertTrue(events.contains(.evolved(
+            raiseID: try XCTUnwrap(trainer.active).id, from: bulbasaur.id, to: ivysaur.id)))
         XCTAssertTrue(trainer.log.owns(entryID: ivysaur.id))
     }
 
@@ -262,7 +266,7 @@ final class TrainerTests: XCTestCase {
 
         XCTAssertEqual(trainer.active?.entryID, eevee.id, "must not pick for the player")
         let choice = events.compactMap { event -> [Int]? in
-            if case .evolutionChoice(_, let options) = event { options } else { nil }
+            if case .evolutionChoice(_, _, let options) = event { options } else { nil }
         }.first
         XCTAssertEqual(choice?.count, 3, "Espeon, Umbreon and Sylveon")
     }
@@ -943,19 +947,161 @@ final class TrainerTests: XCTestCase {
         XCTAssertEqual(trainer.team.count, 1)
     }
 
-    /// Slot 1 is the lead, and it is the only member earning anything until step
-    /// 2 of PLAN-v2.md distributes a credit across the team.
-    func testOnlyTheLeadGainsXPForNow() throws {
-        var trainer = try raising("squirtle")
+    // MARK: - The team gains XP together
+
+    /// A full team of six, and a credit that is **multiplied rather than
+    /// divided**: the lead takes all of it and each of the five bench slots takes
+    /// 0.8 of the same credit. 5.0x in total.
+    ///
+    /// Lapras throughout, because it never evolves, so the XP arithmetic is the
+    /// only thing this test can fail on.
+    func testAFullTeamAbsorbsFiveTimesOneCredit() throws {
+        var trainer = try raising("lapras")
+        let lapras = try entry("lapras")
+        for _ in 1..<Trainer.teamCapacity {
+            _ = try trainer.startRaising(entryID: lapras.id, dex: dex)
+        }
+        let baseline = Double(XPCurve.totalXP(forLevel: 1))
+        let credit = 5_000.0
+
+        trainer.credit(weightedTokens: credit * XPCurve.weightedTokensPerXP, dex: dex)
+
+        let gained = trainer.teamRaises.map { $0.totalXP - baseline }
+        XCTAssertEqual(gained.first, credit * XPCurve.leadShare, "slot 1 takes all of it")
+        for bench in gained.dropFirst() {
+            XCTAssertEqual(bench, credit * XPCurve.benchShare, "and so does every bench slot")
+        }
+        XCTAssertEqual(
+            gained.reduce(0, +),
+            credit * (XPCurve.leadShare + 5 * XPCurve.benchShare), accuracy: 0.000_1)
+        XCTAssertEqual(gained.reduce(0, +) / credit, 5.0, accuracy: 0.000_1)
+    }
+
+    /// The ramp is per *occupied* slot, so a team of two is 1.8x rather than a
+    /// jump to 5x. Nothing about the lead's own rate changes as the team fills.
+    func testTheRampIsSmoothPerOccupiedSlot() throws {
+        let lapras = try entry("lapras")
+        let credit = 1_000.0
+        let baseline = Double(XPCurve.totalXP(forLevel: 1))
+
+        for size in 1...Trainer.teamCapacity {
+            var trainer = try raising("lapras")
+            for _ in 1..<size { _ = try trainer.startRaising(entryID: lapras.id, dex: dex) }
+            trainer.credit(weightedTokens: credit * XPCurve.weightedTokensPerXP, dex: dex)
+
+            let total = trainer.teamRaises.map { $0.totalXP - baseline }.reduce(0, +)
+            let expected = credit * (XPCurve.leadShare + Double(size - 1) * XPCurve.benchShare)
+            XCTAssertEqual(total, expected, accuracy: 0.000_1, "team of \(size)")
+            XCTAssertEqual(
+                trainer.lead?.totalXP, baseline + credit, "the lead's rate never moves")
+        }
+    }
+
+    /// **The whole v1 economy, unchanged.** One Pokemon in the team must behave
+    /// exactly as it did before any of this existed: same XP, same level, same
+    /// event. Everything else in this file is measured against that.
+    func testATeamOfOneBehavesExactlyAsBefore() throws {
+        var trainer = try raising("bulbasaur")
+        let raise = try XCTUnwrap(trainer.active)
+        let events = trainer.credit(
+            weightedTokens: 25_500 * XPCurve.weightedTokensPerXP, dex: dex)
+
+        XCTAssertEqual(trainer.active?.totalXP, 25_600)
+        XCTAssertEqual(trainer.active?.level, 16)
+        XCTAssertTrue(events.contains(.levelledUp(raiseID: raise.id, to: 16)))
+    }
+
+    /// **A capped member's share is not redistributed.** Redistribution would
+    /// quietly change what the lead slot means the moment it graduates. The
+    /// answer is to tell the player their team is wasting a share, not to
+    /// compensate for it silently.
+    func testAGraduatedMemberAbsorbsNothingAndFeedsNobody() throws {
+        var trainer = try raising("lapras")
+        let graduate = try XCTUnwrap(trainer.active)
+        trainer.credit(weightedTokens: 1e12, dex: dex)
+        XCTAssertEqual(trainer.raise(id: graduate.id)?.level, XPCurve.maxLevel)
+        let ceiling = Double(XPCurve.totalXP(forLevel: XPCurve.maxLevel))
+
+        let climber = try trainer.startRaising(entryID: try entry("lapras").id, dex: dex)
+        let baseline = try XCTUnwrap(trainer.raise(id: climber)).totalXP
+        let credit = 2_000.0
+        trainer.credit(weightedTokens: credit * XPCurve.weightedTokensPerXP, dex: dex)
+
+        XCTAssertEqual(
+            trainer.raise(id: graduate.id)?.totalXP, ceiling, "capped, and clamped there")
+        XCTAssertEqual(
+            trainer.raise(id: climber)?.totalXP, baseline + credit * XPCurve.benchShare,
+            "the bench slot got its own share and not a share of the waste")
+    }
+
+    /// Six members can each be waiting on their own decision after one credit,
+    /// which one active Pokemon could never produce. Each event has to say who it
+    /// is about, or the player cannot be asked.
+    func testTwoMembersCanHoldDistinctPendingChoices() throws {
+        var trainer = try raising("eevee")
+        let eevee = try entry("eevee"), wurmple = try entry("wurmple")
+        let first = try XCTUnwrap(trainer.active)
+        trainer.log.append(CatchEvent(
+            entryID: wurmple.id, variant: .normal, gender: .male, source: .hatch))
+        let second = try trainer.startRaising(entryID: wurmple.id, dex: dex)
+
+        let events = trainer.credit(
+            weightedTokens: 200_000 * XPCurve.weightedTokensPerXP, dex: dex)
+
+        let choices = events.compactMap { event -> (UUID, Int)? in
+            if case .evolutionChoice(let raiseID, let from, _) = event { (raiseID, from) } else { nil }
+        }
+        XCTAssertEqual(
+            Set(choices.map(\.0)), [first.id, second], "one choice each, named individually")
+        XCTAssertEqual(Set(choices.map(\.1)), [eevee.id, wurmple.id])
+        XCTAssertEqual(trainer.teamPendingEvolutions(dex: dex).count, 2)
+
+        // And the player can settle one without touching the other.
+        _ = try trainer.evolve(second, into: 266, dex: dex)
+        XCTAssertEqual(
+            trainer.raise(id: second)?.entryID, 267,
+            "Silcoon, then straight on to Beautifly: the chain still runs, per member")
+        XCTAssertEqual(trainer.raise(id: first.id)?.entryID, eevee.id, "still waiting")
+    }
+
+    /// Milestones are written against the individual that crossed the line, so
+    /// two members reaching 50 in one credit are two records and not one.
+    func testMilestonesLandAgainstTheRightIndividual() throws {
+        var trainer = try raising("lapras")
+        let lapras = try entry("lapras")
+        let first = try XCTUnwrap(trainer.active)
+        let second = try trainer.startRaising(entryID: lapras.id, dex: dex)
+
+        // Enough that even the 0.8 share clears level 50 (250,000 XP).
+        trainer.credit(weightedTokens: 400_000 * XPCurve.weightedTokensPerXP, dex: dex)
+
+        let atFifty = trainer.log.milestones.filter { $0.level == 50 }
+        XCTAssertEqual(Set(atFifty.map(\.raiseID)), [first.id, second])
+        XCTAssertEqual(atFifty.count, 2, "two individuals, two records")
+        XCTAssertEqual(trainer.log.milestone(entryID: lapras.id), 50)
+    }
+
+    /// **Rare Candy feeds one Pokemon, not six.** Routing it through `credit`
+    /// would hand 10,000 XP to the whole team for 250 coins, turning the game's
+    /// one targeted item into the only sensible purchase in the shop.
+    func testRareCandyFeedsOneMemberNotTheTeam() throws {
+        var trainer = try raising("lapras")
+        let lapras = try entry("lapras")
         let lead = try XCTUnwrap(trainer.active)
-        let bench = try trainer.startRaising(entryID: try entry("squirtle").id, dex: dex)
+        let bench = try trainer.startRaising(entryID: lapras.id, dex: dex)
+        let baseline = Double(XPCurve.totalXP(forLevel: 1))
+        try trainer.buy(.rareCandy, coinsEarned: 1_000)
 
-        trainer.credit(weightedTokens: 40_000 * XPCurve.weightedTokensPerXP, dex: dex)
+        try trainer.useRareCandy(dex: dex)
 
-        XCTAssertGreaterThan(try XCTUnwrap(trainer.raise(id: lead.id)).level, 1)
-        XCTAssertEqual(trainer.raise(id: bench)?.level, 1)
-        XCTAssertEqual(trainer.lead?.id, lead.id)
-        XCTAssertEqual(trainer.teamRaises.map(\.id), [lead.id, bench])
+        XCTAssertEqual(trainer.raise(id: lead.id)?.totalXP, baseline + Prices.rareCandyXP)
+        XCTAssertEqual(trainer.raise(id: bench)?.totalXP, baseline, "the bench got nothing")
+
+        // And it can be aimed, which is what the step 4 picker will call.
+        try trainer.buy(.rareCandy, coinsEarned: 1_000)
+        try trainer.useRareCandy(on: bench, dex: dex)
+        XCTAssertEqual(trainer.raise(id: bench)?.totalXP, baseline + Prices.rareCandyXP)
+        XCTAssertEqual(trainer.count(ofItem: Trainer.rareCandySlug), 0)
     }
 
     /// Two individuals of one species are two individuals. Ownership is still per

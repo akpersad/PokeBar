@@ -366,6 +366,33 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     is **sanitised on decode** (unknown ids dropped, repeats collapsed, capped at
     6) because it is the one part of the save that can contradict itself.
 
+32. **A credit multiplies across the team, it never splits, and a capped member's
+    share is not redistributed.** Slot 1 takes `XPCurve.leadShare` of a credit and
+    each of slots 2 to 6 takes `XPCurve.benchShare` **of the same credit**, so a
+    full team absorbs 5.0x and a team of two 1.8x. Splitting one credit six ways
+    would make filling the team a downgrade, which is incoherent for the thing the
+    player is working towards. XP that would go to a graduated individual is simply
+    not granted: redistributing it would quietly change what the lead slot means
+    the moment it hits 100. The bench figure is the dial and lives in `XPCurve`
+    alone. The 5x is affordable only because what it accelerates is *graduation*,
+    and graduation deliberately pays out nothing.
+
+33. **Rare Candy feeds one individual, never the team.** `useRareCandy` calls
+    `grant` against one `raiseID`, not `credit`. Routed through `credit` it would
+    hand 10,000 XP to all six for 250 coins, turning the one targeted item in the
+    game into a permanent 5x team boost and the only sensible purchase in the shop.
+    It defaults to the lead until step 4 gives the button a picker.
+
+34. **Same-kind alerts from one credit are grouped into one banner.**
+    `Notifier.announcements(for:dex:)`, not `announcement(for:)` per event. Volume
+    was already an explicit constraint (level ups are excluded at 99 per climb) and
+    a team multiplies every count by six: an overnight batch evolving four members
+    would post four banners, which is how notifications get turned off, and then
+    the one that mattered does not arrive either. Grouped per kind, never across
+    kinds, because "5 updates" tells the player nothing. Three banners is the
+    ceiling for one credit, a batch of one reads exactly as it did before, and a
+    shiny is never grouped because it can only come from a single click.
+
 ---
 
 ## UI copy rules
@@ -428,6 +455,7 @@ Game layer, decided or derived:
 |---|---|
 | XP curve | `totalXP(level) = 100 * level^2`. Level 100 = 1,000,000 XP |
 | XP rate | 1 XP per 500 weighted tokens. A full climb is **4.63 days** here |
+| Team shares | lead 1.0, bench 0.8 each. Full team **5.0x**, so 0.93 days a climb |
 | Egg / Rare Candy / stone / cord / charm | 300 / 250 / 400 / 400 / 30,000 coins |
 | Dust per duplicate | `255 / captureRate`. Expected **1.97**, so ~7 Dust/day |
 | Targeted pick | 10 / 20 / 50 / 100 / 250 / 300 Dust by band. Re-roll is a tenth |
@@ -444,27 +472,31 @@ writing, which a fixture cannot reproduce.
 
 ## State
 
-**Phases 1 through 4: complete.** 306 tests, 0 failures (307 with
+**Phases 1 through 4: complete.** 322 tests, 0 failures (323 with
 `POKEBAR_CORPUS=1`).
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
 
-**Next action, in one sentence: implement step 2 of [PLAN-v2.md](PLAN-v2.md), the
-team gaining XP together, which is `XPCurve.leadShare` / `benchShare`, a `credit`
-that calls `grant` once per occupied slot, and a `raiseID` on the four `GameEvent`
-cases that currently assume a single subject.**
+**Next action, in one sentence: implement step 3 of [PLAN-v2.md](PLAN-v2.md), the
+Exp Share, which is `Prices.expShare = 10_000`, `hasExpShare` and
+`expShareEnabled` on `Trainer` (both `decodeIfPresent`), and a bench share that
+reads 1.0 when it is on.**
 
-v2 was scoped 2026-08-24. **Steps 0 and 1 are done**: the dated save backup
-(invariant 29, `SaveBackup.swift`) and the roster (invariants 30 and 31,
-`Trainer.roster` / `Trainer.team`). Steps 2 onward are not started. The plan
-carries the ordering and the reasoning; DECISIONS.md carries the decisions.
+v2 was scoped 2026-08-24. **Steps 0, 1 and 2 are done**: the dated save backup
+(invariant 29), the roster (invariants 30 and 31) and the team gaining XP together
+(invariants 32 to 34). Steps 3 onward are not started. The plan carries the
+ordering and the reasoning; DECISIONS.md carries the decisions.
 
-The seams step 1 deliberately left, so step 2 is small: `Trainer.grant(xp:to:)` is
-already per individual and already scoped by `raiseID`, `setEverstone` already has
-a per-individual overload, and `team` is already capped at 6 and persisted. What
-step 2 adds is the distribution and the event plumbing, not the model.
+**The model is ahead of the UI on purpose, and that is the thing to know before
+touching step 4.** `Trainer` supports a full team of 6 today, but nothing the
+popover offers can build one: `switchTo` clears the other slots, and hatching only
+starts a raise when the team is empty. So the shipped app still behaves as a team
+of one, and every team rule is currently covered by tests rather than by play.
+Step 4 is what makes any of step 2 visible. The per-individual seams it needs are
+already there: `pendingEvolutions(of:)`, `teamPendingEvolutions(dex:)`,
+`evolve(_:into:)`, `useRareCandy(on:)` and `setEverstone(_:of:)`.
 
 Still true and still unverified: the Dex silver ring at level 50 has never been
 looked at against the dark grid, because rendered pixels here can be confirmed
@@ -485,8 +517,10 @@ What the game does now:
   bringing a level 47 Charizard back resumes it rather than starting a new one.
   Every weighted token grants XP here *and* mints a coin in the ledger, in
   parallel, never from a shared pool. Level 100 is 4.63 days at this machine's
-  throughput. **Still to come in v2**: the team gains XP together, all 6 at once.
-  Today only slot 1 earns. See PLAN-v2.md.
+  throughput, or 0.93 days for a full team. **A team of up to 6 all gain XP from
+  the same credit**, slot 1 at full rate and each bench slot at 0.8, so a full team
+  absorbs 5.0x. The credit is never divided. Nothing in the popover can build a
+  team of more than one yet: that is step 4. See PLAN-v2.md.
 - **Evolve.** Item-free edges fire on their own and chain; item edges wait for the
   stone; branching waits for the player. Shininess carries through. An **Everstone**
   toggle holds a Pokemon as it is, and queues rather than cancels: take it off and
