@@ -57,6 +57,16 @@ other upstream providers remain out of scope.
   is about the pricing lookup, not the ledger's dictionary key). `ModelIdentity`
   recognises the prefix and renders `"<name> (Copilot)"`; every other caller of
   the ledger key strips it back to the real model id before looking up a rate.
+- **The key-to-model function does not return a `UsageSource`, and that is the
+  decision, not an omission.** The first cut of this was a `splitLedgerKey(_:)`
+  returning `(model, source)`, which meant answering "which source" for every
+  unprefixed key by returning `.claudeCode`, including for Codex keys, where it
+  is simply false. Nothing read that field, so nothing broke, which is the
+  problem: a plausible wrong value sitting in a tuple is what a later reader
+  trusts. Replaced with `model(fromLedgerKey:)` and `isCopilotLedgerKey(_:)`,
+  which between them answer exactly what a ledger key can answer and nothing
+  more. Claude Code and Codex keys are deliberately identical, so "which of
+  those two" is not a question the key has the information to settle.
 - **A failed read is reported, a missing database is not.** No database is the
   ordinary state of a machine that has never run Copilot CLI, so that is silent.
   Anything past it prints, because the visible symptom of a failed open or a

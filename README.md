@@ -105,14 +105,23 @@ Five worth knowing up front:
 
 ## Privacy
 
-Reads `~/.claude/projects/**/*.jsonl` and `~/.codex/sessions/**/*.jsonl` locally
-to extract token counts. It holds no credentials and reads no Keychain item.
+Reads three local sources to extract token counts, and nothing else:
+`~/.claude/projects/**/*.jsonl`, `~/.codex/sessions/**/*.jsonl`, and
+`~/.copilot/session-store.db`. It holds no credentials and reads no Keychain item.
+
+The Copilot database is opened **read-only**, so a running Copilot CLI session is
+never blocked or altered by this app. One caveat worth stating plainly, because
+"read-only" implies otherwise: that database is in WAL mode, and SQLite creates a
+`session-store.db-shm` index file alongside it when no other process has the
+database open. So PokeBar can cause a file to appear in `~/.copilot`. It never
+writes a row, never modifies one, and never deletes anything there.
 
 It writes its own files under `~/Library/Application Support/PokeBar/`:
 `usage-state.json`, the token ledger and scan cursors; `game-state.json`, the
 collection; `model-pricing.json`, the cached pricing snapshot; a `sprites/` cache;
 and, only if a save ever fails to decode, `game-state.unreadable.json`, which is a
-copy kept so a collection cannot be lost to a schema change. None of them is ever sent anywhere. Local notifications are posted through
+copy kept so a collection cannot be lost to a schema change. None of them is ever
+sent anywhere. Local notifications are posted through
 `UNUserNotificationCenter`, which does not involve a server: PokeBar has no push
 entitlement and no remote registration.
 

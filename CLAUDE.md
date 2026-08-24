@@ -319,6 +319,18 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     `CopilotUsageParser` only needs a cursor on the monotonic `id` column, not
     keep-max.
 
+28. **The Copilot cursor only ever moves forward, including when a read fails
+    part-way.** The tempting alternative, leaving it where it was so the unread
+    rows are retried, is wrong twice. `ORDER BY id` means the rows read form a
+    contiguous prefix, so everything unread is still `> maxID` and arrives on the
+    next tick regardless; and a cursor that did not move re-offers rows it
+    already credited on every tick, which the ledger absorbs only while they sit
+    inside its 2 day `growthWindow`. Past that the re-offer looks like new usage
+    and is credited a second time, and coins are frozen at credit time
+    (invariant 3), so the inflation is permanent. A row that cannot be parsed is
+    skipped forward for the same reason: holding the cursor on one bad row blocks
+    every later row for good. Same family as invariant 24.
+
 ---
 
 ## UI copy rules
