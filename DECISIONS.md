@@ -1767,10 +1767,15 @@ switch buys is the passive notifications firing *when the events happen* rather
 than arriving in a batch at the next launch.
 
 The toggle re-reads the system state after every change rather than trusting the
-write, because macOS can answer "registered, but the user has to allow it", which
-an ad-hoc signed build hits more often than a notarised one. That state has its
-own copy pointing at System Settings, since it is the one case the user cannot
-fix from inside the app.
+write, because macOS can answer "registered, but the user has to allow it". That
+state has its own copy pointing at System Settings, since it is the one case the
+user cannot fix from inside the app.
+
+**Confirmed on screen 2026-08-24: the ad-hoc signed bundle registers cleanly**,
+reporting `.enabled` rather than `.requiresApproval`. That was the open risk in
+this step and it is closed, which also means the `needsApproval` branch is written
+but has never actually been seen here. Whether it survives a reboot is untested by
+design: the user will find out at their next restart.
 
 **Deferred by the user, not rejected:** widgets, and battles. Battles were liked
 but named as a risk of "losing the plot of a token use project", and would also
