@@ -398,7 +398,9 @@ struct DexDetailView: View {
                 }
                 .controlSize(.small)
                 .fixedSize()
-                caption("A second one of this exact species, at level 1, to raise alongside the rest.")
+                caption(
+                    GameFormat.hatchAnotherNote(
+                        name: entry.name, missingVariants: options.missingVariants))
             } else if let baseFormID = options.baseFormID,
                       let base = game.entry(id: baseFormID) {
                 caption(GameFormat.comesFromLine(baseFormName: base.name))

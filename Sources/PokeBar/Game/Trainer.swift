@@ -777,6 +777,15 @@ struct Trainer: Codable, Sendable, Equatable {
         /// What another one costs, or nil when this entry cannot be bought: not
         /// owned yet, or reached only by evolving something.
         var hatchAnother: Price?
+        /// Sprites of this entry that exist and are not in the collection yet.
+        ///
+        /// Only meaningful alongside `hatchAnother`, and it does **not** gate the
+        /// offer: a fresh egg is still worth buying at zero, because a graduated
+        /// individual earns nothing (invariant 32) and a new level 1 is the way to
+        /// keep a slot productive. It decides what the note under the button is
+        /// allowed to promise, which is a different question from whether the
+        /// button exists.
+        var missingVariants = 0
         /// The bottom of this line, when this entry is *not* it. The honest answer
         /// to "why can I not buy a Charmeleon".
         var baseFormID: Int?
@@ -807,6 +816,13 @@ struct Trainer: Codable, Sendable, Equatable {
         } else {
             options.hatchAnother = DexOptions.Price(
                 coins: Prices.hatchAnotherCoins, dust: Prices.hatchAnother(entry.rarity))
+            // Against `ownableVariants` rather than a x4 assumption, per invariant
+            // 18, and it is the reachable set as well as the ownable one: no entry
+            // in the manifest has a distinct female sprite and a single-gender
+            // rate, so every slot counted here can actually come out of an egg.
+            options.missingVariants = entry.ownableVariants.count {
+                !log.owns(entryID: entryID, variant: $0)
+            }
         }
         return options
     }

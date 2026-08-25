@@ -448,7 +448,14 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     `Pokedex.isEvolutionGated` inverted, so it is the same 570 base forms an egg
     draws from and cannot disagree with the hatch pool. A Charmeleon is a
     Charmander that grew, and its tile says so instead of selling one.
-    `Pokedex.baseForm(of:)` names what to hatch instead.
+    `Pokedex.baseForm(of:)` names what to hatch instead. **The offer stays live on
+    an entry whose every sprite is already owned**, and only the note under it
+    changes: the egg sells a variant roll *and* a level 1, and just the first one
+    runs out. A graduated individual earns nothing (invariant 32), so a fresh
+    hatch is the only way to make its slot productive again, and gating the button
+    on `DexOptions.missingVariants` would silently delete a completionist's
+    restock path. That field exists to keep the copy honest, nothing else, and a
+    test pins the button as offered at zero.
 
 34. **Same-kind alerts from one credit are grouped into one banner.**
     `Notifier.announcements(for:dex:)`, not `announcement(for:)` per event. Volume
@@ -543,17 +550,18 @@ writing, which a fixture cannot reproduce.
 
 ## State
 
-**Phases 1 through 4: complete.** 370 tests, 0 failures (372 with
-`POKEBAR_CORPUS=1`).
+**Phases 1 through 4: complete.** 373 tests, 0 failures. 8 of those are the corpus
+parity tests, skipped unless `POKEBAR_CORPUS=1`, which runs them against the live
+tree in a second filtered pass: ~187s, also 0 failures. Measured 2026-08-24.
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
 
 **Next action, in one sentence: nothing is scheduled, and the deferred list below
-is not a queue.** v1 and v2 are both complete and every pixel has been through the
-user's eyes; the one thing outstanding is theirs alone, which is whether "Open at
-login" survives their next reboot. Everything else here is deferred *by the user*
+is not a queue.** v1 and v2 are both complete; the two things outstanding are the
+user's alone, which are whether "Open at login" survives their next reboot and a
+look at one reworded caption in the Dex (below). Everything else here is deferred *by the user*
 and several items are explicitly marked do-not-raise, so a session that opens this
 file should ask what is wanted rather than start on the list.
 
@@ -573,9 +581,14 @@ prices a new one, and every acquisition creates its individual through
 `beginRaising`.
 
 **The whole v2 UI is approved on screen**, including the `CelebrationCard`, which
-the user saw on a Yamask hatch. Nothing is half-built and nothing is waiting on a
-look. The Dust prices were deliberately deferred by the user on
-2026-08-24 rather than left pending, so do not treat them as the next step.
+the user saw on a Yamask hatch. Nothing is half-built. **One exception, added
+2026-08-24 after that approval:** the note under "Hatch another" was reworded (it
+described the egg as a copy of a Pokemon you already own, when what it sells is a
+fresh shiny and gender roll) and the user has not yet seen the new wording in the
+running app. Copy only, no layout change, and the bundle is built.
+
+The Dust prices were deliberately deferred by the user on 2026-08-24 rather than
+left pending, so do not treat them as the next step.
 
 What the game does now:
 
@@ -584,6 +597,10 @@ What the game does now:
 - **Hatch** an egg for 300 coins. Draws from the 570 hatchable entries weighted on
   raw `captureRate`, rolls shiny at 1/64 (1/48 with the charm) and sex from the
   species' real gender rate.
+  **Hatch another** does the same for one chosen base form, at 3,000 coins or half
+  a targeted pick in Dust, and its note names the fresh roll rather than promising
+  a duplicate. It stays on offer once every sprite of that species is owned, for
+  the level 1 rather than the roll. See invariant 36.
 - **Raise a team of up to 6**, and **never lose one**. Every individual ever
   raised sits in `Trainer.roster` with its levels, its XP and the stone it was
   holding; `Trainer.team` says who is training. Switching away costs nothing, and
@@ -744,6 +761,14 @@ that came out of the original plan, is in DECISIONS.md.
   it for now. **Do not raise unasked**, same standing as the Dust prices. Both
   costed options are in DECISIONS.md, and dropping level-ups is the one to reach
   for: the card above already shows the level twice, as a number and as a bar.
+- **A completionist readout: a graduated counter, and a "not yet golden" Dex
+  filter.** Declined by the user 2026-08-24 after asking whether the game can
+  account for collecting every variant and gilding every one. The data already
+  does (per-sprite ownership across 2,368 slots, per-sprite *and* per-entry
+  milestones, an append-only roster, the Everstone for mid-line forms); only the
+  readout is missing. DECISIONS.md carries the two gaps and the arithmetic: ~2.3
+  years for one gold per entry, ~5.0 years for every sprite, with the Dust wall
+  and not the XP curve as the real gate.
 - Rolling per-project attribution up to a git root. Attribution is by working
   directory, so `PawscriptionsKit` and `Assets.xcassets` sit beside their parents.
   Needs filesystem access and cannot work for a deleted directory, and "where was

@@ -1783,6 +1783,39 @@ require reopening "stats are out", which is what Mint's rejection hangs off.
 Types in the manifest were only ever proposed as a battle prerequisite and go
 with it.
 
+### What "Hatch another" is actually selling, 2026-08-24
+
+The button's note read *"A second one of this exact species, at level 1, to raise
+alongside the rest."* Every word true, and the user read it as an expensive
+photocopy of the Pokemon they already had, which is a fair reading of that
+sentence and not what the offer is.
+
+What it actually sells is a **fresh roll**. `Trainer.obtain` calls `HatchRoll` for
+shiny and for gender on *every* acquisition, this path included, so the egg can
+come out as a variant the collection does not hold. The note says that now, and it
+names the species, because "another" with no subject invites "another of what".
+
+**The offer is not gated on a complete entry, and the note branches instead.**
+Asked whether the button should switch off once every sprite of a species is
+owned, the answer is no, because the egg sells two things and only one of them
+runs out:
+
+- The variant roll, which is spent once the entry is complete.
+- **A level 1 to raise**, which never is. A graduated individual earns nothing
+  from a credit (invariant 32) and its team slot is dead weight, so hatching a
+  fresh one is how that slot goes back to being worth something. Disabling on
+  completion would delete the only restock path a completionist has.
+
+So `Trainer.DexOptions` gained `missingVariants`, counted against
+`entry.ownableVariants` rather than an assumed four (invariant 18), and it decides
+only what the note may promise. Once it hits zero the line stops advertising a
+variant and names the reason that survives. A test asserts `hatchAnother` is still
+offered at zero, so the next reader cannot "fix" this by gating the button.
+
+Counted against the *reachable* set as well as the ownable one: zero of the 1,083
+entries have a distinct female sprite together with a single-gender rate, checked
+against the manifest, so every slot counted here can actually come out of an egg.
+
 ---
 
 ## Menu bar UI
@@ -1962,3 +1995,35 @@ and a Keychain blob whose shape had never been checked.
 
   **Do not raise this unasked.** It is a display preference the user has looked
   at and settled for now, in the same category as the Dust prices.
+
+- **A completionist readout: a gold counter, and a "not yet golden" Dex filter.**
+  Declined by the user on 2026-08-24, having asked whether the game can account
+  for someone who wants every variant collected and every one of them golden.
+
+  It can, in the *data*. Ownership is per sprite across 2,368 slots
+  (`CatchLog.filledSlots`), milestones are stored both per sprite and per entry
+  (`milestoneBySlot`, `milestoneByEntry`), the roster is append-only so 2,368
+  graduated individuals can coexist, and the Everstone is what makes gold
+  reachable on a mid-line form at all: without it a Charmander can never cross
+  100 as a Charmander.
+
+  The two gaps are in the *readout*, and both are small because the data already
+  exists. The Dex header counts seen and sprites but not graduated, so tracking a
+  gold run means opening 1,083 tiles; and the filter is All / Caught / Missing,
+  with no way to ask "which ones are left", which is the only question a
+  completionist is asking by then.
+
+  The arithmetic, so nobody has to redo it. Slots break down as 1,083 normal +
+  1,081 shiny + 102 female + 102 shiny female = 2,368 exactly. At this machine's
+  throughput with a full team and the Exp Share (1.30M XP/day):
+
+  | Goal | Time |
+  |---|---|
+  | One gold per entry, 1,083 climbs | ~2.3 years |
+  | Gold on every sprite, 2,368 climbs | ~5.0 years |
+  | Either, solo at 1.0x | 13.7 / 29.9 years |
+
+  Collecting is the harder half, not raising: 568 base forms need a shiny roll at
+  1/48 with the charm against ~7 Dust/day, while the 513 evolution-gated forms'
+  shinies come free by raising a shiny through its line. That is the Dust wall the
+  user has already parked, and it, not the XP curve, is what gates this.

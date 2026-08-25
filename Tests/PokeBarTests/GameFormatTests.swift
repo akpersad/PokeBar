@@ -287,6 +287,29 @@ final class GameFormatTests: XCTestCase {
         XCTAssertEqual(GameFormat.hatchAnotherDustRow(price), "25 Dust")
     }
 
+    /// The note under "Hatch another" has to say that the egg is rolled again,
+    /// because the roll is the whole reason to buy one: `Trainer.obtain` calls
+    /// `HatchRoll` for shiny and gender on every acquisition. Copy that describes
+    /// it as "a second one of this exact species" is what shipped first, and it
+    /// reads as an expensive duplicate.
+    func testHatchAnotherNoteSellsTheFreshRollAndNamesTheSpecies() {
+        let note = GameFormat.hatchAnotherNote(name: "Servine", missingVariants: 2)
+        XCTAssertTrue(note.contains("Servine"))
+        XCTAssertTrue(note.contains("shiny"))
+        XCTAssertTrue(note.contains("gender"))
+        XCTAssertTrue(note.contains("level 1"))
+    }
+
+    /// The same note must stop promising a new variant once there are none left,
+    /// or it is selling something the roll cannot deliver. The offer stays, so the
+    /// line has to name the reason that survives: a fresh level 1 to raise.
+    func testHatchAnotherNoteStopsPromisingVariantsOnceTheEntryIsComplete() {
+        let note = GameFormat.hatchAnotherNote(name: "Servine", missingVariants: 0)
+        XCTAssertTrue(note.contains("every Servine sprite"))
+        XCTAssertFalse(note.contains("variant you do not have"))
+        XCTAssertTrue(note.contains("level 1"))
+    }
+
     // MARK: Projects
 
     /// The point of the whole feature: "what was this one raised on".
@@ -456,6 +479,8 @@ final class GameFormatTests: XCTestCase {
                     resumable: [Trainer.Candidate(id: UUID(), level: 9, variant: .shiny)]))
                 ?? "",
             GameFormat.comesFromLine(baseFormName: "Charmander"),
+            GameFormat.hatchAnotherNote(name: "Charmander", missingVariants: 1),
+            GameFormat.hatchAnotherNote(name: "Charmander", missingVariants: 0),
             GameFormat.candidateRow(Trainer.Candidate(id: UUID(), level: 9, variant: .shiny)),
             GameFormat.onTeamNote(Trainer.DexOptions(onTeam: 2)) ?? "",
             GameFormat.celebrationTitle(

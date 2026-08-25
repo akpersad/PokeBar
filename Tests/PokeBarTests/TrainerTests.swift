@@ -1021,6 +1021,29 @@ final class TrainerTests: XCTestCase {
         XCTAssertEqual(options.onTeam, 0)
     }
 
+    /// What is left to collect, counted against the sprites that exist rather
+    /// than an assumed four (invariant 18). It does **not** gate the offer: a
+    /// completed entry is still worth an egg, because a graduated individual earns
+    /// nothing and a level 1 does. It only decides what the note may promise.
+    func testMissingVariantsCountsUncollectedSpritesWithoutGatingTheOffer() throws {
+        var trainer = try raising("charmander")
+        let charmander = try entry("charmander")
+        XCTAssertEqual(charmander.ownableVariants.count, 2, "normal and shiny, no female sprite")
+
+        let partway = trainer.dexOptions(entryID: charmander.id, dex: dex)
+        XCTAssertEqual(partway.missingVariants, 1, "the shiny is still out there")
+
+        let gender = HatchRoll.canonicalGender(for: charmander)
+        trainer.log.append(CatchEvent(
+            entryID: charmander.id, variant: gender.spriteVariant(shiny: true, for: charmander),
+            gender: gender, source: .hatch))
+
+        let complete = trainer.dexOptions(entryID: charmander.id, dex: dex)
+        XCTAssertEqual(complete.missingVariants, 0)
+        XCTAssertNotNil(
+            complete.hatchAnother, "a complete entry can still be hatched, for a level 1 to raise")
+    }
+
     /// **Nothing conjures a Pokemon out of nothing.** The Dex offers individuals
     /// that exist, and a brand new one has to be hatched, at a price, and only at
     /// the bottom of its line.

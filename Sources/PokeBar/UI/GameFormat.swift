@@ -150,6 +150,27 @@ enum GameFormat {
         "\(UsageFormat.groupedInt(price.dust)) Dust"
     }
 
+    /// What the coins actually buy: a fresh egg, not a copy.
+    ///
+    /// The first version read "a second one of this exact species", which is true
+    /// and reads as an expensive photocopy of the Pokemon already on the team. The
+    /// draw is the opposite: `Trainer.obtain` rolls shiny and gender again for
+    /// every acquisition, so the one in the egg can be a variant this collection
+    /// does not have yet. Say that, and name the species so the button above it
+    /// cannot be misread as "another of whatever I last hatched".
+    /// Once every sprite of an entry is collected the roll can no longer surprise
+    /// anyone, so the note stops promising that it might. The offer itself stays,
+    /// because a graduated individual earns nothing (invariant 32) and a new level
+    /// 1 is how a slot goes back to being worth something.
+    static func hatchAnotherNote(name: String, missingVariants: Int) -> String {
+        guard missingVariants > 0 else {
+            return "You have every \(name) sprite already. A fresh egg is a new level 1 to raise, "
+                + "not a new tile in the Dex."
+        }
+        return "A fresh \(name) egg, rolled again for shiny and gender, so it can hatch as a "
+            + "variant you do not have. It starts at level 1."
+    }
+
     /// Why an evolved form cannot be bought, naming what to buy instead. This is
     /// the line that answers "there is a button on Charmeleon and there should
     /// not be": a Charmeleon is a Charmander that grew.
