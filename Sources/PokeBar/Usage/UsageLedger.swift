@@ -40,6 +40,13 @@ struct UsageLedger: Sendable, Codable, Equatable {
     /// player, so credit is applied once, at the rate in effect then.
     var weightedTokens: Double = 0
 
+    /// Weighted tokens per project, all time, keyed by working directory.
+    ///
+    /// Accumulated beside `weightedTokens` and frozen the same way. Rebuildable
+    /// by rescanning, like everything else here, which is why a new key in this
+    /// file is a much smaller risk than a new key in `game-state.json`.
+    var weightedByProject: [String: Double] = [:]
+
     /// What has already been credited per turn, for turns young enough to still
     /// grow. Keyed by the dedup identity.
     var inFlight: [String: InFlightEntry] = [:]
@@ -49,6 +56,32 @@ struct UsageLedger: Sendable, Codable, Equatable {
         var date: Date
         var localDay: String
         var model: String
+    }
+
+    // MARK: - Persistence
+
+    private enum CodingKeys: String, CodingKey {
+        case daily, weightedTokens, weightedByProject, inFlight
+    }
+
+    init() {}
+
+    /// Hand-written for the same reason `Trainer`'s is: the synthesized decoder
+    /// throws on a missing key even where the property has a default, so adding
+    /// a field would make every existing `usage-state.json` unreadable.
+    ///
+    /// The stakes are lower here than in the collection, because this file can be
+    /// rebuilt by rescanning, but not zero: losing it drops the coin balance to
+    /// nothing until a full 17 second cold scan re-credits it, and the player
+    /// would watch their bank empty and refill for no visible reason. New key
+    /// optional, old keys required.
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        daily = try c.decode([String: [String: TokenCounts]].self, forKey: .daily)
+        weightedTokens = try c.decode(Double.self, forKey: .weightedTokens)
+        inFlight = try c.decode([String: InFlightEntry].self, forKey: .inFlight)
+        weightedByProject =
+            try c.decodeIfPresent([String: Double].self, forKey: .weightedByProject) ?? [:]
     }
 
     /// Credits everything new in `entries` and returns what was actually added.
@@ -82,7 +115,9 @@ struct UsageLedger: Sendable, Codable, Equatable {
             // keep two sources' totals from merging under one dictionary key.
             let multiplier = pricing.tierMultiplier(for: entry.model)
                 ?? ModelPricing.unknownModelTierMultiplier
-            weightedTokens += Double(delta.total) * multiplier
+            let weighted = Double(delta.total) * multiplier
+            weightedTokens += weighted
+            weightedByProject[entry.project ?? Project.unknown, default: 0] += weighted
 
             added += delta
             inFlight[entry.id] = InFlightEntry(

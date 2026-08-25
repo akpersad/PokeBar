@@ -31,12 +31,14 @@ layer, and the game. Live plan limits were considered and rejected, with reasons
 - [x] Exp Share: 10,000 coins to put every party slot on the lead's rate
 - [x] The team on screen: six slots, and a PC you can bring anyone back from
 - [x] Hatch another of a base form, in coins or Dust, and a proper moment for it
+- [x] Per-project attribution: which codebase each Pokémon was raised on
+- [x] Open at login
 
-v1 is feature-complete and **v2 is most of the way there**. Levels persist per
-individual, the save file is backed up daily, a team of six gains XP together, the
-Exp Share is in the shop, and all of it is in the Raise pane. Still ahead:
-per-project attribution and a login item. The plan is [PLAN-v2.md](PLAN-v2.md) and
-the decisions behind it are in [DECISIONS.md](DECISIONS.md).
+**v1 and v2 are both complete.** Levels persist per individual, the save file is
+backed up daily, a team of six gains XP together, the Exp Share is in the shop,
+every Pokémon knows which codebase raised it, and all of it is in the popover. The
+plan is [PLAN-v2.md](PLAN-v2.md) and the decisions behind it are in
+[DECISIONS.md](DECISIONS.md).
 
 The v1 tuning that is left is deliberately not scheduled: the Dust prices are
 generous on purpose and will be adjusted on hitting the wall, not before. See
@@ -111,12 +113,22 @@ Five worth knowing up front:
 
 ## Privacy
 
-Reads three local sources to extract token counts, and nothing else:
-`~/.claude/projects/**/*.jsonl`, `~/.codex/sessions/**/*.jsonl`, and
-`~/.copilot/session-store.db`. It holds no credentials and reads no Keychain item.
+Reads three local sources: `~/.claude/projects/**/*.jsonl`,
+`~/.codex/sessions/**/*.jsonl`, and `~/.copilot/session-store.db`. From each it
+takes **token counts, a model name, a timestamp, and the working directory the
+turn was spent in**, and nothing else. No prompt text, no response text, no file
+contents, no credentials, and no Keychain item.
 
-The Copilot database is opened **read-only**, so a running Copilot CLI session is
-never blocked or altered by this app. One caveat worth stating plainly, because
+The working directory is what per-project attribution is built on, and it is the
+one field here that can carry a client's name. It is stored as the full path in
+`usage-state.json` and `game-state.json`, both local; the popover shows only the
+last path component, and an eye beside that line hides the names while keeping the
+count. Recording is deliberately not toggleable, because a gap in the ledger could
+never be backfilled: the toggle exists for a shared screen, not for the disk.
+
+The Copilot database is opened **read-only** and two tables are read,
+`assistant_usage_events` and the `cwd` column of `sessions`, so a running Copilot
+CLI session is never blocked or altered by this app. One caveat worth stating plainly, because
 "read-only" implies otherwise: that database is in WAL mode, and SQLite creates a
 `session-store.db-shm` index file alongside it when no other process has the
 database open. So PokeBar can cause a file to appear in `~/.copilot`. It never

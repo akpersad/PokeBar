@@ -84,6 +84,7 @@ Sources/PokeBar/
   App/
     PokeBarApp.swift            MenuBarExtra scene + AppDelegate (.accessory)
     Notifier.swift              which events are worth interrupting for
+    LoginItem.swift             "Open at login", through SMAppService
   Usage/
     JSONLStreamer.swift         chunked reads, resumable byte offsets
     ClaudeUsageParser.swift     Claude JSONL line -> UsageEntry, keep-max dedup
@@ -271,14 +272,20 @@ Each one is load-bearing and each was measured. Breaking any is silent.
 22. **`CatchLog` persists events only.** The slot index is rebuilt on decode. Two
     copies of one fact on disk is two things that can drift.
 
-23. **A new field on a persisted game type must decode with `decodeIfPresent` and a
+23. **A new field on any persisted type must decode with `decodeIfPresent` and a
     default.** The synthesized decoder throws on a missing key even where the
     property has one, and `GameMonitor.load()` cannot tell "no save yet" from "save
     I could not read", so the next `persist()` writes an empty collection over the
     real one. The asymmetry is the point: the usage ledger can be rebuilt by
     rescanning `~/.claude`, a Pokemon caught last week cannot. An unreadable save is
     now copied to `game-state.unreadable.json` before anything overwrites it, and a
-    test decodes a real pre-`everstone` save.
+    test decodes a real pre-`everstone` save. **`UsageLedger` has a hand-written
+    decoder for the same reason**, added when `weightedByProject` landed: the
+    stakes are lower there because rescanning rebuilds it, but not zero, since
+    losing that file empties the coin balance until a 17 second cold scan refills
+    it, and the player watches their bank do that for no visible reason. In both
+    decoders the *new* key is optional and the old ones stay required, so a file
+    that is not a save still throws.
 
 24. **A Codex entry's id comes from `session file + ordinal`, never from the byte
     offset it was read at.** A Claude turn carries a `requestId`, so re-reading a
@@ -388,6 +395,27 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     behalf for the one item whose whole point is choosing. The Raise pane aims it
     at the selected member.
 
+38. **A turn's project comes from the `cwd` in the log, never from decoding the
+    `~/.claude/projects/-Users-...` directory name.** That encoding replaces every
+    `/` with `-` and is therefore ambiguous: `hue-scenes` and `hue/scenes` encode
+    identically, this machine has both shapes, and a decoder guesses wrong on
+    exactly the names a person recognises. It is also unnecessary. Claude Code
+    writes `cwd` on every usage line (421 of 421 in the largest file measured),
+    Codex writes it on `turn_context` where the model already comes from, and
+    Copilot keeps it on `sessions.cwd`, a `LEFT JOIN` away from a query that was
+    already running. The key is the **full path**, because two directories can
+    share a last component; the display name is the last component. A
+    `POKEBAR_CORPUS=1` test asserts every live entry is attributed and that no
+    name still looks encoded.
+
+39. **The per-project delta is diffed off the ledger, never summed from the
+    entries handed to it.** The ledger credits *growth* on a turn it has seen
+    before, so summing the entries would attribute a rewritten turn's whole total
+    to its project on every scan: the same 2.22x over-count invariant 1 exists to
+    prevent, reintroduced one layer up. `UsageMonitor` reads
+    `ledger.weightedByProject` before and after, exactly as it already does for
+    the total.
+
 37. **A milestone is credited to the form that crossed it, and the Dex tile reads
     the roster as well as the log.** Two halves of one rule, both silent when
     broken. `Trainer.grant` **replays a credit in level order**: for each mark
@@ -494,6 +522,7 @@ Game layer, decided or derived:
 |---|---|
 | XP curve | `totalXP(level) = 100 * level^2`. Level 100 = 1,000,000 XP |
 | XP rate | 1 XP per 500 weighted tokens. A full climb is **4.63 days** here |
+| Projects seen | 20+ working directories across the three sources, all attributed |
 | Team shares | lead 1.0, party 0.8 each. Full team **5.0x**, so 0.93 days a climb |
 | With Exp Share | every slot 1.0. Full team **6.0x** |
 | Egg / Rare Candy / stone / cord / charm | 300 / 250 / 400 / 400 / 30,000 coins |
@@ -514,29 +543,23 @@ writing, which a fixture cannot reproduce.
 
 ## State
 
-**Phases 1 through 4: complete.** 358 tests, 0 failures (359 with
+**Phases 1 through 4: complete.** 370 tests, 0 failures (372 with
 `POKEBAR_CORPUS=1`).
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
 
-**Next action, in one sentence: implement step 6 of [PLAN-v2.md](PLAN-v2.md),
-per-project usage attribution, because steps 0 to 5 are done and approved on screen
-and step 6 is the last substantial thing left in the plan.**
+**Next action, in one sentence: nothing is scheduled. v2 is complete, so the next
+move is the user's, most likely tuning the Dust prices once the wall is hit or
+rolling per-project attribution up to a git root if the subdirectory names get
+noisy.**
 
-v2 was scoped 2026-08-24 and **steps 0 to 5 are done**: the dated save backup
-(invariant 29), the roster (invariants 30 and 31), the team gaining XP together
-(invariants 32 to 34), the Exp Share, the UI for all of it, and these docs. Steps 6
-and 7, per-project attribution and the LaunchAgent, are not started. The plan
-carries the ordering and the reasoning; DECISIONS.md carries the decisions.
-
-**Approved on screen by the user 2026-08-24**, across two rounds of feedback that
-produced the hatch celebration, the "nothing conjures a Pokemon out of nothing"
-rule, the Hatch another purchase, the 2 x 3 team grid, the PC rename, and three
-attempts at drag-to-swap. The **silver halo** on the Dex tile is confirmed too,
-which closes the one visual thing this project had never been able to check: the
-live Charizard passed level 50 that day and its tile reads correctly.
+v2 was scoped and finished on 2026-08-24. **All eight steps are done**: the dated
+save backup (invariant 29), the roster (30, 31), the team gaining XP together (32
+to 34), the Exp Share, the UI for all of it, the docs, per-project attribution (38,
+39) and "Open at login". PLAN-v2.md carries the ordering and what each step
+actually built; DECISIONS.md carries the reasoning.
 
 **The transitional shims are gone**, which is the thing to know before reading the
 game layer cold. `Trainer.switchTo`, `evolveActive`, `startRaising`, `raiseAction`,
@@ -547,9 +570,9 @@ game layer cold. `Trainer.switchTo`, `evolveActive`, `startRaising`, `raiseActio
 prices a new one, and every acquisition creates its individual through
 `beginRaising`.
 
-**Not yet seen, and the only visual thing outstanding:** the `CelebrationCard` that
-fires on a hatch. The user has not hatched since it shipped. Nothing depends on it,
-and nothing is half-built. The Dust prices were deliberately deferred by the user on
+**The whole v2 UI is approved on screen**, including the `CelebrationCard`, which
+the user saw on a Yamask hatch. Nothing is half-built and nothing is waiting on a
+look. The Dust prices were deliberately deferred by the user on
 2026-08-24 rather than left pending, so do not treat them as the next step.
 
 What the game does now:

@@ -14,6 +14,10 @@ struct FileCursor: Sendable, Equatable, Codable {
     /// events. Carry it across incremental scans in case a scan boundary falls
     /// between those two lines. Nil for Claude files and old persisted cursors.
     var codexModel: String? = nil
+    /// The same, for the working directory `turn_context` carries. Also nil for
+    /// Claude files, whose project comes off each usage line directly, and for
+    /// cursors persisted before per-project attribution existed.
+    var codexProject: String? = nil
 }
 
 /// Walks the Claude Code and Codex session trees and turns appended lines into entries.
@@ -88,12 +92,14 @@ struct UsageScanner: Sendable {
                     // Nothing appended. Carry the cursor forward untouched.
                     result.cursors[path] = FileCursor(
                         inode: stat.inode, size: stat.size, offset: start,
-                        codexModel: previous[path]?.codexModel)
+                        codexModel: previous[path]?.codexModel,
+                        codexProject: previous[path]?.codexProject)
                     continue
                 }
 
                 var consumed = start
                 var codexModel = previous[path]?.codexModel
+                var codexProject = previous[path]?.codexProject
                 // Counts every line seen in this file, so an id-less line gets a
                 // genuinely unique fallback key. Using the byte offset here would
                 // not work: the offset is only advanced after the read returns.
@@ -120,7 +126,8 @@ struct UsageScanner: Sendable {
                                 line: line,
                                 sessionKey: file.lastPathComponent,
                                 fallbackID: "codex|\(fallbackID)",
-                                currentModel: &codexModel) {
+                                currentModel: &codexModel,
+                                currentProject: &codexProject) {
                                 raw.append(entry)
                                 return
                             }
@@ -142,7 +149,7 @@ struct UsageScanner: Sendable {
                 result.bytesRead += consumed - start
                 result.cursors[path] = FileCursor(
                     inode: stat.inode, size: stat.size, offset: consumed,
-                    codexModel: codexModel)
+                    codexModel: codexModel, codexProject: codexProject)
             }
         }
 

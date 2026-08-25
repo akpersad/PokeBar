@@ -30,6 +30,14 @@ struct CompanionView: View {
     /// Measured, so the scroll area is as tall as it needs to be and no taller.
     @State private var contentHeight: CGFloat = 0
 
+    /// A display preference, so `UserDefaults` and not `game-state.json`:
+    /// nothing that can be re-derived belongs in the one file that cannot.
+    @AppStorage("PokeBarHideProjectNames") private var hideProjectNames = false
+
+    /// Re-read after a change, because `SMAppService` can answer "registered, but
+    /// waiting on the user". Nil until the switch is touched.
+    @State private var loginState: LoginItem.State?
+
     /// Where each slot card sits, in the grid's own coordinate space. Measured
     /// rather than computed, because an occupied card sizes itself to its content.
     @State private var slotFrames: [UUID: CGRect] = [:]
@@ -350,6 +358,31 @@ struct CompanionView: View {
             .foregroundStyle(.secondary)
             .monospacedDigit()
 
+            if let line = GameFormat.projectLine(raise.xpByProject, hidden: hideProjectNames) {
+                // Where this one's XP came from. The eye hides the names and
+                // keeps the count, for a shared screen with a client directory
+                // on it; nothing stops being *recorded*, because a hole in the
+                // ledger could never be backfilled.
+                HStack(spacing: 4) {
+                    Text(line)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                    Button {
+                        hideProjectNames.toggle()
+                    } label: {
+                        Image(systemName: hideProjectNames ? "eye.slash" : "eye")
+                            .font(.system(size: 9))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.tertiary)
+                    .help(hideProjectNames ? "Show project names" : "Hide project names")
+                    .accessibilityLabel(
+                        hideProjectNames ? "Show project names" : "Hide project names")
+                    Spacer()
+                }
+            }
+
             HStack(spacing: 10) {
                 if slot > 0 {
                     Button("Make lead") {
@@ -557,13 +590,49 @@ struct CompanionView: View {
     /// The desktop companion. Off by default: an always-on-top window is a thing
     /// a user asks for, not one that appears. Follows the lead, like the menu bar.
     private var petToggle: some View {
-        Toggle(isOn: Binding(get: { pet.isVisible }, set: { _ in pet.toggle() })) {
-            Text("Show on the desktop")
+        VStack(alignment: .leading, spacing: 2) {
+            Toggle(isOn: Binding(get: { pet.isVisible }, set: { _ in pet.toggle() })) {
+                Text("Show on the desktop")
+                    .font(.caption)
+            }
+            .toggleStyle(.switch)
+            .controlSize(.mini)
+            .disabled(game.lead == nil)
+
+            loginToggle
+        }
+    }
+
+    /// Also off by default, and for the same reason: an app that adds itself to
+    /// login items unasked is a bad neighbour. Nothing is lost while PokeBar is
+    /// off, since cursors back-credit, so this only decides *when* the passive
+    /// notifications arrive.
+    @ViewBuilder
+    private var loginToggle: some View {
+        let state = LoginItem.state
+        Toggle(isOn: Binding(
+            get: { state == .on },
+            set: { wanted in
+                run { try LoginItem.set(wanted) }
+                // Re-read rather than trust: macOS can answer "registered, but
+                // the user has to allow it", and a switch that showed on while
+                // the system disagreed would be a lie.
+                loginState = LoginItem.state
+            })
+        ) {
+            Text("Open at login")
                 .font(.caption)
         }
         .toggleStyle(.switch)
         .controlSize(.mini)
-        .disabled(game.lead == nil)
+        .disabled(state == .unavailable)
+
+        if let note = GameFormat.loginItemNote(loginState ?? state) {
+            Text(note)
+                .font(.caption2)
+                .foregroundStyle(state == .needsApproval ? AnyShapeStyle(.orange) : AnyShapeStyle(.tertiary))
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     private func run(_ action: () throws -> Void) {

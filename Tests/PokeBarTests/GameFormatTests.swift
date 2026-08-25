@@ -287,6 +287,68 @@ final class GameFormatTests: XCTestCase {
         XCTAssertEqual(GameFormat.hatchAnotherDustRow(price), "25 Dust")
     }
 
+    // MARK: Projects
+
+    /// The point of the whole feature: "what was this one raised on".
+    func testProjectLineRanksByShare() {
+        let xp = [
+            "/Users/a/Code/PokeBar": 620.0,
+            "/Users/a/Code/hue-scenes": 380.0,
+        ]
+        XCTAssertEqual(
+            GameFormat.projectLine(xp, hidden: false),
+            "Raised on PokeBar 62%, hue-scenes 38%")
+    }
+
+    /// `hue-scenes` is the case that rules out decoding the encoded directory
+    /// name: `-Users-a-Code-hue-scenes` cannot say whether that is one directory
+    /// or two. The path is read from the log instead, and the last component is
+    /// the name.
+    func testProjectNamesComeFromThePathNotFromGuessing() {
+        XCTAssertEqual(Project.displayName("/Users/a/Code/hue-scenes"), "hue-scenes")
+        XCTAssertEqual(Project.displayName("/Users/a/Code/PokeBar"), "PokeBar")
+        XCTAssertEqual(Project.displayName(Project.unknown), "Unknown")
+        XCTAssertEqual(Project.displayName(""), "Unknown")
+        XCTAssertEqual(
+            Project.displayName("/Users/someone", home: "/Users/someone"), "Home",
+            "a session started in the home directory is not a project called someone")
+    }
+
+    /// Two names is what fits; the rest is a count.
+    func testProjectLineTailIsCounted() {
+        let xp = ["/a/one": 5.0, "/a/two": 4.0, "/a/three": 3.0, "/a/four": 2.0]
+        let line = try? XCTUnwrap(GameFormat.projectLine(xp, hidden: false))
+        XCTAssertEqual(line, "Raised on one 36%, two 29% and 2 more")
+    }
+
+    /// The switch hides names, never the fact that there were projects, and
+    /// never anything about recording.
+    func testHidingKeepsTheCountAndDropsTheNames() {
+        let xp = ["/work/client-secret-thing": 10.0, "/home/mine": 5.0]
+        XCTAssertEqual(GameFormat.projectLine(xp, hidden: true), "Raised across 2 projects")
+        XCTAssertEqual(
+            GameFormat.projectLine(["/work/one": 1.0], hidden: true), "Raised on 1 project")
+        XCTAssertFalse(
+            try XCTUnwrap(GameFormat.projectLine(xp, hidden: true)).contains("client"))
+    }
+
+    func testNothingAttributedShowsNoLine() {
+        XCTAssertNil(GameFormat.projectLine([:], hidden: false))
+        XCTAssertNil(GameFormat.projectLine(["/a/b": 0], hidden: false), "zero is not a project")
+    }
+
+    /// The login switch says what it did, including the case a user cannot fix
+    /// from inside the app.
+    func testLoginItemCopy() {
+        XCTAssertNil(GameFormat.loginItemNote(.off), "the ordinary case says nothing")
+        XCTAssertEqual(
+            GameFormat.loginItemNote(.on),
+            "PokeBar starts with your Mac, so evolutions arrive when they happen.")
+        XCTAssertTrue(
+            try XCTUnwrap(GameFormat.loginItemNote(.needsApproval)).contains("System Settings"))
+        XCTAssertNotNil(GameFormat.loginItemNote(.unavailable))
+    }
+
     // MARK: Celebrations
 
     /// A 300 coin egg used to announce itself as one grey line in a four-row

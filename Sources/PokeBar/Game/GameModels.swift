@@ -153,6 +153,15 @@ struct Raise: Codable, Sendable, Identifiable, Equatable {
     var totalXP: Double
     let startedAt: Date
 
+    /// Weighted XP earned per project, keyed by working directory.
+    ///
+    /// **What this Pokemon was raised on.** The same credit that grants XP knows
+    /// which codebase produced the tokens, and throwing that away made every
+    /// individual's history identical. Rare Candy XP is deliberately *not*
+    /// attributed: it was bought, not earned anywhere, so these sum to less than
+    /// `totalXP` for anyone fed one.
+    var xpByProject: [String: Double] = [:]
+
     /// Holding an Everstone: this individual does not evolve on its own.
     ///
     /// The games' item, doing the games' job. Per individual rather than per
@@ -181,6 +190,7 @@ struct Raise: Codable, Sendable, Identifiable, Equatable {
 
     private enum CodingKeys: String, CodingKey {
         case id, entryID, originEntryID, shiny, gender, totalXP, startedAt, everstone
+        case xpByProject
     }
 
     /// Hand-written so a **new field cannot destroy a saved game**.
@@ -205,6 +215,8 @@ struct Raise: Codable, Sendable, Identifiable, Equatable {
         totalXP = try container.decode(Double.self, forKey: .totalXP)
         startedAt = try container.decode(Date.self, forKey: .startedAt)
         everstone = try container.decodeIfPresent(Bool.self, forKey: .everstone) ?? false
+        xpByProject =
+            try container.decodeIfPresent([String: Double].self, forKey: .xpByProject) ?? [:]
     }
 
     var level: Int { XPCurve.level(forTotalXP: totalXP) }

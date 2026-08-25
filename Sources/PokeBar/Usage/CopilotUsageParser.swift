@@ -78,12 +78,16 @@ enum CopilotUsageParser {
         defer { sqlite3_close(db) }
         sqlite3_busy_timeout(db, busyTimeoutMilliseconds)
 
+        // A LEFT JOIN, not an inner one: a usage row whose session has been
+        // deleted still counts as usage, it just cannot say where it happened.
+        // The ordering and the cursor semantics are unchanged by the join.
         let sql = """
-            SELECT id, model, input_tokens, output_tokens,
-                   cache_read_tokens, cache_write_tokens, created_at
-            FROM assistant_usage_events
-            WHERE id > ?
-            ORDER BY id
+            SELECT e.id, e.model, e.input_tokens, e.output_tokens,
+                   e.cache_read_tokens, e.cache_write_tokens, e.created_at, s.cwd
+            FROM assistant_usage_events e
+            LEFT JOIN sessions s ON s.id = e.session_id
+            WHERE e.id > ?
+            ORDER BY e.id
             """
         var statement: OpaquePointer?
         guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK, let statement else {
@@ -136,13 +140,15 @@ enum CopilotUsageParser {
                 cacheRead: Int(cacheRead))
             guard tokens.total > 0 else { continue }
 
+            let project = sqlite3_column_text(statement, 7).map { String(cString: $0) }
             entries.append(UsageEntry(
                 id: "copilot|\(rowID)",
                 date: date,
                 model: String(cString: modelText),
                 source: .copilotCLI,
                 tokens: tokens,
-                localDay: ClaudeUsageParser.localDayKey(date)))
+                localDay: ClaudeUsageParser.localDayKey(date),
+                project: project.flatMap { $0.isEmpty ? nil : $0 }))
         }
 
         if step != SQLITE_DONE {

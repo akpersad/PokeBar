@@ -230,6 +230,49 @@ enum GameFormat {
         return parts.joined(separator: " ")
     }
 
+    // MARK: Projects
+
+    /// "Raised on PokeBar 62%, hue-scenes 38%". Nil when nothing is attributed,
+    /// which is a fresh individual or one fed only Rare Candy.
+    ///
+    /// `hidden` drops the names and keeps the count. **Recording is never
+    /// toggled, only display**: a switch that stopped collecting would leave
+    /// permanent holes, because the ledger credits each turn exactly once and
+    /// cursors do not rewind. What the switch is actually for is a shared screen
+    /// with a client's directory name on it.
+    static func projectLine(_ xpByProject: [String: Double], hidden: Bool) -> String? {
+        let attributed = xpByProject.filter { $0.value > 0 }
+        let total = attributed.values.reduce(0, +)
+        guard !attributed.isEmpty, total > 0 else { return nil }
+        if hidden {
+            return attributed.count == 1
+                ? "Raised on 1 project" : "Raised across \(attributed.count) projects"
+        }
+        let ranked = attributed.sorted { $0.value > $1.value }
+        let shown = ranked.prefix(projectsShown).map { key, value in
+            "\(Project.displayName(key)) \(Int((value / total * 100).rounded()))%"
+        }
+        let rest = ranked.count - shown.count
+        return "Raised on " + shown.joined(separator: ", ")
+            + (rest > 0 ? " and \(rest) more" : "")
+    }
+
+    /// Two names is what fits on one line at 312pt, and the tail of a long list
+    /// is noise anyway: the question is "mostly where", not "everywhere".
+    static let projectsShown = 2
+
+    /// The line under the "Open at login" switch. Nil when there is nothing
+    /// useful to add, which is the ordinary off state.
+    static func loginItemNote(_ state: LoginItem.State) -> String? {
+        switch state {
+        case .on: "PokeBar starts with your Mac, so evolutions arrive when they happen."
+        case .off: nil
+        case .needsApproval:
+            "macOS is waiting for you to allow it. Open System Settings, then General, then Login Items."
+        case .unavailable: "Only available when running the built app."
+        }
+    }
+
     // MARK: Collection
 
     /// "412 of 1,083 seen (38%)". Percentages are floored, never rounded up: a

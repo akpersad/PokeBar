@@ -167,10 +167,22 @@ final class UsageMonitor {
         // weighted figure, which is the one coins are minted from, and taking it
         // this way leaves the ledger's signature and its tests alone.
         let weightedBefore = ledger.weightedTokens
+        let projectsBefore = ledger.weightedByProject
         let added = ledger.credit(entries, pricing: pricing)
         let weightedAdded = ledger.weightedTokens - weightedBefore
+        // The per-project split of that same delta, taken the same way and for
+        // the same reason. Diffing the ledger rather than summing `entries`
+        // matters: the ledger credits *growth* on a turn it has seen before, so
+        // summing the entries here would attribute a rewritten turn's whole
+        // total to its project on every scan.
+        var addedByProject: [String: Double] = [:]
+        for (project, total) in ledger.weightedByProject {
+            let delta = total - (projectsBefore[project] ?? 0)
+            if delta > 0 { addedByProject[project] = delta }
+        }
         publish()
-        game?.credit(weightedTokens: weightedAdded, coinsEarned: ledger.coins)
+        game?.credit(
+            weightedTokens: weightedAdded, byProject: addedByProject, coinsEarned: ledger.coins)
 
         if added.total > 0 || !entries.isEmpty {
             lastUpdated = Date()

@@ -1,7 +1,7 @@
 # PokeBar v2 work plan
 
-Written 2026-08-24. **Steps 0 to 5 are built and approved on screen; steps 6 and 7
-are not started.**
+Written 2026-08-24. **All eight steps are built, and the UI is approved on
+screen.**
 Priority order is the user's, set in the brainstorm that produced this file:
 **the team comes first.**
 
@@ -373,10 +373,11 @@ never written, and a capped member's share not being redistributed.
 
 ---
 
-## Step 6: per-project attribution, display-toggleable
+## Step 6: per-project attribution, display-toggleable — DONE 2026-08-24
 
-Deferred behind the team, at the user's direction, but the design holds from the
-brainstorm.
+Deferred behind the team, at the user's direction. **The design below is what was
+planned; the first bullet turned out to be wrong and was replaced.** See "as
+built".
 
 - `~/.claude/projects/` has 17 encoded directories here, carrying real names
   (`-Users-apersad-Documents-Development-Deloitte-Projects-...`). The scanner
@@ -400,11 +401,43 @@ brainstorm.
   buckets as unknown rather than crashing; XP attribution across two projects
   sums to the total credited.
 
+**As built.** Invariants 38 and 39. The path decoding was abandoned: that encoding
+turns every `/` into `-`, so `hue-scenes` and `hue/scenes` are indistinguishable,
+and this machine has both shapes. It was also unnecessary. **All three sources
+already write the working directory**: Claude Code on every usage line, Codex on
+`turn_context` beside the model, Copilot on `sessions.cwd` one `LEFT JOIN` away.
+Measured on the live corpus, every entry from every source is attributed, and
+there is a `POKEBAR_CORPUS=1` test that says so.
+
+Three things the plan did not anticipate:
+
+- **The delta has to be diffed off the ledger**, not summed from the entries. The
+  ledger credits growth on a turn it has seen, so summing entries would
+  re-attribute a rewritten turn's whole total on every scan.
+- **Attribution is by working directory, not project root.** `PawscriptionsKit`
+  and `Assets.xcassets` show up beside their parents, because that is where the
+  session was started. Roll-up to a git root is a real option and was left alone.
+- **Only new usage is attributed.** The ledger keeps no per-entry history, so
+  everything credited before this shipped is unattributed for good.
+
+Rare Candy attributes to nothing, since it was bought rather than earned anywhere.
+The toggle is an eye beside the line, `@AppStorage`, and hides names while keeping
+the count.
+
 ---
 
-## Step 7: LaunchAgent and login item
+## Step 7: LaunchAgent and login item — DONE 2026-08-24
 
 Independent of everything above, low risk, last because nothing depends on it.
+
+**As built: `SMAppService.mainApp`, not a LaunchAgent plist.** A plist names an
+absolute path, and this bundle lives in a working copy, so a clean or a move
+leaves a login item pointing at nothing *silently*. `SMAppService` registers the
+bundle by identity, is removed with the app, and shows up in System Settings.
+Off by default, and the toggle re-reads the system state after every change,
+because macOS can answer "registered, but the user has to allow it", which an
+ad-hoc signed build hits more often than a notarised one. That case gets its own
+line of copy pointing at System Settings.
 Currently deferred-not-rejected in DECISIONS.md. Nothing is lost when the app is
 off (cursors back-credit on next launch), so this is quality of life: it makes
 the passive notification set actually fire when the events happen instead of in

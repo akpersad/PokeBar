@@ -78,6 +78,16 @@ enum CopilotFixture {
             token_details_json TEXT,
             created_at TEXT DEFAULT (datetime('now'))
         );
+        CREATE TABLE sessions (
+            id TEXT PRIMARY KEY,
+            cwd TEXT,
+            repository TEXT,
+            host_type TEXT,
+            branch TEXT,
+            summary TEXT,
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+        );
         """
 
     /// - Parameter reasoningTokens: written into every row. In the real data this
@@ -85,10 +95,17 @@ enum CopilotFixture {
     ///   class would over-count; a test can set it and assert the totals do not
     ///   move.
     @discardableResult
+    /// - Parameter cwd: the working directory the fixture's session sits in, or
+    ///   nil to leave the session row out entirely, which is the shape of a usage
+    ///   row whose session has since been deleted.
     static func makeDatabase(
-        at url: URL, rows: [Row], reasoningTokens: Int = 0
+        at url: URL, rows: [Row], reasoningTokens: Int = 0,
+        cwd: String? = "/Users/someone/Code/thing"
     ) throws -> URL {
         var sql = createTable + "\n"
+        if let cwd {
+            sql += "INSERT INTO sessions (id, cwd) VALUES ('s', '\(cwd)');\n"
+        }
         for row in rows {
             sql += """
                 INSERT INTO assistant_usage_events

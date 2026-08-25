@@ -55,15 +55,17 @@ final class CodexUsageParserTests: XCTestCase {
 
     func testContextSetsModelWithoutProducingUsage() {
         var model: String?
+        var project: String?
         XCTAssertNil(CodexUsageParser.consume(
-            line: context(), sessionKey: session, fallbackID: "context", currentModel: &model))
+            line: context(), sessionKey: session, fallbackID: "context", currentModel: &model, currentProject: &project))
         XCTAssertEqual(model, "gpt-5.6-sol")
     }
 
     func testParsesLastUsageIntoNonOverlappingClasses() throws {
         var model: String? = "gpt-5.6-sol"
+        var project: String?
         let entry = try XCTUnwrap(CodexUsageParser.consume(
-            line: tokenCount(), sessionKey: session, fallbackID: "codex|file#2", currentModel: &model))
+            line: tokenCount(), sessionKey: session, fallbackID: "codex|file#2", currentModel: &model, currentProject: &project))
 
         XCTAssertEqual(entry.id, "codex|\(session)#27")
         XCTAssertEqual(entry.model, "gpt-5.6-sol")
@@ -74,19 +76,21 @@ final class CodexUsageParserTests: XCTestCase {
 
     func testReasoningIsNotAddedOnTopOfOutput() throws {
         var model: String? = "gpt-5.6-sol"
+        var project: String?
         let entry = try XCTUnwrap(CodexUsageParser.consume(
             line: tokenCount(input: 10, cached: 0, cacheWrite: 0, output: 100, reasoning: 80),
             sessionKey: session,
             fallbackID: "x",
-            currentModel: &model))
+            currentModel: &model, currentProject: &project))
         XCTAssertEqual(entry.tokens.output, 100)
         XCTAssertEqual(entry.tokens.total, 110, "reasoning is a subset of output")
     }
 
     func testUsesLastUsageRatherThanCumulativeTotal() throws {
         var model: String? = "gpt-5.6-sol"
+        var project: String?
         let entry = try XCTUnwrap(CodexUsageParser.consume(
-            line: tokenCount(), sessionKey: session, fallbackID: "x", currentModel: &model))
+            line: tokenCount(), sessionKey: session, fallbackID: "x", currentModel: &model, currentProject: &project))
         XCTAssertEqual(entry.tokens.total, 20_920)
         XCTAssertNotEqual(entry.tokens.total, 53_315)
     }
@@ -97,12 +101,13 @@ final class CodexUsageParserTests: XCTestCase {
     /// time, so that inflation could never be undone.
     func testIDIgnoresTheScanOffsetAndFollowsTheRecord() throws {
         var model: String? = "gpt-5.6-sol"
+        var project: String?
         let incremental = try XCTUnwrap(CodexUsageParser.consume(
             line: tokenCount(), sessionKey: session,
-            fallbackID: "codex|/tmp/a.jsonl#8192+3", currentModel: &model))
+            fallbackID: "codex|/tmp/a.jsonl#8192+3", currentModel: &model, currentProject: &project))
         let fromZero = try XCTUnwrap(CodexUsageParser.consume(
             line: tokenCount(), sessionKey: session,
-            fallbackID: "codex|/tmp/a.jsonl#0+41", currentModel: &model))
+            fallbackID: "codex|/tmp/a.jsonl#0+41", currentModel: &model, currentProject: &project))
 
         XCTAssertEqual(incremental.id, fromZero.id)
         XCTAssertEqual(incremental.id, "codex|\(session)#27")
@@ -111,12 +116,13 @@ final class CodexUsageParserTests: XCTestCase {
     /// Two events in one session are two credits, not one.
     func testDistinctOrdinalsAreDistinctEntries() throws {
         var model: String? = "gpt-5.6-sol"
+        var project: String?
         let first = try XCTUnwrap(CodexUsageParser.consume(
             line: tokenCount(ordinal: 27), sessionKey: session,
-            fallbackID: "x", currentModel: &model))
+            fallbackID: "x", currentModel: &model, currentProject: &project))
         let second = try XCTUnwrap(CodexUsageParser.consume(
             line: tokenCount(ordinal: 33), sessionKey: session,
-            fallbackID: "y", currentModel: &model))
+            fallbackID: "y", currentModel: &model, currentProject: &project))
         XCTAssertNotEqual(first.id, second.id)
     }
 
@@ -124,9 +130,10 @@ final class CodexUsageParserTests: XCTestCase {
     /// even though the positional id it falls back to is weaker.
     func testFallsBackToThePositionalIDWhenOrdinalIsAbsent() throws {
         var model: String? = "gpt-5.6-sol"
+        var project: String?
         let entry = try XCTUnwrap(CodexUsageParser.consume(
             line: tokenCount(ordinal: nil), sessionKey: session,
-            fallbackID: "codex|/tmp/a.jsonl#0+41", currentModel: &model))
+            fallbackID: "codex|/tmp/a.jsonl#0+41", currentModel: &model, currentProject: &project))
         XCTAssertEqual(entry.id, "codex|/tmp/a.jsonl#0+41")
     }
 
@@ -143,8 +150,9 @@ final class CodexUsageParserTests: XCTestCase {
     /// to it is a visible one.
     func testUsageWithNoPrecedingContextIsCountedUnderAnUnknownModel() throws {
         var model: String?
+        var project: String?
         let entry = try XCTUnwrap(CodexUsageParser.consume(
-            line: tokenCount(), sessionKey: session, fallbackID: "x", currentModel: &model))
+            line: tokenCount(), sessionKey: session, fallbackID: "x", currentModel: &model, currentProject: &project))
         XCTAssertEqual(entry.model, "unknown-codex-model")
         XCTAssertEqual(entry.tokens.total, 20_920)
         XCTAssertNil(ModelPricing().rate(for: entry.model))
@@ -153,21 +161,23 @@ final class CodexUsageParserTests: XCTestCase {
 
     func testModelSwitchMidSessionIsPickedUp() throws {
         var model: String?
+        var project: String?
         _ = CodexUsageParser.consume(
-            line: context(), sessionKey: session, fallbackID: "x", currentModel: &model)
+            line: context(), sessionKey: session, fallbackID: "x", currentModel: &model, currentProject: &project)
         _ = CodexUsageParser.consume(
             line: context(model: "gpt-5.6-luna"), sessionKey: session,
-            fallbackID: "x", currentModel: &model)
+            fallbackID: "x", currentModel: &model, currentProject: &project)
         let entry = try XCTUnwrap(CodexUsageParser.consume(
-            line: tokenCount(), sessionKey: session, fallbackID: "x", currentModel: &model))
+            line: tokenCount(), sessionKey: session, fallbackID: "x", currentModel: &model, currentProject: &project))
         XCTAssertEqual(entry.model, "gpt-5.6-luna")
     }
 
     /// An empty model on a `turn_context` must not erase what we already knew.
     func testEmptyContextModelDoesNotClobberTheCurrentModel() {
         var model: String? = "gpt-5.6-sol"
+        var project: String?
         _ = CodexUsageParser.consume(
-            line: context(model: ""), sessionKey: session, fallbackID: "x", currentModel: &model)
+            line: context(model: ""), sessionKey: session, fallbackID: "x", currentModel: &model, currentProject: &project)
         XCTAssertEqual(model, "gpt-5.6-sol")
     }
 
@@ -175,13 +185,15 @@ final class CodexUsageParserTests: XCTestCase {
     /// parser never reads. Holds for all 110 events in the live corpus.
     func testClassesReSumToTheEventsOwnTotal() throws {
         var model: String? = "gpt-5.6-sol"
+        var project: String?
         let entry = try XCTUnwrap(CodexUsageParser.consume(
-            line: tokenCount(), sessionKey: session, fallbackID: "x", currentModel: &model))
+            line: tokenCount(), sessionKey: session, fallbackID: "x", currentModel: &model, currentProject: &project))
         XCTAssertEqual(entry.tokens.total, 20_699 + 221, "input_tokens + output_tokens")
     }
 
     func testMalformedLinesAreIgnoredRatherThanCrashing() {
         var model: String? = "gpt-5.6-sol"
+        var project: String?
         let bad = [
             "not json at all",
             #"{"type":"event_msg"}"#,
@@ -194,7 +206,7 @@ final class CodexUsageParserTests: XCTestCase {
         for line in bad {
             XCTAssertNil(
                 CodexUsageParser.consume(
-                    line: line, sessionKey: session, fallbackID: "x", currentModel: &model),
+                    line: line, sessionKey: session, fallbackID: "x", currentModel: &model, currentProject: &project),
                 line)
         }
         XCTAssertEqual(model, "gpt-5.6-sol", "a bad line must not disturb the carried model")
@@ -204,23 +216,25 @@ final class CodexUsageParserTests: XCTestCase {
     /// shape. Clamp rather than emit a negative class.
     func testOverlappingCacheClassesClampRatherThanGoNegative() throws {
         var model: String? = "gpt-5.6-sol"
+        var project: String?
         let entry = try XCTUnwrap(CodexUsageParser.consume(
             line: tokenCount(input: 100, cached: 90, cacheWrite: 50, output: 5),
-            sessionKey: session, fallbackID: "x", currentModel: &model))
+            sessionKey: session, fallbackID: "x", currentModel: &model, currentProject: &project))
         XCTAssertEqual(entry.tokens.input, 0)
     }
 
     func testIgnoresUnrelatedAndZeroUsageEvents() {
         var model: String?
+        var project: String?
         XCTAssertNil(CodexUsageParser.consume(
             line: line(["type": "event_msg", "payload": ["type": "item_completed"]]),
             sessionKey: session,
             fallbackID: "x",
-            currentModel: &model))
+            currentModel: &model, currentProject: &project))
         XCTAssertNil(CodexUsageParser.consume(
             line: tokenCount(input: 0, cached: 0, cacheWrite: 0, output: 0, reasoning: 0),
             sessionKey: session,
             fallbackID: "x",
-            currentModel: &model))
+            currentModel: &model, currentProject: &project))
     }
 }

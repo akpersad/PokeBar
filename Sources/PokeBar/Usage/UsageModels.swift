@@ -90,6 +90,37 @@ struct UsageEntry: Sendable, Equatable, Identifiable, Codable {
     /// Local calendar day key ("2026-08-22") for day bucketing. Stored rather
     /// than derived so a timezone change cannot silently reshuffle history.
     let localDay: String
+    /// The working directory the turn was spent in, verbatim, or nil where the
+    /// source does not say. See `Project`.
+    var project: String?
+}
+
+/// Which codebase a turn was spent on.
+///
+/// **The key is the full path and the display name is its last component.** Two
+/// different directories can share a last component, so the path is the only
+/// safe identity; and nobody wants to read
+/// `/Users/x/Documents/Development/PersonalProjects/PokeBar` in a 312pt popover.
+///
+/// All three sources carry this already, which is why nothing here parses the
+/// encoded `~/.claude/projects/-Users-apersad-...` directory names: that encoding
+/// replaces every `/` with `-` and is therefore **ambiguous**, because
+/// `hue-scenes` and `hue/scenes` encode identically. Claude Code writes `cwd` on
+/// every usage-bearing line, Codex writes it on `turn_context`, and Copilot keeps
+/// it in `sessions.cwd`. Reading the fact is always better than reversing a lossy
+/// encoding of it.
+enum Project {
+    /// Usage that cannot be attributed to anywhere. A real key is an absolute
+    /// path, so no directory can collide with this.
+    static let unknown = "?"
+
+    /// What the UI shows. Pure, so the mapping is a test rather than a hope.
+    static func displayName(_ key: String, home: String = NSHomeDirectory()) -> String {
+        if key == unknown || key.isEmpty { return "Unknown" }
+        if key == home { return "Home" }
+        let name = (key as NSString).lastPathComponent
+        return name.isEmpty ? "Unknown" : name
+    }
 }
 
 /// Aggregate over a set of entries. Deliberately holds no formatting.

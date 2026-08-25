@@ -182,10 +182,12 @@ final class GameMonitor {
     ///
     /// Called from the usage loop on every scan that added anything. A quiet
     /// minute credits nothing and writes nothing.
-    func credit(weightedTokens: Double, coinsEarned: Int) {
+    func credit(
+        weightedTokens: Double, byProject: [String: Double] = [:], coinsEarned: Int
+    ) {
         self.coinsEarned = coinsEarned
         guard let dex, weightedTokens > 0 else { return }
-        record(trainer.credit(weightedTokens: weightedTokens, dex: dex))
+        record(trainer.credit(weightedTokens: weightedTokens, byProject: byProject, dex: dex))
         persist()
     }
 

@@ -255,14 +255,19 @@ struct Trainer: Codable, Sendable, Equatable {
     /// to tell the player rather than to compensate silently.
     @discardableResult
     mutating func credit(
-        weightedTokens: Double, dex: Pokedex, now: Date = Date()
+        weightedTokens: Double, byProject: [String: Double] = [:], dex: Pokedex,
+        now: Date = Date()
     ) -> [GameEvent] {
         guard weightedTokens > 0 else { return [] }
         var events: [GameEvent] = []
         for (slot, raiseID) in team.enumerated() {
             let share = XPCurve.share(forSlot: slot, expShare: expShareActive)
+            // Each member's share applies to the split exactly as it applies to
+            // the total, so "who was this raised on" is answered at the same
+            // resolution as "how much did it earn".
             events += grant(
                 xp: XPCurve.xp(forWeightedTokens: weightedTokens * share),
+                byProject: byProject.mapValues { XPCurve.xp(forWeightedTokens: $0 * share) },
                 to: raiseID, dex: dex, now: now)
         }
         return events
@@ -276,13 +281,25 @@ struct Trainer: Codable, Sendable, Equatable {
     /// milestone it records.
     @discardableResult
     private mutating func grant(
-        xp: Double, to raiseID: UUID, dex: Pokedex, now: Date
+        xp: Double, byProject: [String: Double] = [:], to raiseID: UUID, dex: Pokedex,
+        now: Date
     ) -> [GameEvent] {
         guard let index = index(of: raiseID) else { return [] }
         let before = roster[index].level
         let ceiling = Double(XPCurve.totalXP(forLevel: XPCurve.maxLevel))
-        roster[index].totalXP = min(ceiling, roster[index].totalXP + xp)
+        let granted = min(ceiling, roster[index].totalXP + xp) - roster[index].totalXP
+        roster[index].totalXP += granted
         let after = roster[index].level
+
+        // Attributed in proportion to what was *actually* granted, so a member
+        // that hits the ceiling part-way through a credit does not record more
+        // project XP than it earned. `scale` is 1 in every case but that one.
+        if granted > 0, xp > 0, !byProject.isEmpty {
+            let scale = granted / xp
+            for (project, amount) in byProject {
+                roster[index].xpByProject[project, default: 0] += amount * scale
+            }
+        }
 
         var events: [GameEvent] = []
 

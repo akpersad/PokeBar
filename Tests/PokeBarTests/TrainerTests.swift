@@ -1487,6 +1487,95 @@ final class TrainerTests: XCTestCase {
             trainer.raise(id: bench)?.totalXP, baseline + 1_000 * XPCurve.partyShare)
     }
 
+    // MARK: - Where the XP came from
+
+    /// The plan's test: attribution across two projects sums to what was
+    /// credited, so the line under a Pokemon is a real breakdown and not a
+    /// second, drifting tally.
+    func testProjectAttributionSumsToTheXPCredited() throws {
+        var trainer = try raising("lapras")
+        let lead = try XCTUnwrap(trainer.lead)
+        let pokebar = "/Users/a/Code/PokeBar", other = "/Users/a/Code/hue-scenes"
+
+        trainer.credit(
+            weightedTokens: 1_000 * XPCurve.weightedTokensPerXP,
+            byProject: [
+                pokebar: 600 * XPCurve.weightedTokensPerXP,
+                other: 400 * XPCurve.weightedTokensPerXP,
+            ],
+            dex: dex)
+
+        let raised = try XCTUnwrap(trainer.raise(id: lead.id))
+        XCTAssertEqual(raised.xpByProject[pokebar], 600)
+        XCTAssertEqual(raised.xpByProject[other], 400)
+        XCTAssertEqual(
+            raised.xpByProject.values.reduce(0, +),
+            raised.totalXP - Double(XPCurve.totalXP(forLevel: 1)), accuracy: 0.000_1)
+    }
+
+    /// Each member's share applies to the split exactly as it applies to the
+    /// total, so the answer is at the same resolution for a bench slot.
+    func testEachTeamMemberRecordsItsOwnShareOfEachProject() throws {
+        var trainer = try raising("lapras")
+        let lapras = try entry("lapras")
+        let lead = try XCTUnwrap(trainer.lead).id
+        let second = addMember(to: &trainer, entryID: lapras.id)
+        let project = "/Users/a/Code/PokeBar"
+
+        trainer.credit(
+            weightedTokens: 1_000 * XPCurve.weightedTokensPerXP,
+            byProject: [project: 1_000 * XPCurve.weightedTokensPerXP], dex: dex)
+
+        XCTAssertEqual(trainer.raise(id: lead)?.xpByProject[project], 1_000)
+        XCTAssertEqual(
+            trainer.raise(id: second)?.xpByProject[project], 1_000 * XPCurve.partyShare)
+    }
+
+    /// A member that hits the ceiling part-way through a credit must not record
+    /// more project XP than it actually earned.
+    func testACappedMemberAttributesOnlyWhatItGained() throws {
+        var trainer = try raising("lapras")
+        let lead = try XCTUnwrap(trainer.lead).id
+        let project = "/Users/a/Code/PokeBar"
+        trainer.credit(weightedTokens: 1e12, byProject: [project: 1e12], dex: dex)
+        let atCeiling = try XCTUnwrap(trainer.raise(id: lead)).xpByProject[project]
+
+        trainer.credit(weightedTokens: 1e9, byProject: [project: 1e9], dex: dex)
+
+        XCTAssertEqual(trainer.raise(id: lead)?.xpByProject[project], atCeiling, "nothing more")
+        XCTAssertEqual(
+            try XCTUnwrap(atCeiling), 1_000_000 - 100, accuracy: 1,
+            "and never more than the climb was worth")
+    }
+
+    /// Rare Candy is bought, not earned anywhere, so it attributes to nothing.
+    func testRareCandyAttributesToNoProject() throws {
+        var trainer = try raising("lapras")
+        let lead = try XCTUnwrap(trainer.lead).id
+        try trainer.buy(.rareCandy, coinsEarned: 1_000)
+
+        try trainer.useRareCandy(on: lead, dex: dex)
+
+        XCTAssertGreaterThan(try XCTUnwrap(trainer.raise(id: lead)).totalXP, 10_000)
+        XCTAssertTrue(try XCTUnwrap(trainer.raise(id: lead)).xpByProject.isEmpty)
+    }
+
+    /// A new persisted field, so the usual rule: absent means empty, and a save
+    /// written before it existed still loads.
+    func testASaveWrittenBeforeProjectsStillLoads() throws {
+        let json = """
+            {"coinsSpent":0,"inventory":{},"hasShinyCharm":false,"dust":0,
+             "log":{"events":[]},
+             "roster":[{"originEntryID":25,"shiny":false,"totalXP":40100,
+                        "gender":"male","id":"11111111-1111-1111-1111-111111111111",
+                        "startedAt":809232069.327612,"entryID":25}],
+             "team":["11111111-1111-1111-1111-111111111111"]}
+            """
+        let trainer = try JSONDecoder().decode(Trainer.self, from: Data(json.utf8))
+        XCTAssertEqual(trainer.lead?.xpByProject, [:])
+        XCTAssertEqual(trainer.lead?.totalXP, 40_100)
+    }
+
     /// **Rare Candy feeds one Pokemon, not six.** Routing it through `credit`
     /// would hand 10,000 XP to the whole team for 250 coins, turning the game's
     /// one targeted item into the only sensible purchase in the shop.

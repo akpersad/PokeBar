@@ -20,13 +20,26 @@ enum CodexUsageParser {
         line: String,
         sessionKey: String,
         fallbackID: @autoclosure () -> String,
-        currentModel: inout String?
+        currentModel: inout String?,
+        currentProject: inout String?
     ) -> UsageEntry? {
         guard let data = line.data(using: .utf8),
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let payload = object["payload"] as? [String: Any]
         else { return nil }
 
+        // The project comes off `turn_context`, the same record the model does.
+        // Unlike the Claude path there is nothing on the `token_count` event
+        // itself, so it has to be carried forward, which is the pattern
+        // `currentModel` already established. `session_meta` carries it too and
+        // arrives first, but never reaches here: the scanner's prefilter only
+        // hands over lines containing `turn_context` or `token_count`. That
+        // costs nothing, because a `token_count` is always preceded by the
+        // `turn_context` for its turn, which is the same assumption the model
+        // has depended on since Codex support shipped.
+        if let cwd = payload["cwd"] as? String, !cwd.isEmpty {
+            currentProject = cwd
+        }
         if object["type"] as? String == "turn_context",
            let model = payload["model"] as? String,
            !model.isEmpty {
@@ -57,7 +70,8 @@ enum CodexUsageParser {
             model: currentModel ?? "unknown-codex-model",
             source: .codex,
             tokens: tokens,
-            localDay: ClaudeUsageParser.localDayKey(date))
+            localDay: ClaudeUsageParser.localDayKey(date),
+            project: currentProject)
     }
 
     /// An id derived from the record, not from its byte offset.

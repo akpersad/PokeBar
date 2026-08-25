@@ -63,7 +63,12 @@ enum ClaudeUsageParser {
             model: model,
             source: .claudeCode,
             tokens: tokens,
-            localDay: localDayKey(date))
+            localDay: localDayKey(date),
+            // Every usage-bearing line in this corpus carries it: 421 of 421 in
+            // the largest file measured. Reading it here costs nothing, because
+            // the line is already parsed, and it beats reversing the encoded
+            // directory name, which cannot tell `hue-scenes` from `hue/scenes`.
+            project: (object["cwd"] as? String).flatMap { $0.isEmpty ? nil : $0 })
     }
 
     /// Collapse repeats of the same turn, keeping the **largest** total.

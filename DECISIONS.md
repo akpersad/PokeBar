@@ -1342,8 +1342,7 @@ Decisions only. The sequencing, the migration detail and the test list live in
 [PLAN-v2.md](PLAN-v2.md), and are deliberately not duplicated here: one copy of
 one fact, the same rule `CatchLog` follows.
 
-**Steps 0 to 4 are implemented, 2026-08-24.** Everything else below is not:
-per-project attribution and the LaunchAgent.
+**All of v2 is implemented, 2026-08-24: steps 0 to 7.**
 
 ### The save is copied aside before it is read
 
@@ -1515,6 +1514,58 @@ no unlock. Two real costs accepted knowingly: Rare Candy gets relatively weaker,
 and the silver and gold rings get common. Both are watch-and-see, and both are
 cosmetic to fix. The party share is the dial if it needs turning, and it lives in
 one constant for that reason.
+
+### Per-project attribution, and the encoding that never got decoded
+
+Step 6 of the plan, implemented 2026-08-24. **The plan's approach was wrong and
+was replaced before any of it was written.**
+
+The plan said to decode `~/.claude/projects/-Users-apersad-Documents-...`, the
+encoded directory name. That encoding replaces every `/` with `-`, which makes it
+**ambiguous**: `hue-scenes` and `hue/scenes` encode identically, and this machine
+has directories of both shapes. Any decoder is guessing, and it guesses wrong on
+exactly the names a person would recognise.
+
+It also turned out to be unnecessary. **All three sources write the working
+directory into the data already:**
+
+| Source | Where | Coverage |
+|---|---|---|
+| Claude Code | `cwd`, on the usage line itself | 421 of 421 usage lines in the largest file |
+| Codex | `cwd`, on `turn_context` | carried forward like the model already is |
+| Copilot CLI | `sessions.cwd` | a `LEFT JOIN` on the query that was already running |
+
+Measured over the live corpus after the change: **every entry from every source
+is attributed**, and a test asserts that under `POKEBAR_CORPUS=1`, including that
+no name still looks like an encoded path. Reading a fact is always better than
+reversing a lossy encoding of it.
+
+**The key is the full path and the name is its last component.** Two directories
+can share a last component, so only the path is a safe identity.
+
+**Attribution is by working directory, not by project root**, and that is visible
+in the real data: `PawscriptionsKit`, `PeckishKit`, `Assets.xcassets` and
+`firebase` all appear beside their parents, because a session started in a
+subdirectory reports that subdirectory. Rolling up to a git root was considered
+and left alone: it needs filesystem access, it cannot work for a directory that
+has since been deleted, and "where was I actually working" is a defensible answer
+in its own right. Watch it; if the list gets noisy the fix is a roll-up rule, not
+a change to what is recorded.
+
+**The per-project delta is diffed off the ledger, never summed from the entries.**
+The ledger credits *growth* on a turn it has already seen, so summing the entries
+handed to it would attribute a rewritten turn's whole total to its project on
+every scan, roughly 2.4 times over. Same trick the total weighted delta already
+used, and for the same reason.
+
+**Rare Candy attributes to nothing.** It was bought, not earned anywhere, so a
+Pokemon fed one has `xpByProject` summing to less than its `totalXP`. That is the
+honest answer, and the display shows shares of what *is* attributed.
+
+**Only new usage is attributed.** The ledger has no per-entry history to go back
+over, so everything credited before this shipped is unattributed and stays that
+way. Backfilling would mean re-reading 481 MiB and rebuilding a ledger that is
+deliberately append-once. The alternative to a gap at the start is no feature.
 
 **Per-project attribution records always, displays optionally.** The user wants
 to hide it sometimes, not to stop collecting it. A toggle that gated *recording*
@@ -1696,6 +1747,30 @@ ring around one tile in a grid is what *selection* looks like, and macOS draws i
 focus ring the same way. The hard edge is now 0.6pt at 40% and the mark is carried
 by a blurred stroke that bleeds outward. A glow is not a state, and nothing else in
 that grid glows.
+
+### Open at login: the framework, not a plist
+
+Step 7, implemented 2026-08-24. `SMAppService.mainApp`, not a hand-written
+LaunchAgent plist in `~/Library/LaunchAgents`.
+
+A plist has to name an absolute path to the bundle, and this bundle lives at
+`dist/PokeBar.app` inside a working copy. A rebuild is fine, but a clean or a move
+leaves a login item pointing at nothing, **silently**, until the user notices the
+app stopped starting. `SMAppService` registers this bundle by identity, is removed
+when the app is deleted, and appears in System Settings where a user would go
+looking for it. It is also the only route Apple supports from macOS 13 on.
+
+**Off by default**, like the desktop pet: an app that adds itself to login items
+unasked is a bad neighbour. And nothing is lost while PokeBar is off, because
+cursors persist and a launch after three days credits those three days. What the
+switch buys is the passive notifications firing *when the events happen* rather
+than arriving in a batch at the next launch.
+
+The toggle re-reads the system state after every change rather than trusting the
+write, because macOS can answer "registered, but the user has to allow it", which
+an ad-hoc signed build hits more often than a notarised one. That state has its
+own copy pointing at System Settings, since it is the one case the user cannot
+fix from inside the app.
 
 **Deferred by the user, not rejected:** widgets, and battles. Battles were liked
 but named as a risk of "losing the plot of a token use project", and would also

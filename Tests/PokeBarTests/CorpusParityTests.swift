@@ -287,6 +287,42 @@ final class CorpusParityTests: XCTestCase {
             "a rescan may only surface rows written since, never one already credited")
     }
 
+    /// **Every live entry knows where it came from**, across all three sources.
+    ///
+    /// The reason this is a corpus test and not a fixture test: the claim being
+    /// checked is about the *shape of the real logs*, that Claude Code writes
+    /// `cwd` on every usage line, that Codex writes it on `turn_context` before
+    /// any `token_count`, and that Copilot keeps it on the session row. A fixture
+    /// would only prove the parsers read what I wrote into them.
+    func testEveryLiveEntryCarriesItsProject() throws {
+        try skipUnlessEnabled()
+
+        let result = UsageScanner().scan()
+        var byProject: [String: Int] = [:]
+        var unattributed: [UsageSource: Int] = [:]
+        for entry in result.entries {
+            if let project = entry.project {
+                byProject[Project.displayName(project), default: 0] += 1
+            } else {
+                unattributed[entry.source, default: 0] += 1
+            }
+        }
+
+        print("projects: \(byProject.sorted { $0.value > $1.value }.prefix(20))")
+        print("unattributed: \(unattributed)")
+
+        XCTAssertFalse(byProject.isEmpty)
+        XCTAssertTrue(
+            unattributed.isEmpty,
+            "every turn in the live corpus should name its working directory")
+        XCTAssertTrue(
+            byProject.keys.contains("PokeBar"),
+            "this project's own turns should be attributed to it")
+        XCTAssertFalse(
+            byProject.keys.contains { $0.hasPrefix("-Users-") },
+            "a name that still looks encoded means the path was never read")
+    }
+
     /// **The live save, decoded through the roster migration.**
     ///
     /// The only save that actually matters is the one on this disk, and no
