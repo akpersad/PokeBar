@@ -115,9 +115,11 @@ Five worth knowing up front:
 
 Reads three local sources: `~/.claude/projects/**/*.jsonl`,
 `~/.codex/sessions/**/*.jsonl`, and `~/.copilot/session-store.db`. From each it
-takes **token counts, a model name, a timestamp, and the working directory the
-turn was spent in**, and nothing else. No prompt text, no response text, no file
-contents, no credentials, and no Keychain item.
+takes **token counts, a model name, a timestamp, the working directory the turn
+was spent in, and an id to dedupe by** (`requestId` and `message.id` for Claude
+Code, a record ordinal for Codex, the row id for Copilot), and nothing else. No
+prompt text, no response text, no file contents, no credentials, and no Keychain
+item.
 
 The working directory is what per-project attribution is built on, and it is the
 one field here that can carry a client's name. It is stored as the full path in

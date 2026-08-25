@@ -550,10 +550,12 @@ Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the fem
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
 
-**Next action, in one sentence: nothing is scheduled. v2 is complete, so the next
-move is the user's, most likely tuning the Dust prices once the wall is hit or
-rolling per-project attribution up to a git root if the subdirectory names get
-noisy.**
+**Next action, in one sentence: nothing is scheduled, and the deferred list below
+is not a queue.** v1 and v2 are both complete and every pixel has been through the
+user's eyes; the one thing outstanding is theirs alone, which is whether "Open at
+login" survives their next reboot. Everything else here is deferred *by the user*
+and several items are explicitly marked do-not-raise, so a session that opens this
+file should ask what is wanted rather than start on the list.
 
 v2 was scoped and finished on 2026-08-24. **All eight steps are done**: the dated
 save backup (invariant 29), the roster (30, 31), the team gaining XP together (32
