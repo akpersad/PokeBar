@@ -1942,3 +1942,23 @@ and a Keychain blob whose shape had never been checked.
 - **Alternate-form axis beyond regionals.** 260 further form sprites exist.
 - **Parallel cold scan.** The 17s cold start is single-threaded and could fan out
   across files. Only matters once per install, so not yet worth the complexity.
+- **Thinning level-ups out of the activity feed.** Deferred by the user on
+  2026-08-24, with the problem already confirmed on screen: with a team of three,
+  all four feed slots read "X reached level N", so a hatch, an evolution or a Dust
+  payout is pushed off within one tick. The user looked at it and chose to keep it
+  as it is for now, explicitly leaving the door open.
+
+  Recorded so the next session does not have to rediscover the shape. Two options
+  were costed, and the *first* is the one to reach for:
+
+  1. **Drop level-ups from the feed.** A level-up is the one event in that list
+     the card above already shows, twice over, as a number and as a bar. The feed
+     would become the things you would otherwise miss. Notifications already
+     exclude level-ups on exactly this reasoning, at 99 per climb and now up to
+     six climbs at once.
+  2. **Group them**, the way `Notifier.announcements` groups its own: "3 Pokemon
+     levelled up" as one line. Keeps the sense of motion but still spends a slot
+     on it every tick.
+
+  **Do not raise this unasked.** It is a display preference the user has looked
+  at and settled for now, in the same category as the Dust prices.

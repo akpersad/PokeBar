@@ -736,6 +736,16 @@ that came out of the original plan, is in DECISIONS.md.
 
 ## Deferred, with reasons in DECISIONS.md
 
+- **Thinning level-ups out of the activity feed.** Confirmed on screen 2026-08-24:
+  with a team of three, all four feed slots read "X reached level N", so a hatch or
+  an evolution is pushed off within a tick. The user looked at it and chose to keep
+  it for now. **Do not raise unasked**, same standing as the Dust prices. Both
+  costed options are in DECISIONS.md, and dropping level-ups is the one to reach
+  for: the card above already shows the level twice, as a number and as a bar.
+- Rolling per-project attribution up to a git root. Attribution is by working
+  directory, so `PawscriptionsKit` and `Assets.xcassets` sit beside their parents.
+  Needs filesystem access and cannot work for a deleted directory, and "where was
+  I working" is defensible as it stands.
 - Trends and burn-rate UI. Per-day data already accumulates in the ledger.
 - Alternate forms beyond the 58 regionals (260 more sprites exist).
 - Parallelising the cold scan. One-time cost per install.
