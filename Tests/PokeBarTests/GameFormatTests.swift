@@ -178,17 +178,25 @@ final class GameFormatTests: XCTestCase {
 
     // MARK: The team
 
-    func testTeamSummaryCarriesTheMultiplier() {
+    /// **The multiplier is gone on purpose**, so this asserts its absence rather
+    /// than its value. "5x XP" was caught on screen saying nothing a player could
+    /// act on, and the per-slot share under the selected card already answers the
+    /// question it was reaching for.
+    func testTeamSummaryCountsSlotsAndNamesOnlyTheExpShare() {
         XCTAssertEqual(GameFormat.teamSummary(occupied: 1, capacity: 6, expShare: false),
-                       "Team 1 of 6 · 1x XP")
-        XCTAssertEqual(GameFormat.teamSummary(occupied: 2, capacity: 6, expShare: false),
-                       "Team 2 of 6 · 1.8x XP")
+                       "Team 1 of 6")
         XCTAssertEqual(GameFormat.teamSummary(occupied: 6, capacity: 6, expShare: false),
-                       "Team 6 of 6 · 5x XP")
+                       "Team 6 of 6")
         XCTAssertEqual(GameFormat.teamSummary(occupied: 6, capacity: 6, expShare: true),
-                       "Team 6 of 6 · 6x XP")
+                       "Team 6 of 6 · Exp Share is on")
         XCTAssertEqual(GameFormat.teamSummary(occupied: 0, capacity: 6, expShare: false),
-                       "Team 0 of 6 · 0x XP")
+                       "Team 0 of 6")
+        for occupied in 0...6 {
+            XCTAssertFalse(
+                GameFormat.teamSummary(occupied: occupied, capacity: 6, expShare: true)
+                    .contains("x XP"),
+                "the team header must not carry a multiplier again")
+        }
     }
 
     /// A trailing zero on a round number reads like false precision.
@@ -415,13 +423,45 @@ final class GameFormatTests: XCTestCase {
         }
     }
 
-    /// The bench grows without limit because nothing is ever deleted, so the pane
-    /// summarises past one screen. A count under exactly as many rows is noise.
-    func testBenchOverflowNoteOnlyAppearsWhenSomethingIsHidden() {
-        XCTAssertNil(GameFormat.pcOverflowNote(total: 1))
-        XCTAssertNil(GameFormat.pcOverflowNote(total: GameFormat.pcRowLimit))
+    // MARK: Eggs
+
+    /// The menu row is the only place a player reads what a tier costs and what
+    /// it promises before pressing it, so both have to be on it.
+    func testEggMenuRowNamesThePriceAndThePromise() {
         XCTAssertEqual(
-            GameFormat.pcOverflowNote(total: 23), "Showing the 6 furthest along of 23.")
+            GameFormat.eggMenuRow(.egg), "Egg · 200 coins · anything that hatches")
+        XCTAssertEqual(
+            GameFormat.eggMenuRow(.great), "Great Egg · 600 coins · rare and above")
+        XCTAssertEqual(
+            GameFormat.eggMenuRow(.ultra),
+            "Ultra Egg · 3,500 coins · always a legendary or a mythical")
+        XCTAssertEqual(
+            GameFormat.eggMenuRow(.master), "Master Egg · 20,000 coins · always a mythical")
+    }
+
+    /// Pool sizes are passed in from the dex, never typed into the copy, so a new
+    /// generation moves the shop's numbers without an edit.
+    func testEggPoolLineIsDerivedFromTheDex() {
+        XCTAssertEqual(
+            GameFormat.eggPoolLine(.egg, pool: 570, total: 570),
+            "All 570 entries an egg can produce.")
+        XCTAssertEqual(
+            GameFormat.eggPoolLine(.ultra, pool: 91, total: 570),
+            "91 of 570 entries, always a legendary or a mythical.")
+    }
+
+    /// The PC is its own tab now, so nothing is hidden and the row cap is gone.
+    /// What is left is a count, and a link that does not exist while it is empty.
+    func testPCSummaryAndLinkReadForOneAndForMany() {
+        XCTAssertEqual(GameFormat.pcSummary(total: 1), "1 waiting")
+        XCTAssertEqual(GameFormat.pcSummary(total: 23), "23 waiting, best first")
+        XCTAssertNil(GameFormat.pcLink(total: 0), "a link to an empty PC is a dead end")
+        XCTAssertEqual(GameFormat.pcLink(total: 1), "1 waiting in your PC")
+        XCTAssertEqual(GameFormat.pcLink(total: 23), "23 waiting in your PC")
+        XCTAssertNil(GameFormat.pcRefusal(teamOccupied: 5, capacity: 6))
+        XCTAssertEqual(
+            GameFormat.pcRefusal(teamOccupied: 6, capacity: 6),
+            "The team is full at 6. Send one off a slot to bring another back.")
     }
 
     func testRareCandyAlwaysNamesItsTarget() {
@@ -492,7 +532,11 @@ final class GameFormatTests: XCTestCase {
                     entryID: 25, variant: .shiny, source: .hatch, isNew: false, dust: 2,
                     slot: nil)),
             GameFormat.describe(Trainer.GameError.notABaseForm(5)),
-            GameFormat.pcOverflowNote(total: 40) ?? "",
+            GameFormat.pcSummary(total: 40),
+            GameFormat.pcExplainer,
+            GameFormat.pcEmpty,
+            GameFormat.pcLink(total: 40) ?? "",
+            GameFormat.pcRefusal(teamOccupied: 6, capacity: 6) ?? "",
             GameFormat.rareCandyTarget("Lapras"),
             GameFormat.rareCandyTarget(nil),
             GameFormat.expShareDetail(enabled: nil),
@@ -501,7 +545,14 @@ final class GameFormatTests: XCTestCase {
             GameFormat.describe(Trainer.GameError.teamFull),
             GameFormat.describe(Trainer.GameError.alreadyOnTeam),
             GameFormat.describe(Trainer.GameError.unknownIndividual(UUID())),
+            GameFormat.eggSectionNote,
         ]
+        strings += EggTier.allCases.flatMap {
+            [
+                $0.displayName, $0.promise, GameFormat.eggMenuRow($0),
+                GameFormat.eggPoolLine($0, pool: dex.hatchPool(for: $0).count, total: 570),
+            ]
+        }
         for text in strings {
             XCTAssertFalse(text.contains("\u{2014}"), text)
             XCTAssertFalse(text.contains("\u{2013}"), text)

@@ -235,6 +235,59 @@ final class PokedexTests: XCTestCase {
         XCTAssertTrue(dex.isEvolutionGated(charizard))
     }
 
+    // MARK: - Egg tiers
+
+    /// The four pools, measured. Carried over from PokeFit against this same
+    /// manifest, so a mismatch here means one of the two apps has drifted.
+    ///
+    /// Sizes matter because the ladder's prices were derived from them: change a
+    /// pool and every inequality in `Prices` needs re-checking.
+    func testEggTierPoolSizes() {
+        XCTAssertEqual(dex.hatchPool(for: .egg).count, 570)
+        XCTAssertEqual(dex.hatchPool(for: .great).count, 266)
+        XCTAssertEqual(dex.hatchPool(for: .ultra).count, 91)
+        XCTAssertEqual(dex.hatchPool(for: .master).count, 22)
+    }
+
+    /// **The pools nest, and they are all inside the hatch pool.**
+    ///
+    /// Two failures this catches, both silent. A tier that is not a subset of
+    /// `hatchable` would let an egg produce something only evolution should give,
+    /// which is invariant 21 broken one layer up. A tier that is not a subset of
+    /// the one below it would mean the ladder is not a ladder, and every price
+    /// inequality in `Prices` is stated in terms of "the tier below can also
+    /// produce this".
+    func testEggTierPoolsNestInsideTheHatchPool() {
+        let hatchable = Set(dex.hatchable.map(\.id))
+        var previous = hatchable
+        for tier in EggTier.allCases {
+            let pool = Set(dex.hatchPool(for: tier).map(\.id))
+            XCTAssertFalse(pool.isEmpty, "\(tier) draws from nothing")
+            XCTAssertTrue(pool.isSubset(of: hatchable), "\(tier) escapes the hatch pool")
+            XCTAssertTrue(pool.isSubset(of: previous), "\(tier) is not inside the tier below")
+            for entry in dex.hatchPool(for: tier) {
+                XCTAssertFalse(dex.isEvolutionGated(entry), "\(entry.slug) via \(tier)")
+                XCTAssertTrue(tier.includes(entry.rarity), "\(entry.slug) is \(entry.rarity)")
+            }
+            previous = pool
+        }
+    }
+
+    /// The promises the shop makes, checked against the data that has to honour
+    /// them. An Ultra Egg that could hand over a Caterpie is the whole tier gone.
+    func testEggTierPromisesHold() {
+        for entry in dex.hatchPool(for: .ultra) {
+            XCTAssertTrue(
+                entry.legendary || entry.mythical, "\(entry.slug) is not legendary or mythical")
+        }
+        for entry in dex.hatchPool(for: .master) {
+            XCTAssertTrue(entry.mythical, "\(entry.slug) is not mythical")
+        }
+        for entry in dex.hatchPool(for: .great) {
+            XCTAssertGreaterThanOrEqual(entry.rarity, .rare, entry.slug)
+        }
+    }
+
     /// The whole point of resolving triggers at generation time: the app compares
     /// a level and checks an item, and there is no fifth case to handle.
     func testEveryEdgeCarriesAUsableLevel() {

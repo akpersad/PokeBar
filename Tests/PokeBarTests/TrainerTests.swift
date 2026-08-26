@@ -687,15 +687,156 @@ final class TrainerTests: XCTestCase {
     func testHatchingCostsCoinsAndFillsASlot() throws {
         var trainer = Trainer()
         XCTAssertThrowsError(try trainer.hatch(coinsEarned: 100, dex: dex, using: &rng)) { error in
-            XCTAssertEqual(error as? Trainer.GameError, .notEnoughCoins(needed: 300, have: 100))
+            XCTAssertEqual(
+                error as? Trainer.GameError, .notEnoughCoins(needed: Prices.egg, have: 100))
         }
 
         let events = try trainer.hatch(coinsEarned: 1_000, dex: dex, using: &rng)
         XCTAssertEqual(trainer.coinsSpent, Prices.egg)
-        XCTAssertEqual(trainer.coins(earned: 1_000), 700)
+        XCTAssertEqual(trainer.coins(earned: 1_000), 1_000 - Prices.egg)
         XCTAssertEqual(trainer.log.events.count, 1)
         XCTAssertNotNil(trainer.lead, "the first hatch starts raising itself")
         XCTAssertTrue(events.contains { if case .caught = $0 { true } else { false } })
+    }
+
+    // MARK: - The egg ladder
+
+    /// Weighted chance that one egg of `tier` produces something in `bands`.
+    ///
+    /// Weighted on the raw capture rate, because that is what `HatchRoll` does.
+    /// Banding the weights would give a different and wrong answer, which is the
+    /// point of the decision recorded against `HatchRoll.draw`.
+    private func chance(_ tier: EggTier, of bands: Set<Rarity>) -> Double {
+        let pool = dex.hatchPool(for: tier)
+        let total = pool.reduce(0.0) { $0 + Double(max($1.captureRate, 1)) }
+        let hit = pool
+            .filter { bands.contains($0.rarity) }
+            .reduce(0.0) { $0 + Double(max($1.captureRate, 1)) }
+        return hit / total
+    }
+
+    /// Expected Dust from one egg of `tier`, assuming the sprite is a duplicate.
+    private func expectedDust(_ tier: EggTier) -> Double {
+        let pool = dex.hatchPool(for: tier)
+        let total = pool.reduce(0.0) { $0 + Double(max($1.captureRate, 1)) }
+        return pool.reduce(0.0) {
+            $0 + Double(max($1.captureRate, 1)) * Double(Prices.dust(forCaptureRate: $1.captureRate))
+        } / total
+    }
+
+    /// **Every tier must be the cheapest route to its own promise**, or it is a
+    /// trap: it still sells, it just quietly costs more than spamming the egg
+    /// below it, which can also produce the same thing because the pools nest.
+    ///
+    /// This is the inequality the ladder was priced against, restated against the
+    /// live manifest rather than against the numbers in the comment, so moving a
+    /// price or a pool fails here instead of in a month of play.
+    func testEachEggTierIsTheCheapestRouteToItsOwnPromise() {
+        let top: Set<Rarity> = [.legendary, .mythical]
+        let myth: Set<Rarity> = [.mythical]
+
+        // A legendary. The plain Egg and the Great Egg both roll for one; the
+        // Ultra Egg simply hands one over.
+        let eggPerLegendary = Double(Prices.egg) / chance(.egg, of: top)
+        let greatPerLegendary = Double(Prices.greatEgg) / chance(.great, of: top)
+        XCTAssertEqual(chance(.ultra, of: top), 1, accuracy: 1e-12, "Ultra must guarantee it")
+        XCTAssertLessThan(greatPerLegendary, eggPerLegendary, "the Great Egg is a worse Egg")
+        XCTAssertLessThan(
+            Double(Prices.ultraEgg), greatPerLegendary, "the Ultra Egg is a worse Great Egg")
+
+        // A mythical. Same shape one rung up.
+        let eggPerMythical = Double(Prices.egg) / chance(.egg, of: myth)
+        let greatPerMythical = Double(Prices.greatEgg) / chance(.great, of: myth)
+        let ultraPerMythical = Double(Prices.ultraEgg) / chance(.ultra, of: myth)
+        XCTAssertEqual(chance(.master, of: myth), 1, accuracy: 1e-12, "Master must guarantee it")
+        XCTAssertLessThan(greatPerMythical, eggPerMythical)
+        XCTAssertLessThan(ultraPerMythical, greatPerMythical)
+        XCTAssertLessThan(
+            Double(Prices.masterEgg), ultraPerMythical, "the Master Egg is a worse Ultra Egg")
+
+        // And prices rise with the tier, which the two chains above do not imply
+        // on their own.
+        let prices = EggTier.allCases.map(\.priceInCoins)
+        XCTAssertEqual(prices, prices.sorted(), "\(prices)")
+    }
+
+    /// Coins per Dust, which the ladder no longer keeps in order.
+    private func coinsPerDust(_ tier: EggTier) -> Double {
+        Double(tier.priceInCoins) / expectedDust(tier)
+    }
+
+    /// **The Great Egg is the cheapest source of Dust, deliberately, and it is
+    /// the only tier allowed to be.**
+    ///
+    /// The clean rule was "the plain Egg is always the cheapest Dust", because
+    /// Dust pays on the raw capture rate and higher tiers are full of
+    /// capture-rate-3 species: expected Dust per duplicate runs 1.97, 7.51, 16.90,
+    /// 25.75 up the ladder. Pricing a tier under the plain Egg's coins-per-Dust
+    /// turns the shop into a Dust mint, and coins must not convert into Dust:
+    /// coins accrue passively and buy volume, Dust comes only from duplicates and
+    /// buys choice. Same family as invariant 17.
+    ///
+    /// **The user broke it on purpose, tuning for fun**, and the reasoning is that
+    /// the magnitude is small where the principle is loud: coins already converted
+    /// through plain eggs, so the Great Egg at 600 makes an existing rate 27%
+    /// better rather than opening a new door.
+    ///
+    /// So this pins the *bound* rather than the ordering, which is the thing still
+    /// worth defending. Two halves: nothing but the Great Egg may invert, and its
+    /// advantage stays modest. At 400 the ratio is 1.9x and that genuinely is a
+    /// mint, so the cap is what stops the next tune going too far.
+    func testOnlyTheGreatEggUndercutsThePlainEggOnDust() {
+        let egg = coinsPerDust(.egg)
+        let great = coinsPerDust(.great)
+
+        XCTAssertLessThan(great, egg, "the recorded exception is gone; update DECISIONS.md")
+        XCTAssertLessThan(
+            egg / great, 1.5,
+            "the Great Egg is now a Dust mint rather than a discount")
+
+        // Ultra and Master must stay strictly worse than both cheaper eggs. These
+        // are the ones that would actually print, at ~17 and ~26 Dust a hatch.
+        for tier in [EggTier.ultra, .master] {
+            XCTAssertGreaterThan(coinsPerDust(tier), egg, "\(tier) undercuts the Egg")
+            XCTAssertGreaterThan(coinsPerDust(tier), great, "\(tier) undercuts the Great Egg")
+        }
+        XCTAssertGreaterThan(
+            coinsPerDust(.master), coinsPerDust(.ultra), "the top two are out of order")
+    }
+
+    /// A tier charges its own price and draws only from its own pool. The Master
+    /// Egg is the one worth exercising: the pool is 22 entries and the promise is
+    /// absolute, so a wrong pool is visible in one hatch.
+    func testHatchingATierChargesItsPriceAndHonoursItsPool() throws {
+        var trainer = Trainer()
+        XCTAssertThrowsError(
+            try trainer.hatch(tier: .master, coinsEarned: 100, dex: dex, using: &rng)
+        ) { error in
+            XCTAssertEqual(
+                error as? Trainer.GameError,
+                .notEnoughCoins(needed: Prices.masterEgg, have: 100))
+        }
+
+        for _ in 0..<12 {
+            let before = trainer.log.events.count
+            _ = try trainer.hatch(
+                tier: .master, coinsEarned: 10_000_000, dex: dex, using: &rng)
+            let event = try XCTUnwrap(trainer.log.events.last)
+            XCTAssertEqual(trainer.log.events.count, before + 1)
+            let entry = try XCTUnwrap(dex.entry(id: event.entryID))
+            XCTAssertTrue(entry.mythical, "a Master Egg produced \(entry.slug)")
+            // Still an egg, so a duplicate still pays. Invariant 17 keys on the
+            // source, and every tier shares it.
+            XCTAssertEqual(event.source, .hatch)
+        }
+        XCTAssertEqual(trainer.coinsSpent, Prices.masterEgg * 12)
+
+        for _ in 0..<12 {
+            _ = try trainer.hatch(tier: .ultra, coinsEarned: 10_000_000, dex: dex, using: &rng)
+            let entry = try XCTUnwrap(dex.entry(id: try XCTUnwrap(trainer.log.events.last).entryID))
+            XCTAssertTrue(
+                entry.legendary || entry.mythical, "an Ultra Egg produced \(entry.slug)")
+        }
     }
 
     /// Nothing that *acquires* a Pokemon may interrupt a raise in progress.

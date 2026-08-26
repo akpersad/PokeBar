@@ -1,3 +1,4 @@
+import AppKit
 import XCTest
 
 @testable import PokeBar
@@ -256,5 +257,35 @@ final class UsageFormatTests: XCTestCase {
         XCTAssertEqual(pane.height(forContent: 200), 200, "a short team gets no dead space")
         XCTAssertEqual(pane.height(forContent: 900), pane.maxHeight, "past this it scrolls")
         XCTAssertLessThan(pane.minHeight, pane.maxHeight)
+    }
+
+    /// The PC pane starts *empty* rather than small, which is the one way it
+    /// differs from the Raise pane: a fresh install has nothing stored, and a
+    /// fixed 300pt of nothing is worse than a short pane.
+    func testPCPaneClampsItsMeasuredHeight() {
+        let pane = PopoverMetrics.PCPane.self
+        XCTAssertEqual(pane.height(forContent: 0), pane.minHeight)
+        XCTAssertEqual(pane.height(forContent: 180), 180)
+        XCTAssertEqual(pane.height(forContent: 900), pane.maxHeight)
+        XCTAssertLessThan(pane.minHeight, pane.maxHeight)
+    }
+
+    /// **The tab bar fits, and it is nearly full.**
+    ///
+    /// `SegmentedTabs` distributes `.fillEqually`, so AppKit will happily hand
+    /// back a control wider than the pane and let the labels truncate rather than
+    /// refuse to lay out. Five tabs measure 300pt against the pane's 312pt, so
+    /// there is 12pt spare and a sixth tab does not fit. Measured here rather
+    /// than asserted as a constant, because the answer depends on the system font
+    /// and this is the check that would catch a name change like "PC" to "Storage"
+    /// silently truncating every other label.
+    func testTheTabBarFitsThePane() {
+        let control = NSSegmentedControl(
+            labels: PokeBarPopover.Pane.allCases.map(\.rawValue),
+            trackingMode: .selectOne, target: nil, action: nil)
+        control.segmentDistribution = .fillEqually
+        XCTAssertLessThanOrEqual(
+            control.intrinsicContentSize.width, PopoverMetrics.contentWidth,
+            "the tabs no longer fit; shorten a label or drop one")
     }
 }

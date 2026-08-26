@@ -526,13 +526,25 @@ struct Trainer: Codable, Sendable, Equatable {
     /// is new even when Pikachu is not. Duplicates mint Dust scaled on the raw
     /// capture rate, which is what funds the guaranteed path: random draws alone
     /// need a median 110,218 hatches to see every hatchable entry once.
+    ///
+    /// **The tier changes the pool and the price, and nothing else.** Shiny odds,
+    /// the gender roll, the `.hatch` source and therefore the Dust payout are all
+    /// identical across the four: one dial, so an Ultra Egg is understood the
+    /// moment the pool is. In particular the source stays `.hatch` for every tier,
+    /// which is what keeps invariant 17 stated once instead of four times, and it
+    /// is why a duplicate mythical out of a Master Egg is still a ~26 Dust windfall
+    /// rather than a wasted 25,000 coins.
+    ///
+    /// The weighting inside a pool is unchanged too: raw `captureRate`, never the
+    /// band. The band decides *membership* and the raw rate decides the draw, which
+    /// is why an Ultra Egg still favours Type: Null over Mewtwo.
     @discardableResult
     mutating func hatch(
-        coinsEarned: Int, dex: Pokedex, using rng: inout some RandomNumberGenerator,
-        now: Date = Date()
+        tier: EggTier = .egg, coinsEarned: Int, dex: Pokedex,
+        using rng: inout some RandomNumberGenerator, now: Date = Date()
     ) throws -> [GameEvent] {
-        try spend(coins: Prices.egg, earned: coinsEarned)
-        guard let entry = HatchRoll.draw(from: dex.hatchable, using: &rng) else {
+        try spend(coins: tier.priceInCoins, earned: coinsEarned)
+        guard let entry = HatchRoll.draw(from: dex.hatchPool(for: tier), using: &rng) else {
             throw GameError.emptyPool
         }
         return obtain(entry, source: .hatch, dex: dex, using: &rng, now: now)

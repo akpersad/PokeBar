@@ -9,6 +9,12 @@ import SwiftUI
 /// No Mint. A Mint rerolls a nature, and natures play no part here because there
 /// is no stat raising to aim at, so it would be a coin sink that buys nothing
 /// observable. Rejected rather than deferred (DECISIONS.md).
+///
+/// **The eggs are here even though they are not items.** An egg opens the instant
+/// it is paid for, so there is never one to hold, and the Raise pane's split
+/// button is where the plain one actually gets pressed. What the shop adds is the
+/// ladder side by side: four prices against four pool sizes is the only view that
+/// makes the choice between them legible, and a price list is what a shop is.
 struct ShopView: View {
     let game: GameMonitor
     let onError: (any Error) -> Void
@@ -16,6 +22,15 @@ struct ShopView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
+                section("EGGS") {
+                    Text(GameFormat.eggSectionNote)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    ForEach(EggTier.allCases) { tier in
+                        eggRow(tier)
+                    }
+                }
                 section("TRAINING") {
                     row(
                         .rareCandy, name: "Rare Candy",
@@ -57,6 +72,33 @@ struct ShopView: View {
             .padding(.trailing, 4)
         }
         .frame(height: 280)
+    }
+
+    /// One rung of the egg ladder. Hatches on press rather than buying an item,
+    /// which is the one thing that makes this row different from every other.
+    private func eggRow(_ tier: EggTier) -> some View {
+        let total = game.hatchPoolSize(for: .egg)
+        return VStack(alignment: .leading, spacing: 1) {
+            HStack(spacing: 6) {
+                Text(tier.displayName)
+                    .font(.callout)
+                Spacer(minLength: 8)
+                Button(UsageFormat.groupedInt(tier.priceInCoins)) {
+                    do { _ = try game.hatch(tier: tier) } catch { onError(error) }
+                }
+                .controlSize(.small)
+                .disabled(game.coins < tier.priceInCoins)
+            }
+            Text(
+                GameFormat.eggPoolLine(
+                    tier, pool: game.hatchPoolSize(for: tier), total: total))
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(tier.displayName), \(GameFormat.coins(tier.priceInCoins)), \(tier.promise)")
     }
 
     /// Every party slot on the lead's rate.

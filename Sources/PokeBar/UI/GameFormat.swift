@@ -58,11 +58,18 @@ enum GameFormat {
 
     // MARK: The team
 
-    /// "Team 3 of 6 · 2.6x XP". The multiplier is there because "why is a team
-    /// worth having" deserves a number rather than a paragraph.
+    /// "Team 3 of 6", and "Team 6 of 6 · Exp Share is on" when it is.
+    ///
+    /// **No multiplier.** This shipped as "Team 6 of 6 · 5x XP" and the figure was
+    /// caught on screen meaning nothing: 5x against *what* is not a question a
+    /// header can answer, since the only baseline is a team of one and nobody runs
+    /// one on purpose. What a slot actually earns is stated where it can be acted
+    /// on, by `shareLine` under the selected card. The Exp Share stays because it
+    /// is genuinely a state, it is off by default, and this is the only place that
+    /// says which way it is set.
     static func teamSummary(occupied: Int, capacity: Int, expShare: Bool) -> String {
-        let rate = XPCurve.teamMultiplier(occupiedSlots: occupied, expShare: expShare)
-        return "Team \(occupied) of \(capacity) · \(multiplier(rate)) XP"
+        let team = "Team \(occupied) of \(capacity)"
+        return expShare ? "\(team) · Exp Share is on" : team
     }
 
     /// "2.6x", and "5x" rather than "5.0x": a trailing zero on a round number
@@ -178,17 +185,71 @@ enum GameFormat {
         "Only \(baseFormName) can be hatched. This one is reached by raising it."
     }
 
-    /// How many PC rows the Raise pane draws before it summarises.
-    ///
-    /// The PC grows without limit, because nothing is ever deleted and every
-    /// switch adds to it. Six is one screen's worth and matches the team it feeds.
-    static let pcRowLimit = 6
+    // MARK: Eggs
 
-    /// "Showing the 6 furthest along of 23." Nil when everything is on screen: a
-    /// count that says "of 4" under exactly 4 rows is noise.
-    static func pcOverflowNote(total: Int) -> String? {
-        guard total > pcRowLimit else { return nil }
-        return "Showing the \(pcRowLimit) furthest along of \(total)."
+    /// One row of the hatch menu: "Great Egg · 800 coins · rare and above".
+    ///
+    /// The promise is on the row rather than in a legend somewhere, because the
+    /// menu is where the choice is made and a tier nobody can tell apart from the
+    /// one below it is not a choice.
+    static func eggMenuRow(_ tier: EggTier) -> String {
+        "\(tier.displayName) · \(coins(tier.priceInCoins)) · \(tier.promise)"
+    }
+
+    /// The shop's line under an egg: "266 of 570 entries, rare and above."
+    ///
+    /// Pool sizes are passed in from the dex, never typed here, so a new
+    /// generation moves this copy on its own. Same rule as `expShareDetail`.
+    static func eggPoolLine(_ tier: EggTier, pool: Int, total: Int) -> String {
+        guard tier != .egg else {
+            return "All \(UsageFormat.groupedInt(pool)) entries an egg can produce."
+        }
+        return "\(UsageFormat.groupedInt(pool)) of \(UsageFormat.groupedInt(total)) entries, "
+            + "\(tier.promise)."
+    }
+
+    /// What the four eggs have in common, said once above the ladder.
+    static let eggSectionNote =
+        "Every egg opens the moment it is bought. A higher tier draws from a "
+        + "smaller pool and costs more. Nothing else changes: the same shiny odds, "
+        + "and a duplicate still pays Dust."
+
+    // MARK: Your PC
+
+    /// "23 waiting, best first", or the singular.
+    ///
+    /// **The whole PC is on screen now**, which is what moving it out of the Raise
+    /// pane bought. It used to draw six rows and summarise the rest, because it
+    /// was sharing a 250pt scroll area with the team, the selected card and the
+    /// Everstone. A cap that hid a level 90 Charizard behind "showing the 6
+    /// furthest along of 23" was the wrong trade for a list whose entire purpose
+    /// is that nothing in it was ever lost.
+    static func pcSummary(total: Int) -> String {
+        total == 1 ? "1 waiting" : "\(total) waiting, best first"
+    }
+
+    /// The line under the count. Says the one thing the PC is for.
+    static let pcExplainer =
+        "Everything you have ever raised waits here, levels kept forever. "
+        + "Bring one back and it carries on from where it stopped."
+
+    /// Nothing stored yet, which is a fresh install or a player who has never
+    /// filled the team. Not an error, so it reads as a description.
+    static let pcEmpty =
+        "Nothing in your PC. Anything you send off the team, or hatch with a full "
+        + "team, waits here at the level it reached."
+
+    /// Why the Raise button on a PC row is refused. Nil when it is not.
+    static func pcRefusal(teamOccupied: Int, capacity: Int) -> String? {
+        guard teamOccupied >= capacity else { return nil }
+        return "The team is full at \(capacity). Send one off a slot to bring another back."
+    }
+
+    /// The pointer the Raise pane keeps now that the PC lives elsewhere. Nil when
+    /// the PC is empty, because a link to an empty list is a dead end.
+    static func pcLink(total: Int) -> String? {
+        guard total > 0 else { return nil }
+        return total == 1 ? "1 waiting in your PC" : "\(total) waiting in your PC"
     }
 
     /// The Rare Candy is always aimed, so the button says at whom.

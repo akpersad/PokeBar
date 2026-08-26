@@ -290,6 +290,80 @@ struct Celebration: Equatable, Identifiable, Sendable {
     }
 }
 
+/// The four eggs, and the only thing that separates them: which slice of the
+/// hatchable pool they draw from.
+///
+/// Carried over from PokeFit, where the tiers were settled against the same
+/// Pokedex this app ships (`docs/EGG-POOLS.md` there). **The incubators did not
+/// come with them**, because they cannot: in PokeFit an egg is bought with coins
+/// and then hatched by *walking*, a second gate this app has nothing to fill. So
+/// an egg here is still opened the moment it is paid for, and price is the whole
+/// gate.
+///
+/// **The mapping is a function of `rarity`, never a flag on an entry.** Same rule
+/// as invariant 21 and for the same reason: a stored tier would be a second copy
+/// of a fact `rarity` already holds, and the two would drift. Generation 10 lands
+/// with a capture rate, the generator bands it, and these pools update with no
+/// edit here.
+///
+/// Pools **nest upward**, so every tier is "this band and above" and one `floor`
+/// expresses all four. Master reads as mythical-only for free, because mythical
+/// is the top band.
+enum EggTier: String, Codable, Sendable, CaseIterable, Identifiable {
+    case egg, great, ultra, master
+
+    var id: String { rawValue }
+
+    /// The lowest band this egg can produce. Everything above it is in the pool.
+    var floor: Rarity {
+        switch self {
+        case .egg: .common
+        case .great: .rare
+        case .ultra: .legendary
+        case .master: .mythical
+        }
+    }
+
+    /// "Egg", "Great Egg". The games' ball names, which is where the tiers came
+    /// from and what makes the ladder read without a legend.
+    var displayName: String {
+        switch self {
+        case .egg: "Egg"
+        case .great: "Great Egg"
+        case .ultra: "Ultra Egg"
+        case .master: "Master Egg"
+        }
+    }
+
+    var priceInCoins: Int {
+        switch self {
+        case .egg: Prices.egg
+        case .great: Prices.greatEgg
+        case .ultra: Prices.ultraEgg
+        case .master: Prices.masterEgg
+        }
+    }
+
+    /// What the tier promises, in the words a player can check against a result.
+    ///
+    /// Ultra and Master state a guarantee because they have one, and that is the
+    /// whole reason the top of the ladder is worth its price: grinding plain eggs
+    /// *might* eventually turn up a legendary, an Ultra Egg turns one up now. The
+    /// lower two describe a pool instead, because that is all they do.
+    /// A lowercase fragment, so `GameFormat` can build a menu row or a sentence
+    /// out of it without two copies of the wording.
+    var promise: String {
+        switch self {
+        case .egg: "anything that hatches"
+        case .great: "rare and above"
+        case .ultra: "always a legendary or a mythical"
+        case .master: "always a mythical"
+        }
+    }
+
+    func includes(_ rarity: Rarity) -> Bool { rarity >= floor }
+}
+
 /// Every price in the game, in one place, so the economy can be read at a glance
 /// and tuned without hunting through call sites.
 ///
@@ -305,9 +379,74 @@ enum Prices {
 
     // MARK: Coins
 
-    /// ~6.7 h of usage. Cheap on purpose: eggs must never be the bottleneck,
-    /// because raising time already is.
-    static let egg = 300
+    /// ~4.4 h of usage. Cheap on purpose: eggs must never be the bottleneck,
+    /// because raising time already is. Dropped from 300 when the tiers landed, at
+    /// the user's direction, so the bottom of the ladder stays the thing you open
+    /// without thinking about it.
+    static let egg = 200
+
+    // MARK: The egg ladder
+    //
+    // Four prices. **Tuned for enjoyment 2026-08-26 at the user's direction, and
+    // one constraint is knowingly broken.** Measured against this machine's
+    // ~1,080 coins/day and the real manifest; the arithmetic, the rejected
+    // ladders and the accepted cost are in DECISIONS.md.
+    //
+    // The rule that still holds, and it is the important one: **each tier is the
+    // cheapest route to its own promise.** Because the pools nest, a plain Egg
+    // can already produce a mythical, so every tier competes with spamming the
+    // one below. Let `p` be a tier's chance of the thing you are actually buying:
+    //
+    //   Egg   -> legendary at 200 / 0.0197   = 10,165 coins expected
+    //   Great -> legendary at 600 / 0.1504   =  3,989   beats the Egg path
+    //   Ultra -> legendary at 3,500 flat     =  3,500   beats Great, and is certain
+    //   Great -> mythical  at 600 / 0.0239   = 25,099
+    //   Ultra -> mythical  at 3,500 / 0.1589 = 22,023
+    //   Master-> mythical  at 20,000 flat    = 20,000   beats every path, certain
+    //
+    // Break any of those and the tier above becomes a trap: it still sells, it
+    // just quietly costs more than the cheaper egg it is meant to improve on.
+    //
+    // **The headroom is thin now, which is the price of tuning for fun.** The
+    // Ultra ceiling is 3,989 and it sits at 3,500; the Master ceiling is 22,023
+    // and it sits at 20,000. Both are ~10% under, where the first ladder had
+    // 20%. Moving the Great Egg moves both ceilings, so the three prices can no
+    // longer be thought about one at a time.
+
+    /// Rare and above: 266 of the 570 hatchable entries.
+    ///
+    /// **3x the plain Egg, and below the 764 Dust floor on purpose.** This is the
+    /// one deliberate violation in the ladder. A Great Egg's expected Dust on a
+    /// duplicate is 7.51 against the plain Egg's 1.97, so at 600 it works out at
+    /// 79.9 coins per Dust against the plain Egg's 101.7: the Great Egg, not the
+    /// Egg, is the most coin-efficient Dust source in the game.
+    ///
+    /// Accepted because the *magnitude* is small where the principle is loud.
+    /// Coins already converted to Dust through plain eggs, so this makes an
+    /// existing rate 27% better rather than opening a new door: spending a whole
+    /// day's coins goes from ~10.6 Dust to ~13.5. What it really costs is the
+    /// plain Egg's job, which shrinks to "the only source of commons and
+    /// uncommons" for the 304 entries a Great Egg cannot produce.
+    ///
+    /// **The bound is what is defended now, not the ordering.** A test pins the
+    /// Great Egg as the only inversion and caps its advantage, because at 400 the
+    /// ratio is 1.9x and that genuinely is a mint. See DECISIONS.md.
+    static let greatEgg = 600
+
+    /// Legendary or mythical, guaranteed: 91 entries.
+    ///
+    /// ~3.2 days of accrual, so a legendary a week is routine rather than an
+    /// event. Ceiling is 3,989, the Great Egg's expected cost per legendary, so
+    /// certainty costs nothing extra and the tier is never a tax on impatience.
+    static let ultraEgg = 3_500
+
+    /// Mythical, guaranteed: 22 entries.
+    ///
+    /// ~18.5 days of accrual, and well under the Shiny Charm at 30,000 because a
+    /// consumable should not outprice the game's flagship permanent. It undercuts
+    /// the Ultra path to a mythical by 9%, which is what makes it worth buying at
+    /// all rather than just aspirational.
+    static let masterEgg = 20_000
     /// 10,000 XP. 1 coin of accrual is worth 200 XP, so this is a 5x markup and
     /// a luxury. Naturally strong early (+4.1 levels at L10) and weak late
     /// (+0.6 at L90), like the games.

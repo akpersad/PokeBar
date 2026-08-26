@@ -204,13 +204,23 @@ final class GameMonitor {
     }
 
     /// Buys and opens an egg. The whole loop starts here.
+    ///
+    /// Defaults to the plain Egg, which is what the primary button does; the higher
+    /// tiers narrow the pool and cost more, and nothing else about a hatch changes.
     @discardableResult
-    func hatch() throws -> [GameEvent] {
+    func hatch(tier: EggTier = .egg) throws -> [GameEvent] {
         guard let dex else { return [] }
-        let events = try trainer.hatch(coinsEarned: coinsEarned, dex: dex, using: &rng)
+        let events = try trainer.hatch(
+            tier: tier, coinsEarned: coinsEarned, dex: dex, using: &rng)
         record(events)
         persist()
         return events
+    }
+
+    /// How many entries a tier can produce, for the copy that sells it. Zero
+    /// before the dex has loaded, which is the same guard every other reader uses.
+    func hatchPoolSize(for tier: EggTier) -> Int {
+        dex?.hatchPool(for: tier).count ?? 0
     }
 
     func buy(_ item: Trainer.ShopItem) throws {

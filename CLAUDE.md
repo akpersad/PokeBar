@@ -100,7 +100,7 @@ Sources/PokeBar/
     PricingCatalog.swift        weekly LiteLLM refresh, disk cache
   Game/
     XPCurve.swift               levels, the shared curve, tokens -> XP
-    GameModels.swift            CatchEvent, Raise, GameEvent, Prices
+    GameModels.swift            CatchEvent, Raise, GameEvent, EggTier, Prices
     CatchLog.swift              append-only catches and milestones; derived indexes
     HatchRoll.swift             weighted draw, shiny odds, gender roll
     Trainer.swift               every game rule, plus the roster and the team.
@@ -111,10 +111,11 @@ Sources/PokeBar/
     MenuBarLabel.swift          status item: sprite + coin count
     PokeBarPopover.swift        the menu bar window: chrome, currency, tabs
     SegmentedTabs.swift         NSSegmentedControl bridge; the tabs that fill
-    CompanionView.swift         the team grid, the PC, and what changes them
+    CompanionView.swift         the team grid and what changes it
     CelebrationCard.swift       the moment after a hatch, over the whole popover
     DexView.swift               1,083 tiles plus a detail pane
-    ShopView.swift              what coins buy
+    PCView.swift                your PC, on its own tab. The stored roster
+    ShopView.swift              what coins buy, including the egg ladder
     SpriteTile.swift            one still sprite, fetched on appearance
     StarterPickerView.swift     the free first pick, from the 27 starters
     FloatingPetPanel.swift      the desktop companion, an NSPanel
@@ -467,6 +468,46 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     ceiling for one credit, a batch of one reads exactly as it did before, and a
     shiny is never grouped because it can only come from a single click.
 
+40. **An egg tier narrows the pool and changes the price. Nothing else.** Shiny
+    odds, the gender roll and the `CatchSource.hatch` on the event are identical
+    across all four, which is what keeps invariant 17 stated once instead of four
+    times and why a duplicate mythical from a 25,000 coin Master Egg is still a
+    ~26 Dust windfall. The tier's pool is a **function of `rarity`**, never a flag
+    on an entry: `EggTier.floor` plus `Rarity: Comparable`, so the pools nest
+    upward and Master reads as mythical-only for free. Same rule and the same
+    silent failure as invariant 21, one layer up. `Pokedex.hatchPool(for:)` is
+    derived on top of `hatchable`, so a tier can never hand over something only
+    evolution should give. Pools are 570 / 266 / 91 / 22 and a test pins the
+    nesting.
+
+41. **Each egg tier must be the cheapest route to its own promise.** Silent when
+    broken, and tested against the live manifest. Because the pools nest, a plain
+    Egg can already produce a mythical, so every tier competes with spamming the
+    tier below: at 200 / 600 / 3,500 / 20,000 the cost per legendary runs
+    10,165 -> 3,989 -> 3,500 and per mythical
+    63,960 -> 25,099 -> 22,023 -> 20,000. Break one and the tier is a trap that
+    still sells: it just quietly costs more than the cheaper egg it improves on.
+    **Headroom is ~10%**, thinner than the first ladder's 20%, and the Great Egg
+    sets both ceilings above it (Ultra 3,989, Master 22,023), so the three prices
+    can no longer be moved one at a time.
+
+42. **The Great Egg is the cheapest source of Dust, on purpose, and it is the only
+    tier allowed to be.** The clean rule was "the plain Egg always is", because
+    Dust pays on the raw capture rate and the higher pools are full of
+    capture-rate-3 species: expected Dust per duplicate runs 1.97 / 7.51 / 16.90 /
+    25.75, so the floors that would keep coins-per-Dust ascending are 764 / 1,720
+    / 2,620. **The user chose 600 knowing it inverts**, tuning for enjoyment
+    2026-08-26, on the grounds that the magnitude is small where the principle is
+    loud: coins already converted to Dust through plain eggs, so this makes an
+    existing rate 27% better (79.9 against 101.7 coins per Dust, or ~13.5 Dust a
+    day against ~10.6) rather than opening a new door. What it actually costs is
+    the plain Egg's job, which shrinks to being the only source of the 304 commons
+    and uncommons a Great Egg cannot produce. **So the bound is what is defended,
+    not the ordering.** The test pins the Great Egg as the *only* inversion, caps
+    its advantage below 1.5x (at 400 the ratio is 1.9x and that is a genuine
+    mint), and holds Ultra and Master strictly worse than both cheaper eggs, which
+    are the two that would really print. Same family as invariant 17.
+
 ---
 
 ## UI copy rules
@@ -532,7 +573,11 @@ Game layer, decided or derived:
 | Projects seen | 20+ working directories across the three sources, all attributed |
 | Team shares | lead 1.0, party 0.8 each. Full team **5.0x**, so 0.93 days a climb |
 | With Exp Share | every slot 1.0. Full team **6.0x** |
-| Egg / Rare Candy / stone / cord / charm | 300 / 250 / 400 / 400 / 30,000 coins |
+| Egg / Rare Candy / stone / cord / charm | 200 / 250 / 400 / 400 / 30,000 coins |
+| Egg ladder | Egg 200, Great 600, Ultra 3,500, Master 20,000 coins |
+| Egg ladder in days at ~1,080 coins/day | 0.19 / 0.56 / 3.24 / 18.5 |
+| Egg tier pools | 570 / 266 / 91 / 22, floored at common / rare / legendary / mythical |
+| Expected Dust per duplicate, by tier | 1.97 / 7.51 / 16.90 / 25.75 |
 | Exp Share | 10,000 coins, one-time. Every party slot earns at the lead's rate |
 | Hatch another | 3,000 coins flat, or half a targeted pick in Dust. Base forms only |
 | Dust per duplicate | `255 / captureRate`. Expected **1.97**, so ~7 Dust/day |
@@ -550,20 +595,55 @@ writing, which a fixture cannot reproduce.
 
 ## State
 
-**Phases 1 through 4: complete.** 373 tests, 0 failures. 8 of those are the corpus
+**Phases 1 through 4: complete.** 383 tests, 0 failures. 8 of those are the corpus
 parity tests, skipped unless `POKEBAR_CORPUS=1`, which runs them against the live
-tree in a second filtered pass: ~187s, also 0 failures. Measured 2026-08-24.
+tree in a second filtered pass: ~187s, also 0 failures. Test count measured
+2026-08-26; the corpus timing 2026-08-24.
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
 
-**Next action, in one sentence: nothing is scheduled, and the deferred list below
-is not a queue.** v1 and v2 are both complete; the two things outstanding are the
-user's alone, which are whether "Open at login" survives their next reboot and a
-look at one reworded caption in the Dex (below). Everything else here is deferred *by the user*
+**Next action, in one sentence: the v3 changes below are built and tested but have
+not been seen on screen.** That is the one thing outstanding, and rendered pixels
+can only be confirmed by asking the user to look (`screencapture` is blocked for
+the terminal here). Everything else on the deferred list is deferred *by the user*
 and several items are explicitly marked do-not-raise, so a session that opens this
 file should ask what is wanted rather than start on the list.
+
+**v3 landed 2026-08-26**, in four parts. Three are corrections the user made after
+living with v2 on screen, and one is carried in from PokeFit:
+
+- **Your PC is its own tab.** It was a box at the bottom of the Raise pane and read
+  as an appendix to the team. `PCView.swift`, `PopoverMetrics.PCPane`, and the
+  six-row cap is gone: `GameFormat.pcRowLimit` and `pcOverflowNote` were deleted,
+  because the whole point of that list is that nothing in it was ever lost. The
+  Raise pane keeps a one-line link. **Five tabs measure 300pt against 312pt, so a
+  sixth does not fit** and a test asserts it.
+- **"Show in Dex" from anywhere.** `DexView`'s selection is a `@Binding` on an
+  entry id owned by `PokeBarPopover`, which sets the id and the tab together. The
+  Raise pane's selected card, its right-click menu and every PC row can jump. This
+  is the fix for "figuring out when they evolve takes more clicks than necessary".
+- **The team header dropped "5x XP".** 5x against what? The per-slot share under
+  the selected card already answers it. The header now reads "Team 6 of 6", plus
+  "Exp Share is on" when it is, and a test asserts the multiplier cannot come back.
+- **The egg ladder**: four tiers, invariants 40 and 41. See below.
+
+**The egg ladder is the substantive v3 change.** Four tiers carried over from
+PokeFit, whose pools were settled 2026-08-25 against this same manifest, so nothing
+was re-derived: this is the price pass PokeFit deferred. **The incubators did not
+come across, because they cannot** (there is no walking here), so an egg is still
+opened the instant it is paid for and price is the whole gate.
+
+**Prices are 200 / 600 / 3,500 / 20,000, set by the user 2026-08-26 to maximise
+enjoyment, and one constraint is knowingly broken.** Invariant 41 holds in full:
+every tier is still the cheapest route to its own promise. Invariant 42 is the
+deliberate exception, the Great Egg undercutting the plain Egg on Dust, accepted
+with the magnitude measured. **Do not "fix" either by raising a price**; both are
+recorded decisions with the arithmetic behind them, and a ladder that was proposed
+and declined (200 / 800 / 5,000 / 25,000) is in DECISIONS.md alongside them. The
+one thing to know before touching a price: the Great Egg sets both ceilings above
+it, so the three cannot be moved one at a time.
 
 v2 was scoped and finished on 2026-08-24. **All eight steps are done**: the dated
 save backup (invariant 29), the roster (30, 31), the team gaining XP together (32
@@ -581,7 +661,9 @@ prices a new one, and every acquisition creates its individual through
 `beginRaising`.
 
 **The whole v2 UI is approved on screen**, including the `CelebrationCard`, which
-the user saw on a Yamask hatch. Nothing is half-built. **One exception, added
+the user saw on a Yamask hatch. **The v3 UI is not**: the PC tab, the "Show in Dex"
+jumps, the reworded team header and the egg ladder are all built, bundled and
+tested, and none of them has been looked at. Nothing is half-built. **One exception, added
 2026-08-24 after that approval:** the note under "Hatch another" was reworded (it
 described the egg as a copy of a Pokemon you already own, when what it sells is a
 fresh shiny and gender roll) and the user has not yet seen the new wording in the
@@ -594,9 +676,13 @@ What the game does now:
 
 - **Choose a starter**, free and once, from the 27 canonical ones. Guarded on an
   empty catch log, so hatching first forfeits it.
-- **Hatch** an egg for 300 coins. Draws from the 570 hatchable entries weighted on
-  raw `captureRate`, rolls shiny at 1/64 (1/48 with the charm) and sex from the
-  species' real gender rate.
+- **Hatch** an egg, at one of **four tiers**. Egg 200 coins from all 570 hatchable
+  entries, Great 600 from the 266 that are rare and above, Ultra 3,500 for a
+  guaranteed legendary or mythical out of 91, Master 20,000 for a guaranteed
+  mythical out of 22. The tier narrows the pool and sets the price and does nothing
+  else: still weighted on raw `captureRate`, still shiny at 1/64 (1/48 with the
+  charm), still sex from the species' real gender rate, and still `.hatch` so a
+  duplicate still pays Dust. Invariants 40 and 41.
   **Hatch another** does the same for one chosen base form, at 3,000 coins or half
   a targeted pick in Dust, and its note names the fresh roll rather than promising
   a duplicate. It stays on offer once every sprite of that species is owned, for
@@ -610,9 +696,10 @@ What the game does now:
   slot 1 at the full rate and each party slot at 0.8, so a full team absorbs 5.0x,
   or 6.0x with an **Exp Share**. The credit is never divided. Level 100 is 4.63
   days at this machine's throughput for one Pokemon, 0.93 for a full team. The
-  Raise pane shows the team, the PC and the multiplier; the Dex button resumes a
-  stored individual rather than starting a new one, and says which it will do
-  before it is pressed.
+  Raise pane shows the team and one line pointing at the PC, which is a tab of its
+  own; the Dex button resumes a stored individual rather than starting a new one,
+  and says which it will do before it is pressed. A selected card, its right-click
+  menu and every PC row can jump straight to that Pokemon's Dex entry.
 - **Evolve.** Item-free edges fire on their own and chain; item edges wait for the
   stone; branching waits for the player. Shininess carries through. An **Everstone**
   toggle holds a Pokemon as it is, and queues rather than cancels: take it off and
@@ -652,10 +739,12 @@ The economy in one line each, all recorded in DECISIONS.md with the measurement:
   `UsageLedger`. No `nature` field: there is no stat raising to feed it.
 - A variant is ownable **iff its sprite file exists**: 2,368 sprites, not 1,083 x 4.
 - Shop keeps Rare Candy, Shiny Charm and the **Exp Share** at 10,000, whose
-  toggle sits under it once owned. **Mint is rejected**, not deferred.
+  toggle sits under it once owned, and now leads with the **egg ladder**: four
+  prices against four pool sizes, which is the only view that makes the choice
+  between the tiers legible. **Mint is rejected**, not deferred.
 
 The app runs via `scripts/bundle.sh`. The status item shows the Pokemon being
-raised plus the coin count; the popover has four tabs (Raise, Dex, Shop, Usage) and
+raised plus the coin count; the popover has five tabs (Raise, PC, Dex, Shop, Usage) and
 a two-currency row above them. **Approved on screen by the user 2026-08-23**, which
 is the only way rendered pixels get verified here.
 
@@ -701,7 +790,14 @@ container and leaves the control **centred** inside it, which is a different
 wrong answer, not a fix: it shipped bunched left, then centred, and both were
 caught on screen. `.fillEqually` is the only knob that works. Do not "simplify"
 this back to a `Picker`; the bug it fixes is invisible in code and only shows up
-in rendered pixels. **Approved on screen by the user 2026-08-24.**
+in rendered pixels. **Approved on screen by the user 2026-08-24**, at four tabs.
+
+**It is five tabs now, and that is close to the limit.** The PC tab took it from
+four to five, and the control's intrinsic width went 240pt to 300pt against a
+312pt pane. 12pt spare, so **a sixth tab does not fit** and a longer label on any
+existing tab would truncate all five. `.fillEqually` truncates silently rather
+than refusing to lay out, so `testTheTabBarFitsThePane` builds the real
+`NSSegmentedControl` from `PokeBarPopover.Pane.allCases` and measures it.
 
 **Reordering the team uses a plain `DragGesture`, never `.draggable` or `.onDrag`.**
 Both of those hang a real drag session off the window, and a `MenuBarExtra` window
@@ -769,6 +865,10 @@ that came out of the original plan, is in DECISIONS.md.
   readout is missing. DECISIONS.md carries the two gaps and the arithmetic: ~2.3
   years for one gold per entry, ~5.0 years for every sprite, with the Dust wall
   and not the XP curve as the real gate.
+- **Recording which egg tier a catch came from.** `CatchEvent` has a synthesized
+  decoder, so a new field there needs a hand-written one (invariant 23), and that
+  is real migration risk on the one file that cannot be re-derived for a question
+  nobody has asked. Set aside 2026-08-26, not rejected.
 - Rolling per-project attribution up to a git root. Attribution is by working
   directory, so `PawscriptionsKit` and `Assets.xcassets` sit beside their parents.
   Needs filesystem access and cannot work for a deleted directory, and "where was

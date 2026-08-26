@@ -10,11 +10,19 @@ import SwiftUI
 struct DexView: View {
     let game: GameMonitor
     let store: SpriteStore
+    /// Which entry's detail is open, owned by `PokeBarPopover`.
+    ///
+    /// **A binding rather than local `@State`**, because the Raise and PC panes
+    /// can open a detail here and neither can reach into this view's own state.
+    /// Held as an id and not a `DexEntry` so the only writer needs nothing but the
+    /// number it already has.
+    @Binding var focus: Int?
     let onError: (any Error) -> Void
 
     @State private var filter: Filter = .all
     @State private var search = ""
-    @State private var selected: DexEntry?
+
+    private var selected: DexEntry? { focus.flatMap { game.entry(id: $0) } }
 
     enum Filter: String, CaseIterable, Identifiable {
         case all = "All"
@@ -33,7 +41,7 @@ struct DexView: View {
             // it closes on focus loss, which is exactly what presenting one does.
             if let entry = selected {
                 DexDetailView(entry: entry, game: game, store: store, onError: onError) {
-                    selected = nil
+                    focus = nil
                 }
             } else {
                 summary
@@ -113,7 +121,7 @@ struct DexView: View {
         let seen = game.log.seenEntryIDs.contains(entry.id)
         let milestone = game.milestone(entryID: entry.id)
         return Button {
-            selected = entry
+            focus = entry.id
         } label: {
             ZStack {
                 RoundedRectangle(cornerRadius: 7, style: .continuous)

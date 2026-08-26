@@ -1818,6 +1818,278 @@ against the manifest, so every slot counted here can actually come out of an egg
 
 ---
 
+## v3, set 2026-08-26
+
+Four changes, three of them corrections the user made after living with v2 on
+screen and one carried in from PokeFit.
+
+### Your PC is a tab, not a box at the bottom of the Raise pane
+
+**The user's words: it "doesn't feel right" in the Raise tab.** They were looking
+at it sitting under the Everstone caption and above the Hatch button, which is
+where v2 put it.
+
+Two things were wrong and they compound. It read as an appendix to the team rather
+than as a place, and it was the only list in the app that **grows without limit**,
+because the roster is append-only and every switch adds to it. Sharing a clamped
+250pt scroll area with the team grid, the selected card and the Everstone forced a
+six-row cap and an overflow note. A cap on the one list whose entire purpose is
+that nothing in it was ever lost is the wrong trade, so `GameFormat.pcRowLimit`
+and `pcOverflowNote` are **gone** rather than moved: with a tab of its own there
+is nothing to hide.
+
+What the Raise pane keeps is a one-line link, `GameFormat.pcLink(total:)`, nil
+while the PC is empty because a link to an empty list is a dead end and that is
+the state a fresh install is in.
+
+`PopoverMetrics.PCPane` measures and clamps at 90 to 300, the same shape as
+`RaisePane` for the opposite reason: the Raise pane starts small and grows, the PC
+pane starts **empty**, and 300pt of nothing on a fresh install is worse than a
+short pane. The ceiling is higher because there is nothing under this list but the
+footer.
+
+**Five tabs measure 300pt against the pane's 312pt.** Measured, not assumed:
+`NSSegmentedControl` at `.fillEqually` will happily return a control wider than
+the pane and truncate every label rather than refuse to lay out, so there is a
+test that builds the real control from `PokeBarPopover.Pane.allCases` and asserts
+it fits. There is 12pt spare, which means **a sixth tab does not fit** and
+renaming "PC" to anything longer needs the test re-run.
+
+### Pane selection and the Dex's focused entry moved up to the popover
+
+**The user: figuring out when a Pokemon evolves "takes more clicks than
+necessary".** It took leaving the Raise pane, switching tab, and finding the tile
+by hand in a grid of 1,083.
+
+"Show me this one's Dex entry" is a jump *between* panes, so neither pane can own
+it. `DexView`'s `selected` was local `@State` and is now a `@Binding` on an entry
+id held by `PokeBarPopover`, which sets the id and the tab together. The Raise
+pane's selected card, its right-click menu and every PC row hand up an entry id.
+
+An id rather than a `DexEntry`, so a caller needs nothing but the number it
+already has, and `DexView` resolves it through the dex it was going to consult
+anyway.
+
+### The team header dropped its multiplier
+
+**The user: "5x XP" doesn't make sense to display.** They are right, and the
+reason is worth recording because the figure was added deliberately in v2: 5x
+against *what* is not a question a header can answer. The only baseline is a team
+of one, and nobody runs one on purpose once they have six.
+
+What the number was reaching for is already stated where it can be acted on, by
+`GameFormat.shareLine` under the selected card ("Full XP", "80% XP"), which is per
+slot and therefore tells the player something about the slot they are looking at.
+
+**The Exp Share stays in the header**, as words rather than a multiplier, because
+it is genuinely a state, it is off by default, and this is the only place that
+says which way it is set. The separate teal "Exp Share" badge that sat beside the
+line went with the multiplier: it said the same thing a second time. The line
+itself turns teal instead. A test asserts the header can never carry `"x XP"`
+again.
+
+`GameFormat.multiplier(_:)` survives, because `expShareDetail` still sells the
+item on 5x to 6x, which is a comparison between two states and therefore means
+something.
+
+---
+
+## The egg ladder, carried over from PokeFit
+
+**Four tiers: Egg, Great Egg, Ultra Egg, Master Egg.** Pools nest upward. The
+mapping, the pool sizes and the reasoning were settled in PokeFit
+(`docs/EGG-POOLS.md` and `DECISIONS.md` §10.4 there, 2026-08-25) against **this
+same manifest**, so nothing needed re-deriving: this is the price pass PokeFit
+explicitly deferred.
+
+### What did not come across: the incubators
+
+In PokeFit an egg is bought with coins and then hatched by **walking**, a second
+gate that makes the coin price low-stakes. PokeBar has nothing to fill that gate
+with, so an egg here is still opened the instant it is paid for and **price is the
+whole gate**. That is not a simplification, it is the reason the pricing had to be
+done properly here and could be deferred there.
+
+### The mapping is a function of `rarity`, never a flag
+
+```
+Egg     <- everything hatchable
+Great   <- rare and above
+Ultra   <- legendary and above
+Master  <- mythical only
+```
+
+Because the pools nest, one `floor: Rarity` on `EggTier` expresses all four, and
+Master reads as mythical-only for free because mythical is the top band. `Rarity`
+gained `Comparable`, derived from `allCases` rather than a hand-written rank,
+because the declaration order *is* the fact: `rarity_of()` in the generator bands
+on ascending capture difficulty and puts the two flagged bands on top.
+
+**No per-entry tier flag, ever.** Same rule as invariant 21 and the same silent
+failure: a stored tier would be a second copy of a fact `rarity` already holds,
+and the two would drift. Generation 10 arrives with a capture rate, the generator
+bands it, and the pools update with no edit.
+
+Measured against `pokedex.json`, and asserted by tests:
+
+| Tier | Bands | Pool | Share of hatchable |
+|---|---|---|---|
+| Egg | everything | **570** | 100% |
+| Great | rare and above | **266** | 47% |
+| Ultra | legendary and above | **91** | 16% |
+| Master | mythical only | **22** | 3.9% |
+
+Band composition of the hatchable pool: common 234, uncommon 70, rare 140, epic
+35, legendary 69, mythical 22.
+
+**Six legendaries and mythicals are deliberately unhatchable** by any tier, and
+this needs no special case: Silvally, Cosmoem, Solgaleo, Lunala, Melmetal and
+Urshifu are all evolution targets, so invariant 21 excludes them. Type: Null,
+Cosmog, Meltan and Kubfu are all in the Ultra pool, so the path exists. That is a
+feature. The only route to Solgaleo is hatching a Cosmog and raising it, which is
+how the mainline games do it and gives the evolution system something to do at the
+top of the collection.
+
+### The tier changes the pool and the price, and nothing else
+
+Shiny odds, the gender roll, the `.hatch` source and therefore the Dust payout are
+identical across the four. **One dial**, so an Ultra Egg is understood the moment
+the pool is.
+
+Keeping the source as `.hatch` for every tier is what keeps invariant 17 stated
+once instead of four times, and it is why a duplicate mythical out of a Master Egg
+is still a ~26 Dust windfall rather than 25,000 coins wasted. PokeFit's §10.4.5
+called that a happy accident of two independent designs meeting; it holds here
+unchanged.
+
+The weighting inside a pool is unchanged too: raw `captureRate`, never the band.
+The band decides *membership*, the raw rate decides the draw, which is why an
+Ultra Egg still favours Type: Null over Mewtwo.
+
+**Recording the tier on the catch event was considered and set aside.** "What did
+my Master Eggs give me" is a fair question and the log's whole design is to answer
+questions nobody thought of yet, but `CatchEvent` has a synthesized decoder, and
+invariant 23 means a new field there needs a hand-written one. That is real
+migration risk on the one file that cannot be re-derived, for a question nobody
+has asked. Deferred, not rejected.
+
+### Pricing: each tier is the cheapest route to its own promise
+
+The plain Egg drops from 300 to **200**, at the user's suggestion, so the bottom of
+the ladder stays the thing you open without thinking about it.
+
+Prices are not chosen for feel. Because the pools **nest**, a plain Egg can already
+produce a mythical, so every tier competes with spamming the tier below it. With
+`p` the weighted chance of the thing you are actually buying, measured on the real
+manifest:
+
+| Route | Coins per legendary | Coins per mythical |
+|---|---|---|
+| Egg, 200 | 200 / 0.0197 = **10,165** | 200 / 0.00313 = **63,960** |
+| Great, 600 | 600 / 0.1504 = **3,989** | 600 / 0.0239 = **25,099** |
+| Ultra, 3,500 | **3,500**, certain | 3,500 / 0.1589 = **22,023** |
+| Master, 20,000 | | **20,000**, certain |
+
+Read down either column: every tier undercuts every cheaper route to the same
+outcome, and the top two do it *with certainty*. **Break one of those inequalities
+and the tier becomes a trap**: it still sells, it just quietly costs more than the
+cheaper egg it is meant to improve on. A test restates the whole chain against the
+live manifest rather than against these numbers, so moving a price or a pool fails
+at the desk.
+
+Against this machine's ~1,080 coins/day: 0.19 days for an Egg, 0.56 for a Great,
+**3.2 for an Ultra** and **18.5 for a Master**.
+
+**The Master Egg sits well under the Shiny Charm at 30,000 on purpose.** A
+consumable should not outprice the game's flagship permanent.
+
+### The hazard: coins laundering into Dust, and the exception the user took
+
+**The clean rule is that the plain Egg stays the most coin-efficient source of
+Dust.** Dust pays out on the raw capture rate, and the higher pools are full of
+capture-rate-3 species, so their duplicates are worth far more per hatch. Expected
+Dust per duplicate, measured: Egg **1.97**, Great **7.51**, Ultra **16.90**, Master
+**25.75**. Keeping coins-per-Dust ascending therefore needs **floor prices of 764,
+1,720 and 2,620**.
+
+That matters because coins accrue passively and buy volume while Dust comes only
+from duplicates and buys choice. The whole two-currency design (see "Currency"
+above) is that a quiet week cannot be bought out of and a lucky one cannot be idled
+through, and a coins-to-Dust exchange rate collapses it. Same family as invariant
+17, which exists to stop exactly this through re-rolls.
+
+**The user priced the Great Egg at 600 knowing it breaks this, tuning for
+enjoyment: "Meh, yolo. Let's run this to maximize my enjoyment."** Recorded as a
+decision rather than a mistake, with what it actually costs measured rather than
+asserted:
+
+| | Coins per Dust | Dust per day if you spend everything here |
+|---|---|---|
+| Egg, 200 | 101.7 | ~10.6 |
+| **Great, 600** | **79.9** | **~13.5** |
+| Ultra, 3,500 | 207.1 | ~5.2 |
+| Master, 20,000 | 776.6 | ~1.4 |
+
+**The magnitude is small where the principle is loud.** Coins already converted to
+Dust through plain eggs, so this makes an existing rate 27% better rather than
+opening a new door: a whole day's income goes from ~10.6 Dust to ~13.5. The real
+cost is not inflation, it is that **the plain Egg loses its job**. It shrinks to
+being the only source of the 304 commons and uncommons a Great Egg cannot produce,
+which is a genuine purpose but a much smaller one than "the egg you buy".
+
+**So what is defended now is the bound, not the ordering**, and the test was
+rewritten to say so rather than deleted. Three things it still pins:
+
+- The Great Egg is the **only** inversion.
+- Its advantage stays under **1.5x**. At 400 the ratio is 1.9x, and that is a
+  genuine mint rather than a discount.
+- Ultra and Master stay strictly worse than **both** cheaper eggs. Those are the
+  two that would really print, at ~17 and ~26 Dust a hatch.
+
+A test that asserts a violated invariant is worse than no test, and a test quietly
+deleted to make a build green is worse still. This is the third option: assert the
+exception explicitly, so the next reader finds a recorded decision instead of a
+puzzle, and the guard that still matters keeps working.
+
+### Two ladders were declined, and one was impossible
+
+Recorded because the arithmetic is the useful part, not the outcome.
+
+**200 / 800 / 5,000 / 25,000 shipped first and was declined.** It satisfied every
+constraint with ~20% headroom on both ceilings. Rejected as too slow: an Ultra Egg
+at 4.6 days and a Master at 23.
+
+**200 / 600 / 4,500 / 20,000 was proposed by the user and does not work**, for two
+reasons rather than one. The Dust inversion above, and separately the Ultra Egg
+becomes *dominated*: Great-spam gets a legendary for 3,989 expected while the Ultra
+Egg costs 4,500, so the tier that guarantees one is strictly worse than the tier
+that gambles for one. Dropping Ultra to 3,500 is what fixed that, and it is why the
+final ladder is not simply the proposal with one number changed.
+
+**Keeping the Great Egg at 600 *and* the Dust ordering is impossible above an Egg
+price of 157.** The floor is `600 / 7.51 > Egg / 1.97`, which depends on nothing but
+the Egg price, so no other price can rescue it. A 150 / 600 / 3,500 / 20,000 ladder
+is fully valid and was set aside: halving the entry price to protect a rule the user
+had already decided to spend was the wrong trade.
+
+### Where the ladder lives in the UI
+
+**A split button on the Raise pane, and the full ladder in the Shop.**
+
+The plain Egg is pressed hundreds of times, so it stays one click on the primary
+action of a `Menu(primaryAction:)`; the three higher tiers are occasional and
+deliberate, so they sit in the menu with their price and their promise on the row.
+Four buttons across 312pt would truncate every label, and a plain `Menu` would put
+the common case behind two clicks.
+
+The Shop gets an EGGS section even though an egg is not an item and there is never
+one to hold. What it adds is the ladder **side by side**: four prices against four
+pool sizes is the only view that makes the choice between them legible, and a
+price list is what a shop is. Pool sizes come from the dex, never typed into the
+copy, so a new generation moves the shop's numbers on its own.
+
+---
+
 ## Menu bar UI
 
 **The status item shows coins, not tokens or cost.** Coins are the game currency

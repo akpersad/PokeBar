@@ -1,11 +1,26 @@
 import AppKit
 import SwiftUI
 
-/// The menu bar window: chrome, currency, and one of four panes.
+/// The menu bar window: chrome, currency, and one of five panes.
 ///
-/// Tabs rather than a scrolling wall, because the four things the app does are
+/// Tabs rather than a scrolling wall, because the things the app does are
 /// genuinely separate activities and the popover is 340pt wide. The currency row
 /// sits above the tabs because it is the one figure every pane is spending.
+///
+/// **The PC is a tab, not a box at the bottom of the Raise pane.** It shipped
+/// inside that pane's scroll area and read as an appendix to the team: the user
+/// saw it under the Everstone caption, above the Hatch button, and said it did
+/// not belong there. It is also the one list that grows without limit, so it was
+/// the thing forcing a 6-row cap and an overflow note on a pane that had no room
+/// to show either. A tab gives it the whole 312pt and lets the Raise pane be
+/// about the six slots that are actually earning.
+///
+/// **Pane selection and the Dex's focused entry both live here**, because
+/// "show me this one's Dex entry" is a jump *between* panes and neither pane can
+/// own it. The Raise and PC panes hand up an entry id, this sets the id and the
+/// tab together, and the Dex opens on that entry's detail. Working out when a
+/// Pokemon evolves used to mean leaving the Raise pane, switching tab, and
+/// finding the tile by hand.
 struct PokeBarPopover: View {
     let monitor: UsageMonitor
     let game: GameMonitor
@@ -15,12 +30,22 @@ struct PokeBarPopover: View {
     @State private var pane: Pane = .companion
     @State private var message: String?
 
+    /// The Dex entry the Dex pane is showing the detail for, or nil for the grid.
+    @State private var dexFocus: Int?
+
     enum Pane: String, CaseIterable, Identifiable {
         case companion = "Raise"
+        case pc = "PC"
         case dex = "Dex"
         case shop = "Shop"
         case usage = "Usage"
         var id: String { rawValue }
+    }
+
+    /// Opens an entry's Dex detail from whichever pane asked.
+    private func openDex(entryID: Int) {
+        dexFocus = entryID
+        pane = .dex
     }
 
     var body: some View {
@@ -48,9 +73,14 @@ struct PokeBarPopover: View {
             case .companion:
                 CompanionView(
                     game: game, store: store, pet: pet,
-                    weightedTokensPerDay: monitor.todayWeightedTokens, onError: report)
+                    weightedTokensPerDay: monitor.todayWeightedTokens,
+                    onOpenDex: openDex(entryID:), onOpenPC: { pane = .pc },
+                    onError: report)
+            case .pc:
+                PCView(
+                    game: game, store: store, onOpenDex: openDex(entryID:), onError: report)
             case .dex:
-                DexView(game: game, store: store, onError: report)
+                DexView(game: game, store: store, focus: $dexFocus, onError: report)
             case .shop:
                 ShopView(game: game, onError: report)
             case .usage:

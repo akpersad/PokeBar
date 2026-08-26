@@ -94,6 +94,17 @@ struct Pokedex: Sendable {
     /// disagree with it.
     var hatchable: [DexEntry] { entries.filter { !gatedIDs.contains($0.id) } }
 
+    /// What one tier of egg can produce: the hatchable pool, floored at that
+    /// tier's band.
+    ///
+    /// Derived on top of `hatchable`, so the two can never disagree about what an
+    /// egg is allowed to give: a tier narrows the pool and nothing else. Measured
+    /// sizes, asserted by a test, are 570 / 266 / 91 / 22.
+    func hatchPool(for tier: EggTier) -> [DexEntry] {
+        guard tier != .egg else { return hatchable }
+        return hatchable.filter { tier.includes($0.rarity) }
+    }
+
     /// Whether `entry` can only be obtained by evolving something else.
     func isEvolutionGated(_ entry: DexEntry) -> Bool { gatedIDs.contains(entry.id) }
 

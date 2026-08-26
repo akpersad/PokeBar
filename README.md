@@ -33,6 +33,8 @@ layer, and the game. Live plan limits were considered and rejected, with reasons
 - [x] Hatch another of a base form, in coins or Dust, and a proper moment for it
 - [x] Per-project attribution: which codebase each Pokémon was raised on
 - [x] Open at login
+- [x] Your PC on its own tab, and "Show in Dex" from anywhere holding a Pokémon
+- [x] Four egg tiers: Egg, Great, Ultra and Master, carried over from PokeFit
 
 **v1 and v2 are both complete.** Levels persist per individual, the save file is
 backed up daily, a team of six gains XP together, the Exp Share is in the shop,
@@ -51,7 +53,12 @@ grants XP to the Pokémon you are raising. They are parallel derivations, never 
 shared pool, so there is no allocation choice and no week of training followed by a
 week of saving.
 
-- **Coins** buy volume: eggs at 300, Rare Candy, evolution stones, the Shiny Charm.
+- **Coins** buy volume: Rare Candy, evolution stones, the Shiny Charm, and eggs at
+  four tiers. An **Egg** is 200 coins and draws from all 570 hatchable entries; a
+  **Great Egg** is 600 and skips the commons; an **Ultra Egg** is 3,500 for a
+  guaranteed legendary; a **Master Egg** is 20,000 for a guaranteed mythical. Every
+  price is pinned by the same rule: a tier has to be the cheapest route to its own
+  promise, or it is a trap that still sells.
 - **Dust** comes only from duplicate hatches and buys choice: name an entry and be
   given it, or re-roll a species you own for a variant you do not. That guaranteed
   path is what makes the dex finishable at all. Random draws alone need a median

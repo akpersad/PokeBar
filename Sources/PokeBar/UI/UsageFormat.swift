@@ -107,6 +107,23 @@ enum PopoverMetrics {
         }
     }
 
+    /// Your PC, on its own tab.
+    ///
+    /// **Measured and clamped, like `RaisePane` and for the opposite reason.**
+    /// That pane starts small and grows; this one starts *empty*, on a fresh
+    /// install and for anyone who has never filled a team slot, and a fixed 280pt
+    /// of nothing is worse than a short pane. The ceiling is higher than the Raise
+    /// pane's because there is nothing under this list but the footer: no buttons,
+    /// no feed and no toggles.
+    enum PCPane {
+        static let minHeight: CGFloat = 90
+        static let maxHeight: CGFloat = 300
+
+        static func height(forContent height: CGFloat) -> CGFloat {
+            min(max(height, minHeight), maxHeight)
+        }
+    }
+
     /// The six team slots.
     ///
     /// **Two columns, not three.** At 312pt a third column leaves about 100pt a

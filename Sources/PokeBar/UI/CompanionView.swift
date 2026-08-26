@@ -21,6 +21,11 @@ struct CompanionView: View {
     let store: SpriteStore
     let pet: FloatingPet
     let weightedTokensPerDay: Double
+    /// Jump to an entry's Dex detail. Owned by `PokeBarPopover`, because moving
+    /// between panes is not something a pane can do to itself.
+    let onOpenDex: (Int) -> Void
+    /// Jump to the PC tab, which is where the stored roster went.
+    let onOpenPC: () -> Void
     let onError: (any Error) -> Void
 
     /// Nil means "the lead", resolved on read rather than written on appear, so a
@@ -88,7 +93,6 @@ struct CompanionView: View {
                             emptyState
                         }
                         evolutionActions
-                        pcBox
                     }
                     .padding(.trailing, 4)
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
@@ -97,6 +101,7 @@ struct CompanionView: View {
                 }
                 .frame(height: PopoverMetrics.RaisePane.height(forContent: contentHeight))
                 actions
+                pcPointer
                 if !game.recentEvents.isEmpty { feed }
                 petToggle
             }
@@ -112,11 +117,11 @@ struct CompanionView: View {
                     occupied: game.teamMembers.count, capacity: Trainer.teamCapacity,
                     expShare: game.trainer.expShareActive))
                     .font(.caption.weight(.medium))
-                if game.trainer.expShareActive {
-                    Label("Exp Share", systemImage: "square.stack.3d.up.fill")
-                        .font(.system(size: 9))
-                        .foregroundStyle(.teal)
-                }
+                    // Teal only while the Exp Share is on, because that is the
+                    // half of the line worth noticing. The badge that used to sit
+                    // beside this said "Exp Share" a second time, so it went with
+                    // the multiplier.
+                    .foregroundStyle(game.trainer.expShareActive ? AnyShapeStyle(.teal) : AnyShapeStyle(.primary))
                 Spacer()
             }
             if let note = GameFormat.wastedSlotNote(graduated: game.graduatedInTeam) {
@@ -282,6 +287,7 @@ struct CompanionView: View {
         // window is an awkward place to drag inside, and this is also the only
         // route for anyone who cannot drag at all.
         .contextMenu {
+            Button("Show in Dex") { onOpenDex(member.entry.id) }
             if member.slot > 0 {
                 Button("Make lead") { run { try game.promoteToLead(raiseID: member.raise.id) } }
             }
@@ -389,6 +395,11 @@ struct CompanionView: View {
                         run { try game.promoteToLead(raiseID: raise.id) }
                     }
                 }
+                // "When does this one evolve" is the question asked most often
+                // about the card, and the answer is in the Dex detail. Reaching it
+                // used to mean switching tab and finding the tile by hand, which
+                // is what the user called more clicks than necessary.
+                Button("Dex entry") { onOpenDex(entry.id) }
                 Button("Send to PC") { game.sendToPC(raiseID: raise.id) }
                 Spacer()
             }
@@ -468,59 +479,17 @@ struct CompanionView: View {
         }
     }
 
-    /// Everyone not currently training, best first: **the PC**, and the screen
-    /// the roster exists for. Nothing is ever deleted, so bringing a level 47
-    /// Charizard back is one click and it resumes exactly where it stopped.
+    /// A pointer to the PC, which is a tab of its own now.
+    ///
+    /// One line rather than the six-row list that used to sit in the scroll area
+    /// above. Nil when the PC is empty, because a link to an empty list is a dead
+    /// end, and that is also the state a fresh install is in.
     @ViewBuilder
-    private var pcBox: some View {
-        let members = game.boxMembers
-        if !members.isEmpty {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("YOUR PC")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-                    .tracking(0.6)
-                Text("Everything you have ever raised waits here, levels kept forever. Bring one back and it carries on from where it stopped.")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .fixedSize(horizontal: false, vertical: true)
-                ForEach(members.prefix(GameFormat.pcRowLimit), id: \.raise.id) { member in
-                    pcRow(raise: member.raise, entry: member.entry)
-                }
-                if let note = GameFormat.pcOverflowNote(total: members.count) {
-                    Text(note)
-                        .font(.system(size: 9))
-                        .foregroundStyle(.tertiary)
-                }
-            }
-        }
-    }
-
-    private func pcRow(raise: Raise, entry: DexEntry) -> some View {
-        HStack(spacing: 8) {
-            if let dex = game.dex {
-                SpriteTile(
-                    entry: entry, variant: raise.variant(in: dex), dex: dex, store: store,
-                    height: 22)
-            }
-            Text(entry.name)
-                .font(.caption)
-            if raise.shiny {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 8))
-                    .foregroundStyle(.yellow)
-                    .accessibilityLabel("Shiny")
-            }
-            Text(GameFormat.level(raise.level))
-                .font(.system(size: 9))
-                .foregroundStyle(.tertiary)
-            Spacer()
-            Button("Raise") {
-                run { try game.resume(raiseID: raise.id) }
-            }
-            .font(.caption)
-            .buttonStyle(.link)
-            .disabled(game.teamMembers.count >= Trainer.teamCapacity)
+    private var pcPointer: some View {
+        if let label = GameFormat.pcLink(total: game.boxed.count) {
+            Button(label) { onOpenPC() }
+                .font(.caption2)
+                .buttonStyle(.link)
         }
     }
 
@@ -531,7 +500,7 @@ struct CompanionView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Nothing being raised")
                 .font(.subheadline.weight(.medium))
-            Text("Bring one back from your PC, hatch an egg, or pick something from the Dex tab.")
+            Text("Bring one back from the PC tab, hatch an egg, or pick something from the Dex tab.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -543,11 +512,26 @@ struct CompanionView: View {
 
     private var actions: some View {
         HStack(spacing: 8) {
-            Button {
-                run { _ = try game.hatch() }
+            // **A split button, not four.** The plain Egg is what gets pressed
+            // hundreds of times, so it stays one click on the primary action; the
+            // three higher tiers are occasional and deliberate, so they live in the
+            // menu with their price and their promise on the row. Four buttons
+            // across 312pt would truncate every label, and a plain `Menu` would put
+            // the common case behind two clicks. The Shop carries the same ladder
+            // with the pool sizes, which is where the ladder is legible.
+            Menu {
+                ForEach(EggTier.allCases) { tier in
+                    Button(GameFormat.eggMenuRow(tier)) {
+                        run { _ = try game.hatch(tier: tier) }
+                    }
+                    .disabled(game.coins < tier.priceInCoins)
+                }
             } label: {
                 Label("Hatch egg", systemImage: "oval.portrait.fill")
+            } primaryAction: {
+                run { _ = try game.hatch() }
             }
+            .fixedSize()
             .disabled(game.coins < Prices.egg)
 
             if game.trainer.count(ofItem: Trainer.rareCandySlug) > 0 {
@@ -566,7 +550,7 @@ struct CompanionView: View {
                 .help(GameFormat.rareCandyTarget(selected?.entry.name))
             }
             Spacer()
-            Text("\(Prices.egg) coins")
+            Text(GameFormat.coins(Prices.egg))
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }

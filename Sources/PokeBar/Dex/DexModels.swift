@@ -122,6 +122,26 @@ enum Rarity: String, Codable, Sendable, CaseIterable {
     }
 }
 
+/// Bands are ordered, and the order is the declaration order above.
+///
+/// Derived from `allCases` rather than a second switch, because the declaration
+/// order *is* the fact: `rarity_of()` in the generator bands on ascending capture
+/// difficulty and puts the two flagged bands on top. A hand-written rank would be
+/// a copy of that ordering that could silently disagree with it.
+///
+/// This exists for `EggTier`, whose four pools are each "this band and up", and
+/// nothing else needs it. Comparing rarities anywhere the *price* matters would
+/// be a mistake: the hatch draw weights on the raw capture rate, never on the
+/// band, and that is invariant territory.
+extension Rarity: Comparable {
+    static func < (lhs: Self, rhs: Self) -> Bool {
+        guard let left = allCases.firstIndex(of: lhs),
+              let right = allCases.firstIndex(of: rhs)
+        else { return false }
+        return left < right
+    }
+}
+
 /// What makes an evolution fire.
 ///
 /// Four cases, resolved at manifest-generation time so the app compares a level
