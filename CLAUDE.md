@@ -595,7 +595,7 @@ writing, which a fixture cannot reproduce.
 
 ## State
 
-**Phases 1 through 4: complete.** 383 tests, 0 failures. 8 of those are the corpus
+**Phases 1 through 4: complete.** 385 tests, 0 failures. 8 of those are the corpus
 parity tests, skipped unless `POKEBAR_CORPUS=1`, which runs them against the live
 tree in a second filtered pass: ~187s, also 0 failures. Test count measured
 2026-08-26; the corpus timing 2026-08-24.
@@ -627,7 +627,19 @@ living with v2 on screen, and one is carried in from PokeFit:
 - **The team header dropped "5x XP".** 5x against what? The per-slot share under
   the selected card already answers it. The header now reads "Team 6 of 6", plus
   "Exp Share is on" when it is, and a test asserts the multiplier cannot come back.
-- **The egg ladder**: four tiers, invariants 40 and 41. See below.
+- **The egg ladder**: four tiers, invariants 40 to 42. See below.
+
+**On the Raise pane, choosing an egg tier does not buy it.** Click the arrow,
+choose, read the price under the button, click "Hatch Master Egg". The first
+version hatched on the menu row and the user asked for the failsafe: 20,000 coins
+is 18.5 days and coins are frozen at credit time. **Two controls, not a
+`Menu(primaryAction:)` split button**, because that cannot disable its primary
+independently of its menu, which would either leave the button live on an
+unaffordable tier or disable the arrow and trap the selection. Widths are measured
+(287pt of 312pt worst case) and the reasoning is in DECISIONS.md. `EggTier.isRoutine`
+decides whether the selection survives a hatch: the Egg and the Great Egg stick, the
+Ultra and Master fall back to plain. **The Shop's egg rows still hatch on one click,
+deliberately**, because there the price is on the button beside the name.
 
 **The egg ladder is the substantive v3 change.** Four tiers carried over from
 PokeFit, whose pools were settled 2026-08-25 against this same manifest, so nothing

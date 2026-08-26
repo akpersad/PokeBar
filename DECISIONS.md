@@ -2076,11 +2076,48 @@ had already decided to spend was the wrong trade.
 
 **A split button on the Raise pane, and the full ladder in the Shop.**
 
-The plain Egg is pressed hundreds of times, so it stays one click on the primary
-action of a `Menu(primaryAction:)`; the three higher tiers are occasional and
-deliberate, so they sit in the menu with their price and their promise on the row.
-Four buttons across 312pt would truncate every label, and a plain `Menu` would put
-the common case behind two clicks.
+**Choosing a tier does not buy it.** The menu sets a selection, the button spends
+the coins, and nothing hatches until the button is pressed: click the arrow,
+choose, read the price under the button, click Hatch.
+
+The first version hatched on the menu row itself, one click. **The user caught it
+and asked for the failsafe**, and they were right: a Master Egg is 20,000 coins,
+18.5 days of accrual, and coins are frozen at credit time, so a menu row that
+bought on selection was one slip away from being unrecoverable. Nothing else in
+this app spends that much without the price on the control being pressed.
+
+So the button now names the tier ("Hatch Master Egg") and a line under it names
+the price and the pool ("20,000 coins. 22 of 570 entries, always a mythical."),
+turning orange when the selection is unaffordable. The button is the only thing
+that spends, so it has to say what it is spending on.
+
+**Two controls rather than one split button**, which is where this costs
+something. `Menu(primaryAction:)` looks better and was the first shape, but it
+cannot disable its primary action independently of its menu. That leaves two bad
+options for an unaffordable tier: keep the button live so a click produces an
+error, or disable the whole control including the arrow, which traps the player on
+a selection they cannot change. A separate `Button` disables cleanly while the
+arrow stays live at zero coins, which is exactly when it is needed.
+
+Measured at `.small`, because the longest title is 52% wider than the old one:
+128pt for "Hatch Master Egg" with its icon, 30pt for the arrow, 113pt for the Rare
+Candy button, so 287pt of the pane's 312pt in the worst case. The price moved out
+of the row to make that fit, and reads better for it: it is a confirmation, not a
+column.
+
+**A cheap tier stays selected after a hatch and an expensive one does not.**
+`EggTier.isRoutine`, which is true for the Egg and the Great Egg and false above
+them, so six Great Eggs are six clicks while a Master Egg falls the selection back
+to plain. That keeps the spam case fast and stops a second click on a button the
+player has stopped reading. The rule lives on `EggTier` rather than in the view so
+it can be tested, and the test pins the boundary at a day's income (~1,080 coins):
+a routine tier is one a day's earnings covers.
+
+**The Shop rows are unchanged and still hatch on one click**, deliberately. There
+the price is *on* the button next to the name, which is the same shape as every
+other shop item including the 30,000 coin Shiny Charm. The dropdown was the
+problem because picking from a list does not feel like committing; pressing a
+button labelled "20,000" beside "Master Egg" does.
 
 The Shop gets an EGGS section even though an egg is not an item and there is never
 one to hold. What it adds is the ladder **side by side**: four prices against four

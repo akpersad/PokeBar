@@ -439,6 +439,42 @@ final class GameFormatTests: XCTestCase {
             GameFormat.eggMenuRow(.master), "Master Egg · 20,000 coins · always a mythical")
     }
 
+    /// The button names the tier and the note names the price, which together are
+    /// the failsafe: choosing from the menu buys nothing, so the only control that
+    /// spends coins has to say what it is spending them on.
+    func testHatchButtonAndNoteNameTheTierAndThePrice() {
+        XCTAssertEqual(GameFormat.hatchButton(.egg), "Hatch Egg")
+        XCTAssertEqual(GameFormat.hatchButton(.master), "Hatch Master Egg")
+        XCTAssertEqual(
+            GameFormat.eggSelectionNote(.egg, pool: 570, total: 570),
+            "200 coins. All 570 entries an egg can produce.")
+        XCTAssertEqual(
+            GameFormat.eggSelectionNote(.master, pool: 22, total: 570),
+            "20,000 coins. 22 of 570 entries, always a mythical.")
+    }
+
+    /// **The two cheap tiers stay selected after a hatch and the two expensive
+    /// ones do not.** Six Great Eggs should be six clicks; a second click on a
+    /// button nobody is reading any more must not spend another 20,000 coins.
+    func testOnlyTheCheapTiersAreRoutine() {
+        XCTAssertTrue(EggTier.egg.isRoutine)
+        XCTAssertTrue(EggTier.great.isRoutine)
+        XCTAssertFalse(EggTier.ultra.isRoutine)
+        XCTAssertFalse(EggTier.master.isRoutine)
+        // The split has to track the prices, not a hunch. The line is a day's
+        // income at this machine's ~1,080 coins/day: a routine tier is one you can
+        // buy out of a day's earnings, a deliberate one is something you save for.
+        // A Great Egg at 600 is 0.56 days, an Ultra at 3,500 is 3.2.
+        let daily = 1_080
+        for tier in EggTier.allCases {
+            if tier.isRoutine {
+                XCTAssertLessThan(tier.priceInCoins, daily, "\(tier) is not routine")
+            } else {
+                XCTAssertGreaterThan(tier.priceInCoins, daily, "\(tier) is not deliberate")
+            }
+        }
+    }
+
     /// Pool sizes are passed in from the dex, never typed into the copy, so a new
     /// generation moves the shop's numbers without an edit.
     func testEggPoolLineIsDerivedFromTheDex() {
@@ -551,6 +587,8 @@ final class GameFormatTests: XCTestCase {
             [
                 $0.displayName, $0.promise, GameFormat.eggMenuRow($0),
                 GameFormat.eggPoolLine($0, pool: dex.hatchPool(for: $0).count, total: 570),
+                GameFormat.hatchButton($0),
+                GameFormat.eggSelectionNote($0, pool: dex.hatchPool(for: $0).count, total: 570),
             ]
         }
         for text in strings {

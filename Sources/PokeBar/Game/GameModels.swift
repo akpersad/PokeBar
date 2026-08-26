@@ -362,6 +362,24 @@ enum EggTier: String, Codable, Sendable, CaseIterable, Identifiable {
     }
 
     func includes(_ rarity: Rarity) -> Bool { rarity >= floor }
+
+    /// Whether hatching several in a row is the normal way to use this tier.
+    ///
+    /// The prices already encode the asymmetry: an Egg is 0.19 days of accrual
+    /// and a Master is 18.5, so one is spammed and the other is a decision. The
+    /// UI uses this to decide whether to **keep** the chosen tier after a hatch:
+    /// a routine tier stays selected, so hatching six Great Eggs is six clicks,
+    /// and a deliberate one falls back to the plain Egg, so a second click cannot
+    /// spend another 20,000 coins on a button the player has stopped reading.
+    ///
+    /// It lives here rather than in the view because it is a fact about the
+    /// price, and a rule asserted in a view body cannot be tested.
+    var isRoutine: Bool {
+        switch self {
+        case .egg, .great: true
+        case .ultra, .master: false
+        }
+    }
 }
 
 /// Every price in the game, in one place, so the economy can be read at a glance

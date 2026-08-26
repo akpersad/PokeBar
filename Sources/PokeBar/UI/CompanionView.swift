@@ -35,6 +35,10 @@ struct CompanionView: View {
     /// Measured, so the scroll area is as tall as it needs to be and no taller.
     @State private var contentHeight: CGFloat = 0
 
+    /// Which egg the Hatch button will open. **Chosen, then hatched, never both in
+    /// one click.** See `actions`.
+    @State private var eggTier: EggTier = .egg
+
     /// A display preference, so `UserDefaults` and not `game-state.json`:
     /// nothing that can be re-derived belongs in the one file that cannot.
     @AppStorage("PokeBarHideProjectNames") private var hideProjectNames = false
@@ -101,6 +105,7 @@ struct CompanionView: View {
                 }
                 .frame(height: PopoverMetrics.RaisePane.height(forContent: contentHeight))
                 actions
+                eggNote
                 pcPointer
                 if !game.recentEvents.isEmpty { feed }
                 petToggle
@@ -510,29 +515,61 @@ struct CompanionView: View {
 
     // MARK: Actions
 
+    /// **Choosing a tier does not buy it.** The menu sets `eggTier`, the button
+    /// spends the coins, and nothing hatches until the button is pressed: click the
+    /// arrow, choose, read the price under the button, click Hatch. A 20,000 coin
+    /// purchase is 18.5 days of accrual and coins are frozen at credit time, so a
+    /// menu row that hatched on selection was one slip away from being
+    /// unrecoverable. That is what the first version did.
+    ///
+    /// **Two controls rather than one split button**, which is the one place this
+    /// costs something. `Menu(primaryAction:)` looks better but cannot disable its
+    /// primary action independently of its menu, so an unaffordable tier would
+    /// either leave the button live (click, then an error) or disable the whole
+    /// control including the arrow, trapping the player on a selection they cannot
+    /// change. A separate `Button` disables cleanly while the arrow stays live.
+    /// Measured at `.small`: 128pt for the widest title with its icon, 30pt for the
+    /// arrow and 113pt for the Rare Candy button, so 287pt of the pane's 312pt in
+    /// the worst case. The price moved to its own line to make that fit, which
+    /// reads better anyway: it is a confirmation, not a column.
     private var actions: some View {
         HStack(spacing: 8) {
-            // **A split button, not four.** The plain Egg is what gets pressed
-            // hundreds of times, so it stays one click on the primary action; the
-            // three higher tiers are occasional and deliberate, so they live in the
-            // menu with their price and their promise on the row. Four buttons
-            // across 312pt would truncate every label, and a plain `Menu` would put
-            // the common case behind two clicks. The Shop carries the same ladder
-            // with the pool sizes, which is where the ladder is legible.
-            Menu {
-                ForEach(EggTier.allCases) { tier in
-                    Button(GameFormat.eggMenuRow(tier)) {
-                        run { _ = try game.hatch(tier: tier) }
+            HStack(spacing: 2) {
+                Button {
+                    do {
+                        _ = try game.hatch(tier: eggTier)
+                        // A cheap tier stays selected so six Great Eggs are six
+                        // clicks. A deliberate one falls back, so a second click on
+                        // a button nobody is reading any more cannot spend another
+                        // 20,000. The rule is on `EggTier`, where it can be tested.
+                        if !eggTier.isRoutine { eggTier = .egg }
+                    } catch {
+                        onError(error)
                     }
-                    .disabled(game.coins < tier.priceInCoins)
+                } label: {
+                    Label(
+                        GameFormat.hatchButton(eggTier), systemImage: "oval.portrait.fill")
                 }
-            } label: {
-                Label("Hatch egg", systemImage: "oval.portrait.fill")
-            } primaryAction: {
-                run { _ = try game.hatch() }
+                .disabled(game.coins < eggTier.priceInCoins)
+
+                // Never disabled, even when nothing is affordable: this is how a
+                // selection is changed, so it has to work at zero coins.
+                Menu {
+                    Picker("Egg tier", selection: $eggTier) {
+                        ForEach(EggTier.allCases) { tier in
+                            Text(GameFormat.eggMenuRow(tier)).tag(tier)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                } label: {
+                    Image(systemName: "chevron.down")
+                }
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help("Choose which egg to hatch")
+                .accessibilityLabel("Choose which egg to hatch")
             }
-            .fixedSize()
-            .disabled(game.coins < Prices.egg)
 
             if game.trainer.count(ofItem: Trainer.rareCandySlug) > 0 {
                 Button {
@@ -550,11 +587,22 @@ struct CompanionView: View {
                 .help(GameFormat.rareCandyTarget(selected?.entry.name))
             }
             Spacer()
-            Text(GameFormat.coins(Prices.egg))
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
         }
         .controlSize(.small)
+    }
+
+    /// What the Hatch button is about to spend, and on what. The second half of
+    /// the failsafe: the button names the tier, this names the price.
+    private var eggNote: some View {
+        Text(
+            GameFormat.eggSelectionNote(
+                eggTier, pool: game.hatchPoolSize(for: eggTier),
+                total: game.hatchPoolSize(for: .egg))
+        )
+        .font(.caption2)
+        .foregroundStyle(game.coins < eggTier.priceInCoins ? AnyShapeStyle(.orange)
+                                                           : AnyShapeStyle(.tertiary))
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private var feed: some View {

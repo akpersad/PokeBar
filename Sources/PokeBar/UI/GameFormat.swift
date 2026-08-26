@@ -208,6 +208,21 @@ enum GameFormat {
             + "\(tier.promise)."
     }
 
+    /// The hatch button's title: "Hatch Egg", "Hatch Master Egg".
+    ///
+    /// **It names the tier, which is the failsafe.** Choosing from the menu no
+    /// longer buys anything, so the button is the only thing that spends coins and
+    /// it has to say what it is about to spend them on.
+    static func hatchButton(_ tier: EggTier) -> String { "Hatch \(tier.displayName)" }
+
+    /// The line under the hatch button: "20,000 coins. 22 of 570 entries, always a
+    /// mythical."
+    ///
+    /// Price first, because that is the thing the second click is confirming.
+    static func eggSelectionNote(_ tier: EggTier, pool: Int, total: Int) -> String {
+        "\(coins(tier.priceInCoins)). \(eggPoolLine(tier, pool: pool, total: total))"
+    }
+
     /// What the four eggs have in common, said once above the ladder.
     static let eggSectionNote =
         "Every egg opens the moment it is bought. A higher tier draws from a "
