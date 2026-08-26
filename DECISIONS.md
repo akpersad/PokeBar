@@ -1823,6 +1823,12 @@ against the manifest, so every slot counted here can actually come out of an egg
 Four changes, three of them corrections the user made after living with v2 on
 screen and one carried in from PokeFit.
 
+**All of it is approved on screen, 2026-08-26.** Signed off item by item: the five
+tabs, the PC pane, "Show in Dex" from the Raise pane, and a Great Egg hatched end
+to end through the choose-then-hatch control. That is the only way rendered pixels
+get verified here, since `screencapture` is blocked for the terminal, and it took
+three rounds on the egg control alone.
+
 ### Your PC is a tab, not a box at the bottom of the Raise pane
 
 **The user's words: it "doesn't feel right" in the Raise tab.** They were looking
@@ -2125,6 +2131,9 @@ Measured that way, at `.small`:
 symbol, and at its default scale it alone pushed the Hatch button a point above
 every other control in the row, including the Rare Candy button that had been
 sitting beside it since v1. `.imageScale(.small)` on that label brings it to 20pt.
+**Confirmed on screen at the third attempt**, which is the count worth remembering:
+this is a class of bug that cannot be seen in code and cannot be trusted from a
+layout measurement either.
 
 The arrow uses `Text(Image(systemName: "chevron.down"))` rather than a bare
 `Image`, because a `Menu`'s bezel height is **quantized by the kind of label it
@@ -2156,6 +2165,9 @@ the price is *on* the button next to the name, which is the same shape as every
 other shop item including the 30,000 coin Shiny Charm. The dropdown was the
 problem because picking from a list does not feel like committing; pressing a
 button labelled "20,000" beside "Master Egg" does.
+
+**Exercised on screen and signed off 2026-08-26**, on a Great Egg hatched through
+the full arrow, choose, read, hatch sequence.
 
 The Shop gets an EGGS section even though an egg is not an item and there is never
 one to hold. What it adds is the ladder **side by side**: four prices against four

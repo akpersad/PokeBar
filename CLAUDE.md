@@ -597,21 +597,28 @@ writing, which a fixture cannot reproduce.
 
 **Phases 1 through 4: complete.** 385 tests, 0 failures. 8 of those are the corpus
 parity tests, skipped unless `POKEBAR_CORPUS=1`, which runs them against the live
-tree in a second filtered pass: ~187s, also 0 failures. Test count measured
-2026-08-26; the corpus timing 2026-08-24.
+tree in a second filtered pass: also 0 failures. Both measured 2026-08-26.
+
+**Re-verified against the live tree 2026-08-26**, after v3. The two properties that
+matter still hold: the cold pass read 1,061 files and 543 MiB for 15,734 deduped
+turns, and **the warm pass read 0 files and 0 bytes**. The live save migrated
+cleanly and reports 10 individuals on the roster shape. The corpus has grown since
+the table below was measured on 2026-08-22, which is expected and why that table
+says the properties matter rather than the figures.
 
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
 
-**Next action, in one sentence: the v3 changes below are built and tested but have
-not been seen on screen.** That is the one thing outstanding, and rendered pixels
-can only be confirmed by asking the user to look (`screencapture` is blocked for
-the terminal here). Everything else on the deferred list is deferred *by the user*
-and several items are explicitly marked do-not-raise, so a session that opens this
-file should ask what is wanted rather than start on the list.
+**Next action, in one sentence: nothing is scheduled, and the deferred list below
+is not a queue.** v1, v2 and v3 are all complete and all approved on screen. The
+two things outstanding are the user's alone: whether "Open at login" survives their
+next reboot, and one reworded Dex caption nobody has been asked about (below).
+Everything else on the deferred list is deferred *by the user* and several items
+are explicitly marked do-not-raise, so a session that opens this file should ask
+what is wanted rather than start on the list.
 
-**v3 landed 2026-08-26**, in four parts. Three are corrections the user made after
+**v3 landed and was signed off on screen 2026-08-26**, in four parts. Three are corrections the user made after
 living with v2 on screen, and one is carried in from PokeFit:
 
 - **Your PC is its own tab.** It was a box at the bottom of the Raise pane and read
@@ -673,13 +680,19 @@ prices a new one, and every acquisition creates its individual through
 `beginRaising`.
 
 **The whole v2 UI is approved on screen**, including the `CelebrationCard`, which
-the user saw on a Yamask hatch. **The v3 UI is not**: the PC tab, the "Show in Dex"
-jumps, the reworded team header and the egg ladder are all built, bundled and
-tested, and none of them has been looked at. Nothing is half-built. **One exception, added
-2026-08-24 after that approval:** the note under "Hatch another" was reworded (it
-described the egg as a copy of a Pokemon you already own, when what it sells is a
-fresh shiny and gender roll) and the user has not yet seen the new wording in the
-running app. Copy only, no layout change, and the bundle is built.
+the user saw on a Yamask hatch.
+
+**The v3 UI is approved on screen too, 2026-08-26.** Signed off item by item after
+three rounds on the egg control: the five tabs, the PC pane, "Show in Dex" from the
+Raise pane, the choose-then-hatch flow exercised end to end on a Great Egg, and the
+egg row's three controls at matching heights. Nothing is half-built.
+
+**One older item is still unlooked-at**, and it predates v3: the note under "Hatch
+another" in the Dex was reworded 2026-08-24 (it described the egg as a copy of a
+Pokemon you already own, when what it sells is a fresh shiny and gender roll) and
+the user has never been asked about that specific caption. Copy only, no layout
+change. It is a sentence in a pane they have now used, so this is close to closed;
+it stays on the list only because nobody has said the words.
 
 The Dust prices were deliberately deferred by the user on 2026-08-24 rather than
 left pending, so do not treat them as the next step.

@@ -36,7 +36,9 @@ layer, and the game. Live plan limits were considered and rejected, with reasons
 - [x] Your PC on its own tab, and "Show in Dex" from anywhere holding a Pokémon
 - [x] Four egg tiers: Egg, Great, Ultra and Master, carried over from PokeFit
 
-**v1 and v2 are both complete.** Levels persist per individual, the save file is
+**v3 is complete and approved on screen, 2026-08-26.**
+
+**v1, v2 and v3 are all complete.** Levels persist per individual, the save file is
 backed up daily, a team of six gains XP together, the Exp Share is in the shop,
 every Pokémon knows which codebase raised it, and all of it is in the popover. The
 plan is [PLAN-v2.md](PLAN-v2.md) and the decisions behind it are in
