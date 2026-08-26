@@ -2099,20 +2099,49 @@ error, or disable the whole control including the arrow, which traps the player 
 a selection they cannot change. A separate `Button` disables cleanly while the
 arrow stays live at zero coins, which is exactly when it is needed.
 
-**The arrow's height is measured off the Hatch button, not pinned.** The two
-bezels shipped at different heights and the user caught it on screen: a chevron is
-shorter than a line of text, so at `.small` the Menu laid out at 14pt against the
-Button's 21.1pt. `onGeometryChange` feeds the button's height into a `.frame` on the
-Menu, with `fixedSize` narrowed to the horizontal axis so the frame can drive the
-vertical one. Measured rather than hardcoded because the bezel height is a system
-metric derived from the control size and the label's font, so a literal 21 would be
-wrong at a different text size and would drift on the next OS.
+**The three controls in the row all draw at 20pt, and getting there took
+measuring rendered pixels rather than layout boxes.** The user caught the arrow
+sitting at a different height from the Hatch button, twice, and the first fix was
+wrong in a way that is worth recording because it is a trap.
 
-Measured at `.small`, because the longest title is 52% wider than the old one:
-128pt for "Hatch Master Egg" with its icon, 30pt for the arrow, 113pt for the Rare
-Candy button, so 287pt of the pane's 312pt in the worst case. The price moved out
-of the row to make that fit, and reads better for it: it is a confirmation, not a
-column.
+What does not work: **`frame` and `padding` do not change a bordered control's
+bezel height.** `ImageRenderer` reports the *layout* size, so framing the Menu to
+21pt duly reported 21pt and drew a 14pt bezel centred inside it. Reading the
+layout size looked like confirmation and was not, which is how a change shipped
+that visibly did nothing. The check that actually answers the question is
+rendering the control and scanning the bitmap for the vertical extent of drawn
+pixels.
+
+Measured that way, at `.small`:
+
+| Control | Drawn height |
+|---|---|
+| `Button` + `Label("Hatch Egg", systemImage: "oval.portrait.fill")` | **21pt** |
+| `Button` + `Label("Rare Candy (2)", systemImage: "capsule.fill")` | 20pt |
+| `Menu` + bare `Image` | 14pt |
+| `Menu` + any label carrying text metrics | 20pt |
+
+**So the arrow was right and the egg was wrong.** `oval.portrait.fill` is a tall
+symbol, and at its default scale it alone pushed the Hatch button a point above
+every other control in the row, including the Rare Candy button that had been
+sitting beside it since v1. `.imageScale(.small)` on that label brings it to 20pt.
+
+The arrow uses `Text(Image(systemName: "chevron.down"))` rather than a bare
+`Image`, because a `Menu`'s bezel height is **quantized by the kind of label it
+has** and ignores padding and frames: an image label is 14pt and anything with
+text metrics is 20pt, with nothing in between. Wrapping the chevron in a `Text` is
+what buys the 20pt.
+
+One residual to know before adding a control here: a SwiftUI `Menu` at `.small`
+cannot be made 21pt at all, so if the Hatch button ever needs its full-size glyph
+back, the arrow cannot follow it and the row would need an AppKit bridge, the way
+`SegmentedTabs` already does for a different unreachable knob.
+
+Widths measured the same way, because the longest title is 43% wider than the old
+one: 132pt for "Hatch Master Egg", 35pt for the arrow and 123pt for the Rare Candy
+button, so **300pt of the pane's 312pt** in the worst case. 12pt spare. The price
+moved out of the row to make that fit, and reads better for it: it is a
+confirmation, not a column.
 
 **A cheap tier stays selected after a hatch and an expensive one does not.**
 `EggTier.isRoutine`, which is true for the Egg and the Great Egg and false above

@@ -39,14 +39,6 @@ struct CompanionView: View {
     /// one click.** See `actions`.
     @State private var eggTier: EggTier = .egg
 
-    /// The Hatch button's rendered height, so the arrow beside it can match.
-    ///
-    /// Measured rather than pinned to a constant, because it is a system metric:
-    /// the bezel's height comes from the control size and the label's font, so a
-    /// hardcoded 21 would be wrong at a different text size and would drift on the
-    /// next OS. Nil until the first layout pass, which leaves the arrow at its own
-    /// intrinsic height for one frame rather than collapsing it to zero.
-    @State private var hatchHeight: CGFloat?
 
     /// A display preference, so `UserDefaults` and not `game-state.json`:
     /// nothing that can be re-derived belongs in the one file that cannot.
@@ -558,11 +550,17 @@ struct CompanionView: View {
                 } label: {
                     Label(
                         GameFormat.hatchButton(eggTier), systemImage: "oval.portrait.fill")
+                        // **`oval.portrait.fill` is a tall symbol**, and at its
+                        // default scale it pushed this button's bezel to 21pt while
+                        // every other control in the row drew at 20pt. That is the
+                        // whole reason the arrow beside it looked wrong: the arrow
+                        // was right and the egg was not. Scaling the glyph down
+                        // brings the bezel to 20pt and lines all three up. Measured
+                        // off rendered pixels, not layout boxes; see the note in
+                        // DECISIONS.md for why the difference matters here.
+                        .imageScale(.small)
                 }
                 .disabled(game.coins < eggTier.priceInCoins)
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
-                    hatchHeight = $0
-                }
 
                 // Never disabled, even when nothing is affordable: this is how a
                 // selection is changed, so it has to work at zero coins.
@@ -575,15 +573,16 @@ struct CompanionView: View {
                     .pickerStyle(.inline)
                     .labelsHidden()
                 } label: {
-                    Image(systemName: "chevron.down")
+                    // **`Text(Image(...))`, not a bare `Image`.** A `Menu`'s bezel
+                    // height is quantized by what kind of label it has: 14pt for an
+                    // image and 20pt for anything carrying text metrics, and it
+                    // ignores both `padding` and `frame` entirely. Wrapping the
+                    // chevron in a `Text` is what buys the 20pt that matches the
+                    // buttons either side.
+                    Text(Image(systemName: "chevron.down"))
                 }
                 .menuIndicator(.hidden)
-                // Horizontally only. The height comes from the Hatch button beside
-                // it, because a chevron is shorter than a line of text and the two
-                // bezels sat at different heights: 14pt against 21.1pt at `.small`,
-                // measured. Vertical `fixedSize` would pin the short one in place.
-                .fixedSize(horizontal: true, vertical: false)
-                .frame(height: hatchHeight)
+                .fixedSize()
                 .help("Choose which egg to hatch")
                 .accessibilityLabel("Choose which egg to hatch")
             }
