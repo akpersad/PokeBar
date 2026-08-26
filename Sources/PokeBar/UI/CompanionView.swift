@@ -39,6 +39,15 @@ struct CompanionView: View {
     /// one click.** See `actions`.
     @State private var eggTier: EggTier = .egg
 
+    /// The Hatch button's rendered height, so the arrow beside it can match.
+    ///
+    /// Measured rather than pinned to a constant, because it is a system metric:
+    /// the bezel's height comes from the control size and the label's font, so a
+    /// hardcoded 21 would be wrong at a different text size and would drift on the
+    /// next OS. Nil until the first layout pass, which leaves the arrow at its own
+    /// intrinsic height for one frame rather than collapsing it to zero.
+    @State private var hatchHeight: CGFloat?
+
     /// A display preference, so `UserDefaults` and not `game-state.json`:
     /// nothing that can be re-derived belongs in the one file that cannot.
     @AppStorage("PokeBarHideProjectNames") private var hideProjectNames = false
@@ -551,6 +560,9 @@ struct CompanionView: View {
                         GameFormat.hatchButton(eggTier), systemImage: "oval.portrait.fill")
                 }
                 .disabled(game.coins < eggTier.priceInCoins)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                    hatchHeight = $0
+                }
 
                 // Never disabled, even when nothing is affordable: this is how a
                 // selection is changed, so it has to work at zero coins.
@@ -566,7 +578,12 @@ struct CompanionView: View {
                     Image(systemName: "chevron.down")
                 }
                 .menuIndicator(.hidden)
-                .fixedSize()
+                // Horizontally only. The height comes from the Hatch button beside
+                // it, because a chevron is shorter than a line of text and the two
+                // bezels sat at different heights: 14pt against 21.1pt at `.small`,
+                // measured. Vertical `fixedSize` would pin the short one in place.
+                .fixedSize(horizontal: true, vertical: false)
+                .frame(height: hatchHeight)
                 .help("Choose which egg to hatch")
                 .accessibilityLabel("Choose which egg to hatch")
             }

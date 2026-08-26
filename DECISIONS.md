@@ -2099,6 +2099,15 @@ error, or disable the whole control including the arrow, which traps the player 
 a selection they cannot change. A separate `Button` disables cleanly while the
 arrow stays live at zero coins, which is exactly when it is needed.
 
+**The arrow's height is measured off the Hatch button, not pinned.** The two
+bezels shipped at different heights and the user caught it on screen: a chevron is
+shorter than a line of text, so at `.small` the Menu laid out at 14pt against the
+Button's 21.1pt. `onGeometryChange` feeds the button's height into a `.frame` on the
+Menu, with `fixedSize` narrowed to the horizontal axis so the frame can drive the
+vertical one. Measured rather than hardcoded because the bezel height is a system
+metric derived from the control size and the label's font, so a literal 21 would be
+wrong at a different text size and would drift on the next OS.
+
 Measured at `.small`, because the longest title is 52% wider than the old one:
 128pt for "Hatch Master Egg" with its icon, 30pt for the arrow, 113pt for the Rare
 Candy button, so 287pt of the pane's 312pt in the worst case. The price moved out
