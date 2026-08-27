@@ -133,10 +133,17 @@ item.
 
 The working directory is what per-project attribution is built on, and it is the
 one field here that can carry a client's name. It is stored as the full path in
-`usage-state.json` and `game-state.json`, both local; the popover shows only the
-last path component, and an eye beside that line hides the names while keeping the
-count. Recording is deliberately not toggleable, because a gap in the ledger could
-never be backfilled: the toggle exists for a shared screen, not for the disk.
+`usage-state.json` and `game-state.json`, both local, and the popover only ever
+renders the last path component, plus its parent where two directories would
+otherwise read identically.
+
+**Two places show it, and each has its own switch.** The Raise pane's eye hides
+the names on the "Raised on" line and keeps the count; the Usage tab's eye hides
+the whole "Today by project" section and keeps the header. Both are display
+preferences in `UserDefaults`. **Recording is deliberately not toggleable** in
+either place, because a gap in the ledger could never be backfilled: the ledger
+credits each turn exactly once and cursors do not rewind. The switches exist for a
+shared screen, not for the disk.
 
 The Copilot database is opened **read-only** and two tables are read,
 `assistant_usage_events` and the `cwd` column of `sessions`, so a running Copilot

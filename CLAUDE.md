@@ -634,8 +634,7 @@ Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the fem
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
 
-**Added 2026-08-27, and NOT yet looked at on screen: "Today by project" in the
-Usage tab.** A second breakdown under the per-model one, showing today's tokens
+**Added and approved on screen 2026-08-27: "Today by project" in the Usage tab.** A second breakdown under the per-model one, showing today's tokens
 per working directory with a percentage of the day, behind an eye toggle
 (`PokeBarShowProjectUsage`, default shown) that hides the rows and keeps the
 header. Invariant 43 and a DECISIONS.md section carry the reasoning. **The one
@@ -643,14 +642,20 @@ thing to expect on first launch:** `UsageLedger.dailyByProject` is a new key and
 is forward-only, so whatever had already been credited today before the rebuild
 shows as a single "Before this update" row. On 2026-08-27 that was 2,799,582
 tokens, 31.9% of the day, being the 9m41s between midnight and the relaunch. It is
-the day's real shortfall, it is frozen (verified by sampling the gap twice while
-both day totals rose by an identical amount), and it will not come back tomorrow. The user has not seen any of this
-rendered, so it is the open item, ahead of everything below.
+the day's real shortfall, it is frozen, and it will not come back tomorrow. Two
+independent confirmations that it is frozen rather than a rate: the gap was sampled
+twice a minute apart and had not moved by a token while both day totals rose by an
+identical 164,382, and the approval screenshot an hour later showed it still at
+2.80M with its *share* fallen from 31.9% to 18% purely because the denominator
+grew. **Nothing about this is outstanding.** The pane was signed off rendering
+PokeBar 45% / 7.11M, pokefit-ios 37% / 5.79M, Before this update 18% / 2.80M, and
+the popover needed no scrolling at five tabs plus three project rows.
 
 **Next action, in one sentence: nothing is scheduled, and the deferred list below
-is not a queue.** v1, v2 and v3 are all complete and all approved on screen. The
-two things outstanding are the user's alone: whether "Open at login" survives their
-next reboot, and one reworded Dex caption nobody has been asked about (below).
+is not a queue.** v1, v2 and v3 are all complete and all approved on screen, as is
+the Usage tab's project breakdown added after them on 2026-08-27. The two things
+outstanding are the user's alone: whether "Open at login" survives their next
+reboot, and one reworded Dex caption nobody has been asked about (below).
 Everything else on the deferred list is deferred *by the user* and several items
 are explicitly marked do-not-raise, so a session that opens this file should ask
 what is wanted rather than start on the list.

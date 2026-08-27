@@ -2181,7 +2181,11 @@ copy, so a new generation moves the shop's numbers on its own.
 
 Asked for 2026-08-27: a second breakdown beside the per-model one, showing
 today's tokens per project with a percentage, behind a switch that shows and
-hides it.
+hides it. **Approved on screen the same day**, rendering PokeBar 45% / 7.11M,
+pokefit-ios 37% / 5.79M and Before this update 18% / 2.80M, with no scrolling
+needed at five tabs plus three project rows. Five rows was not tested against a
+real overflow, because this machine only had two projects live that day; the
+"N more" collapse is pinned by tests, not by pixels.
 
 **It needed a new table, because the data did not exist.** The ledger had
 `daily[day][model]` (raw tokens, per local day) and `weightedByProject[project]`
