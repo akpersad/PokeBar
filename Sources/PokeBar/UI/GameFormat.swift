@@ -313,9 +313,18 @@ enum GameFormat {
     /// looking for.
     static func celebrationSubtitle(_ celebration: Celebration) -> String {
         var parts: [String] = []
-        parts.append(celebration.isNew ? "New to the dex." : "You already had this one.")
-        if celebration.dust > 0 {
-            parts.append("Traded the duplicate for \(dust(celebration.dust)).")
+        // The duplicate is the **dex slot**, never the Pokemon. Nothing is
+        // consumed, so the payout clause must not say "traded": that read as the
+        // hatch being cashed in, and the very next clause then said the same
+        // Pokemon had joined the team. One card contradicting itself, caught on
+        // screen. The two facts are one sentence now, so the Dust is visibly the
+        // price of the dex entry and not of the individual.
+        if celebration.isNew {
+            parts.append("New to the dex.")
+        } else if celebration.dust > 0 {
+            parts.append("Already in your dex, so it paid \(dust(celebration.dust)).")
+        } else {
+            parts.append("Already in your dex.")
         }
         if let slot = celebration.slot {
             parts.append(slot == 0

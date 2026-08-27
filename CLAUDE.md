@@ -499,33 +499,62 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     evolution should give. Pools are 570 / 266 / 91 / 22 and a test pins the
     nesting.
 
-41. **Each egg tier must be the cheapest route to its own promise.** Silent when
-    broken, and tested against the live manifest. Because the pools nest, a plain
-    Egg can already produce a mythical, so every tier competes with spamming the
-    tier below: at 200 / 600 / 3,500 / 20,000 the cost per legendary runs
-    10,165 -> 3,989 -> 3,500 and per mythical
-    63,960 -> 25,099 -> 22,023 -> 20,000. Break one and the tier is a trap that
-    still sells: it just quietly costs more than the cheaper egg it improves on.
-    **Headroom is ~10%**, thinner than the first ladder's 20%, and the Great Egg
-    sets both ceilings above it (Ultra 3,989, Master 22,023), so the three prices
-    can no longer be moved one at a time.
+41. **Each egg tier must be the cheapest route to its own promise, and the Master
+    Egg knowingly is not.** Silent when broken, and tested against the live
+    manifest. Because the pools nest, a plain Egg can already produce a mythical,
+    so every tier competes with spamming the tier below: at 200 / 600 / 3,500 /
+    20,000 the cost per legendary runs 18,558 -> 6,843 -> 3,500, which holds with
+    more headroom than the ladder was priced with. Per mythical it runs
+    63,384 -> 23,373 -> **11,954** -> 20,000, so **the Ultra Egg is the cheaper
+    mythical and the Master Egg overpays by 1.67x**. That is invariant 44's cost
+    and **the user accepted it 2026-08-27** rather than move a price; both exits
+    were costed (Master to 10,700, or Ultra into a 4% wide window at 6,600) and
+    both declined. What survives is that the Master Egg sells *certainty*, which
+    11,954 coins of Ultra Eggs does not buy. **So the test pins the bound, not the
+    ordering**, exactly as invariant 42 does: the overpay must exist, so
+    un-breaking it fails and sends you to DECISIONS.md, and it must stay under
+    1.8x. Do not "fix" this by raising or lowering a price without reading that
+    section.
 
 42. **The Great Egg is the cheapest source of Dust, on purpose, and it is the only
     tier allowed to be.** The clean rule was "the plain Egg always is", because
     Dust pays on the raw capture rate and the higher pools are full of
-    capture-rate-3 species: expected Dust per duplicate runs 1.97 / 7.51 / 16.90 /
-    25.75, so the floors that would keep coins-per-Dust ascending are 764 / 1,720
-    / 2,620. **The user chose 600 knowing it inverts**, tuning for enjoyment
+    capture-rate-3 species: expected Dust per duplicate runs 1.97 / 7.99 / 30.30 /
+    25.75, so the floors that would keep coins-per-Dust ascending are 811 / 3,077
+    / 2,614. (The Ultra Egg now out-yields the Master Egg on Dust, and both figures
+    moved under invariant 44's weight cap.) **The user chose 600 knowing it inverts**, tuning for enjoyment
     2026-08-26, on the grounds that the magnitude is small where the principle is
     loud: coins already converted to Dust through plain eggs, so this makes an
-    existing rate 27% better (79.9 against 101.7 coins per Dust, or ~13.5 Dust a
-    day against ~10.6) rather than opening a new door. What it actually costs is
+    existing rate 26% better (75.1 against 101.3 coins per Dust, or ~14.4 Dust a
+    day against ~10.7) rather than opening a new door. What it actually costs is
     the plain Egg's job, which shrinks to being the only source of the 304 commons
     and uncommons a Great Egg cannot produce. **So the bound is what is defended,
     not the ordering.** The test pins the Great Egg as the *only* inversion, caps
     its advantage below 1.5x (at 400 the ratio is 1.9x and that is a genuine
     mint), and holds Ultra and Master strictly worse than both cheaper eggs, which
-    are the two that would really print. Same family as invariant 17.
+    are the two that would really print. Same family as invariant 17. **A cap of 30
+    in invariant 44 would have broken this too**, putting the Ultra Egg at 95.2
+    against the plain Egg's 101.6, which is why the cap is 45.
+
+44. **No legendary or mythical entry outweighs an ordinary legendary in a hatch
+    roll.** `HatchRoll.legendaryWeightCap = 45`, and `HatchRoll.weight(for:)` is
+    the only place a draw weight comes from. Necrozma, Eternatus and Terapagos all
+    carry `capture_rate` **255**, the game's maximum, because each is a scripted
+    guaranteed story catch; the manifest is right and PokeAPI, its source CSV and
+    PokemonDB all agree (Bulbapedia's infobox showing Necrozma at 3 is its debut
+    generation, contradicted by its own trivia). Uncapped, those three were the
+    heaviest draws in every pool, which is invisible at 570 entries and dominant
+    once a tier narrows it: **18.5% each of an Ultra Egg, so 55.5% of a 3,500 coin
+    guaranteed legendary was one of three species**, against 6.02% each now. The
+    user found it from a screenshot, hatching two Terapagos in 14 lifetime hatches.
+    45 is where the other legendaries cluster, so it caps exactly the three at 255
+    and leaves the other 88 weighting on their own number. **The cap is on the
+    weight only: Dust still pays on the raw rate**, so a Terapagos duplicate is
+    still the floor of 1 Dust, and a test pins that, because capping the payout
+    would lift the Great Egg's expected Dust through invariant 42's bound. Its cost
+    is the Master Egg break in invariant 41. Three tests guard it and one asserts
+    the capped set **by name**, so a manifest regeneration adding a fourth
+    anomalous entry fails rather than absorbing it.
 
 ---
 
@@ -596,7 +625,9 @@ Game layer, decided or derived:
 | Egg ladder | Egg 200, Great 600, Ultra 3,500, Master 20,000 coins |
 | Egg ladder in days at ~1,080 coins/day | 0.19 / 0.56 / 3.24 / 18.5 |
 | Egg tier pools | 570 / 266 / 91 / 22, floored at common / rare / legendary / mythical |
-| Expected Dust per duplicate, by tier | 1.97 / 7.51 / 16.90 / 25.75 |
+| Expected Dust per duplicate, by tier | 1.97 / 7.99 / 30.30 / 25.75 (re-measured under the weight cap) |
+| Legendary weight cap | 45. Caps Necrozma, Eternatus, Terapagos, all at `capture_rate` 255 |
+| Terapagos per Ultra Egg | 6.02%, from 18.5% before the cap |
 | Exp Share | 10,000 coins, one-time. Every party slot earns at the lead's rate |
 | Hatch another | 3,000 coins flat, or half a targeted pick in Dust. Base forms only |
 | Dust per duplicate | `255 / captureRate`. Expected **1.97**, so ~7 Dust/day |
@@ -842,6 +873,8 @@ on `Rarity`.** `capture_rate` is quantized hard (327 of 1,083 entries share the
 value 45, and 86% sit at 45 or above), so every band scheme puts a 30-45% lump in
 one band. Three were evaluated and all three did. The bands are a display label;
 the raw number behaves like a smooth weight. Measured distribution in DECISIONS.md.
+**The single exception is invariant 44's ceiling on three entries**, which is not a
+banding scheme: every other entry still weights on its own number.
 
 Views hold no logic. Everything they render goes through `UsageFormat`,
 `ModelIdentity`, `ModelBreakdown`, `PopoverMetrics` and `GameFormat`, which is

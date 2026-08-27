@@ -396,7 +396,14 @@ final class GameFormatTests: XCTestCase {
             entryID: 10, variant: .normal, source: .hatch, isNew: false, dust: 3, slot: 0)
         XCTAssertEqual(
             GameFormat.celebrationSubtitle(duplicate),
-            "You already had this one. Traded the duplicate for 3 Dust. It is your lead now.")
+            "Already in your dex, so it paid 3 Dust. It is your lead now.")
+
+        // A duplicate keeps its Pokemon, so the payout clause must not sound like
+        // the hatch was cashed in: "Traded the duplicate for 3 Dust" beside "It is
+        // your lead now" read as a contradiction on screen.
+        XCTAssertFalse(
+            GameFormat.celebrationSubtitle(duplicate).contains("Traded"),
+            "nothing is traded away: the dex slot is the duplicate, not the Pokemon")
 
         let benched = Celebration(
             entryID: 10, variant: .normal, source: .another, isNew: false, dust: 0, slot: nil)

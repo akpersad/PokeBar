@@ -703,24 +703,30 @@ final class TrainerTests: XCTestCase {
 
     /// Weighted chance that one egg of `tier` produces something in `bands`.
     ///
-    /// Weighted on the raw capture rate, because that is what `HatchRoll` does.
-    /// Banding the weights would give a different and wrong answer, which is the
-    /// point of the decision recorded against `HatchRoll.draw`.
+    /// Goes through `HatchRoll.weight(for:)` rather than reading `captureRate`
+    /// directly, so this cannot measure a distribution the roll does not use. It
+    /// did read the raw rate, which was the same thing until the legendary weight
+    /// cap landed and would then have priced the ladder against a roll nobody
+    /// shipped.
     private func chance(_ tier: EggTier, of bands: Set<Rarity>) -> Double {
         let pool = dex.hatchPool(for: tier)
-        let total = pool.reduce(0.0) { $0 + Double(max($1.captureRate, 1)) }
+        let total = pool.reduce(0.0) { $0 + Double(HatchRoll.weight(for: $1)) }
         let hit = pool
             .filter { bands.contains($0.rarity) }
-            .reduce(0.0) { $0 + Double(max($1.captureRate, 1)) }
+            .reduce(0.0) { $0 + Double(HatchRoll.weight(for: $1)) }
         return hit / total
     }
 
     /// Expected Dust from one egg of `tier`, assuming the sprite is a duplicate.
+    ///
+    /// Weight from `HatchRoll`, payout from the **raw** rate: the cap is on how
+    /// often an entry appears and never on what it is worth.
     private func expectedDust(_ tier: EggTier) -> Double {
         let pool = dex.hatchPool(for: tier)
-        let total = pool.reduce(0.0) { $0 + Double(max($1.captureRate, 1)) }
+        let total = pool.reduce(0.0) { $0 + Double(HatchRoll.weight(for: $1)) }
         return pool.reduce(0.0) {
-            $0 + Double(max($1.captureRate, 1)) * Double(Prices.dust(forCaptureRate: $1.captureRate))
+            $0 + Double(HatchRoll.weight(for: $1))
+                * Double(Prices.dust(forCaptureRate: $1.captureRate))
         } / total
     }
 
@@ -751,8 +757,24 @@ final class TrainerTests: XCTestCase {
         XCTAssertEqual(chance(.master, of: myth), 1, accuracy: 1e-12, "Master must guarantee it")
         XCTAssertLessThan(greatPerMythical, eggPerMythical)
         XCTAssertLessThan(ultraPerMythical, greatPerMythical)
+
+        // **The Master Egg is the knowing exception, and it is the only one.**
+        // `HatchRoll.legendaryWeightCap` takes 630 of the Ultra pool's 1,378
+        // weight off three legendaries and none off the mythicals, so the mythical
+        // share of an Ultra Egg roughly doubles (15.9% to 29.3%) and the Ultra Egg
+        // becomes the cheaper route to a mythical: 11,954 coins against the Master
+        // Egg's 20,000. The user chose the cap over the price 2026-08-27, with this
+        // arithmetic on screen and both alternatives costed (Master to 10,700, or
+        // Ultra to 6,600 inside a 4% wide window). See DECISIONS.md.
+        //
+        // So this pins the *bound*, the same shape as the Great Egg's Dust
+        // inversion below: the overpay is recorded, and it may not grow.
+        XCTAssertGreaterThan(
+            Double(Prices.masterEgg), ultraPerMythical,
+            "the Master Egg is the cheapest mythical again: good news, update DECISIONS.md")
         XCTAssertLessThan(
-            Double(Prices.masterEgg), ultraPerMythical, "the Master Egg is a worse Ultra Egg")
+            Double(Prices.masterEgg) / ultraPerMythical, 1.8,
+            "the Master Egg's overpay has grown past the 1.67x that was accepted")
 
         // And prices rise with the tier, which the two chains above do not imply
         // on their own.
