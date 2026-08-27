@@ -31,6 +31,10 @@ final class UsageMonitor {
     private(set) var allTimeTokens: TokenCounts = .zero
     private(set) var allTimeCostUSD: Double = 0
     private(set) var byModelToday: [String: TokenCounts] = [:]
+    /// Today's raw tokens per working directory. The same day and the same
+    /// tokens as `byModelToday`, bucketed the other way, so the two breakdowns
+    /// in the Usage pane are two views of one figure.
+    private(set) var byProjectToday: [String: TokenCounts] = [:]
     private(set) var coins: Int = 0
     /// Today's tier-weighted tokens. Display only, and recomputed at publish
     /// time from current pricing, which is why it is not the ledger's frozen
@@ -212,6 +216,7 @@ final class UsageMonitor {
     private func publish() {
         let today = ClaudeUsageParser.localDayKey(Date(), calendar: calendar)
         byModelToday = ledger.totals(forDay: today)
+        byProjectToday = ledger.projects(forDay: today)
         todayTokens = ledger.tokens(forDay: today)
 
         let allByModel = ledger.allTimeByModel()

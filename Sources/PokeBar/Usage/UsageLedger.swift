@@ -47,6 +47,26 @@ struct UsageLedger: Sendable, Codable, Equatable {
     /// file is a much smaller risk than a new key in `game-state.json`.
     var weightedByProject: [String: Double] = [:]
 
+    /// Per-day, per-project raw token totals. The `daily` table split the other
+    /// way, and the thing the Usage pane's project section reads.
+    ///
+    /// **Raw, not weighted**, unlike `weightedByProject` above. That one feeds
+    /// XP and currency, which are tier-weighted by definition; this one is a
+    /// share of *today's tokens*, and it has to be a share of the same figure the
+    /// per-model rows are a share of, or the two breakdowns of one day disagree
+    /// about the day.
+    ///
+    /// Stored rather than derived, because a turn carries a model and a project
+    /// independently and nothing recovers the pair after the fact.
+    ///
+    /// **Forward-only.** Cursors never rewind, so a ledger written before this
+    /// key existed cannot be backfilled, and rescanning from zero to try would
+    /// re-credit every turn older than `growthWindow` and mint coins for it
+    /// (invariant 3). It starts empty and fills from the next credited turn,
+    /// which is why `ProjectBreakdown` can be handed the day's real total and
+    /// account for the difference instead of quietly under-reporting it.
+    var dailyByProject: [String: [String: TokenCounts]] = [:]
+
     /// What has already been credited per turn, for turns young enough to still
     /// grow. Keyed by the dedup identity.
     var inFlight: [String: InFlightEntry] = [:]
@@ -61,7 +81,7 @@ struct UsageLedger: Sendable, Codable, Equatable {
     // MARK: - Persistence
 
     private enum CodingKeys: String, CodingKey {
-        case daily, weightedTokens, weightedByProject, inFlight
+        case daily, weightedTokens, weightedByProject, dailyByProject, inFlight
     }
 
     init() {}
@@ -82,6 +102,9 @@ struct UsageLedger: Sendable, Codable, Equatable {
         inFlight = try c.decode([String: InFlightEntry].self, forKey: .inFlight)
         weightedByProject =
             try c.decodeIfPresent([String: Double].self, forKey: .weightedByProject) ?? [:]
+        dailyByProject =
+            try c.decodeIfPresent([String: [String: TokenCounts]].self, forKey: .dailyByProject)
+            ?? [:]
     }
 
     /// Credits everything new in `entries` and returns what was actually added.
@@ -108,6 +131,11 @@ struct UsageLedger: Sendable, Codable, Equatable {
 
             daily[entry.localDay, default: [:]][
                 UsageSource.ledgerKey(model: entry.model, source: entry.source), default: .zero
+            ] += delta
+            // The same `delta`, bucketed the other way. Same day, same growth,
+            // so the two tables can never report different totals for a day.
+            dailyByProject[entry.localDay, default: [:]][
+                entry.project ?? Project.unknown, default: .zero
             ] += delta
 
             // Pricing lookup stays on the exact, unprefixed model id (invariant
@@ -152,6 +180,10 @@ struct UsageLedger: Sendable, Codable, Equatable {
     // MARK: - Queries
 
     func totals(forDay day: String) -> [String: TokenCounts] { daily[day] ?? [:] }
+
+    /// Raw tokens per working directory for one local day. Empty for any day
+    /// credited before `dailyByProject` existed; see its note.
+    func projects(forDay day: String) -> [String: TokenCounts] { dailyByProject[day] ?? [:] }
 
     func tokens(forDay day: String) -> TokenCounts {
         (daily[day] ?? [:]).values.reduce(into: .zero) { $0 += $1 }

@@ -119,7 +119,7 @@ Sources/PokeBar/
     SpriteTile.swift            one still sprite, fetched on appearance
     StarterPickerView.swift     the free first pick, from the 27 starters
     FloatingPetPanel.swift      the desktop companion, an NSPanel
-    UsagePopover.swift          the usage pane
+    UsagePopover.swift          the usage pane, by model and by project
     UsageFormat.swift           pure display logic; where the UI tests live
     GameFormat.swift            the same, for the game panes
   Dex/
@@ -417,6 +417,25 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     `ledger.weightedByProject` before and after, exactly as it already does for
     the total.
 
+43. **The Usage pane's two day tables are cut from one `delta`, and the project
+    side reports its shortfall instead of hiding it.** `UsageLedger.dailyByProject`
+    is credited in the same loop and from the same growth as `daily`, so a day can
+    never total differently by model and by project: the project percentages are
+    fractions of the figure the model rows divide up, and a mismatch would make
+    every one of them wrong with nothing on screen to say so. The table is **raw
+    tokens, not weighted** (`weightedByProject` is the other thing, and it feeds
+    XP) and it cannot be derived from `daily`, because a turn carries a model and
+    a project independently and summing loses the pair. It is also
+    **forward-only**: cursors do not rewind, and rescanning from zero to backfill
+    would re-credit every turn past the 2 day `growthWindow` and mint coins for
+    it (invariant 3). So `ProjectBreakdown.rows` takes the day's real total and
+    emits a "Before this update" row for the difference, which appears on the day
+    the key ships and never again. **The label names the cause on purpose**: it
+    first read "Not attributed", and the user reasonably read that as a token
+    leak. The row has exactly one cause, since a turn that really does not say
+    where it ran goes to `Project.unknown` and reads "Unknown". A `POKEBAR_CORPUS=1` test asserts the two tables
+    agree for every day in the live tree.
+
 37. **A milestone is credited to the form that crossed it, and the Dex tile reads
     the roster as well as the log.** Two halves of one rule, both silent when
     broken. `Trainer.grant` **replays a credit in level order**: for each mark
@@ -595,9 +614,14 @@ writing, which a fixture cannot reproduce.
 
 ## State
 
-**Phases 1 through 4: complete.** 385 tests, 0 failures. 8 of those are the corpus
+**Phases 1 through 4: complete.** 404 tests, 0 failures. 9 of those are the corpus
 parity tests, skipped unless `POKEBAR_CORPUS=1`, which runs them against the live
-tree in a second filtered pass: also 0 failures. Both measured 2026-08-26.
+tree in a second filtered pass: also 0 failures. Both measured 2026-08-27, after
+the Usage tab's project breakdown. The ninth corpus test is that one's guard: it
+credits the live corpus into a ledger and asserts every day totals the same by
+model and by project. Its print for the busiest day reads
+`PokeBar 165M, persadpay 79.6M, knockwood-ios 19.1M, app-portfolio 13.9M,
+5 more 10.1M`, which is the row set the pane draws.
 
 **Re-verified against the live tree 2026-08-26**, after v3. The two properties that
 matter still hold: the cold pass read 1,061 files and 543 MiB for 15,734 deduped
@@ -609,6 +633,19 @@ says the properties matter rather than the figures.
 Phase 4 shipped in one session, 2026-08-23, in five steps: the manifest, the female
 variant flag, the pure game core, the UI plus the two carried-over extras, then the
 starter pick after the user played it cold and named the barrier.
+
+**Added 2026-08-27, and NOT yet looked at on screen: "Today by project" in the
+Usage tab.** A second breakdown under the per-model one, showing today's tokens
+per working directory with a percentage of the day, behind an eye toggle
+(`PokeBarShowProjectUsage`, default shown) that hides the rows and keeps the
+header. Invariant 43 and a DECISIONS.md section carry the reasoning. **The one
+thing to expect on first launch:** `UsageLedger.dailyByProject` is a new key and
+is forward-only, so whatever had already been credited today before the rebuild
+shows as a single "Before this update" row. On 2026-08-27 that was 2,799,582
+tokens, 31.9% of the day, being the 9m41s between midnight and the relaunch. It is
+the day's real shortfall, it is frozen (verified by sampling the gap twice while
+both day totals rose by an identical amount), and it will not come back tomorrow. The user has not seen any of this
+rendered, so it is the open item, ahead of everything below.
 
 **Next action, in one sentence: nothing is scheduled, and the deferred list below
 is not a queue.** v1, v2 and v3 are all complete and all approved on screen. The

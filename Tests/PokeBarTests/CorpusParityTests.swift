@@ -323,6 +323,47 @@ final class CorpusParityTests: XCTestCase {
             "a name that still looks encoded means the path was never read")
     }
 
+    /// **The two day tables agree, on the real corpus.**
+    ///
+    /// The Usage pane shows one day cut two ways, by model and by project, and
+    /// each project's percentage is a fraction of the figure the *model* side
+    /// totals. If the two tables can disagree about a day, every percentage in
+    /// the project section is quietly wrong and nothing on screen says so.
+    ///
+    /// A corpus test rather than a fixture one because the interesting input is
+    /// the mix: three sources, a month of local days, and turns rewritten
+    /// mid-stream, all of which a fixture would have to imagine.
+    func testTheLiveCorpusSplitsEachDayTheSameTwoWays() throws {
+        try skipUnlessEnabled()
+
+        var ledger = UsageLedger()
+        ledger.credit(UsageScanner().scan().entries, pricing: ModelPricing())
+
+        XCTAssertFalse(ledger.dailyByProject.isEmpty)
+        for day in ledger.daily.keys.sorted() {
+            let byModel = ledger.tokens(forDay: day).total
+            let byProject = ledger.projects(forDay: day).values.reduce(0) { $0 + $1.total }
+            XCTAssertEqual(byProject, byModel, "day \(day) does not add up")
+        }
+
+        // And the rows the pane would actually draw for the busiest day.
+        let busiest = try XCTUnwrap(
+            ledger.daily.keys.max { ledger.tokens(forDay: $0).total < ledger.tokens(forDay: $1).total })
+        let rows = ProjectBreakdown.rows(
+            from: ledger.projects(forDay: busiest),
+            dayTotal: ledger.tokens(forDay: busiest).total)
+        print("busiest day \(busiest): \(rows.map { "\($0.name) \($0.tokens)" })")
+
+        XCTAssertFalse(rows.isEmpty)
+        XCTAssertEqual(rows.reduce(0) { $0 + $1.share }, 1.0, accuracy: 1e-9)
+        XCTAssertFalse(
+            rows.contains { $0.key == ProjectBreakdown.beforeTrackingKey },
+            "a ledger built in one pass has no pre-tracking gap: every day is whole")
+        XCTAssertEqual(
+            Set(rows.map(\.name)).count, rows.count,
+            "two rows reading the same name would look like one project counted twice")
+    }
+
     /// **The live save, decoded through the roster migration.**
     ///
     /// The only save that actually matters is the one on this disk, and no

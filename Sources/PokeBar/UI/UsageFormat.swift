@@ -166,6 +166,138 @@ enum PopoverMetrics {
     }
 }
 
+/// One row of the per-project breakdown.
+///
+/// Carries a plain token *total* rather than a `TokenCounts`, unlike
+/// `ModelUsageRow`. The row renders one number, and the "Before this update"
+/// remainder below is known only as a total, so a `TokenCounts` here would mean
+/// inventing a split across four classes that nothing reads and that would be
+/// wrong if anything ever did.
+struct ProjectUsageRow: Sendable, Equatable, Identifiable {
+    var id: String { key }
+    /// The working directory, verbatim, or one of the two reserved keys below.
+    let key: String
+    /// What the row shows. See `ProjectBreakdown.displayNames(for:home:)`.
+    let name: String
+    let tokens: Int
+    /// Fraction of the day's total tokens, 0...1.
+    let share: Double
+}
+
+/// Today's tokens split by working directory, ranked, for the Usage pane.
+///
+/// A sibling of `ModelBreakdown` and deliberately shaped the same way, because
+/// the two render as two tables of one day and any difference between them reads
+/// as a bug. Two things are genuinely different: a project name is arbitrary
+/// text rather than a parsed identifier, so names can collide and have to be
+/// disambiguated; and the shares are taken against the day's real total rather
+/// than against the sum of the rows, so a partly-attributed day says so.
+enum ProjectBreakdown {
+
+    /// Row key for the collapsed tail. A real key is an absolute path or
+    /// `Project.unknown`, so neither reserved key can collide with one.
+    static let otherKey = "\u{0000}other-project"
+
+    /// Row key for tokens counted into a day before the per-project table
+    /// existed to receive them.
+    ///
+    /// **It has exactly one cause, which is why it can name it.** Cursors do not
+    /// rewind, so `UsageLedger.dailyByProject` is forward-only and the day it
+    /// shipped is short by whatever had already been credited that morning. Those
+    /// turns *did* carry a working directory; there was no table to put it in,
+    /// and the entry is long past the cursor and pruned from the in-flight table,
+    /// so the pair is unrecoverable.
+    ///
+    /// A turn whose source genuinely did not say where it ran is **not** this: it
+    /// is credited to `Project.unknown` and reads as "Unknown". So the label says
+    /// "Before this update" rather than anything about attribution. The first
+    /// wording was "Not attributed", which read as a leak and prompted exactly
+    /// the question it should have answered: the user asked where their tokens
+    /// were going, and the honest answer was "nowhere, they are counted, this
+    /// row predates the table".
+    ///
+    /// Surfacing the gap at all is the difference between a section that adds up
+    /// and one that silently under-reports every project on it. It appears on one
+    /// day and never again.
+    static let beforeTrackingKey = "\u{0000}before-tracking"
+
+    /// Ranked rows, largest first, with anything past `limit` collapsed.
+    ///
+    /// `dayTotal` is the day's tokens as the per-model side counts them. Pass it
+    /// and the shares are a fraction of the day; omit it and they are a fraction
+    /// of what is attributed, which is the right answer only when those are the
+    /// same number.
+    static func rows(
+        from byProject: [String: TokenCounts],
+        dayTotal: Int? = nil,
+        limit: Int = 5,
+        home: String = NSHomeDirectory()
+    ) -> [ProjectUsageRow] {
+        var used = byProject.filter { $0.value.total > 0 }.mapValues(\.total)
+        let attributed = used.values.reduce(0, +)
+        let total = max(dayTotal ?? attributed, attributed)
+        guard total > 0 else { return [] }
+        if total > attributed { used[beforeTrackingKey] = total - attributed }
+
+        // Sorted by volume, then by key, because dictionary order is not stable
+        // and rows must not shuffle between two publishes of identical data.
+        let ranked = used.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }
+
+        let head = ranked.count > limit ? Array(ranked.prefix(limit - 1)) : ranked
+        let names = displayNames(for: head.map(\.key), home: home)
+        var rows = head.map { key, tokens in
+            ProjectUsageRow(
+                key: key, name: names[key] ?? Project.displayName(key, home: home),
+                tokens: tokens, share: Double(tokens) / Double(total))
+        }
+
+        guard ranked.count > limit else { return rows }
+        let rest = ranked.dropFirst(limit - 1)
+        let tail = rest.reduce(0) { $0 + $1.value }
+        rows.append(
+            ProjectUsageRow(
+                key: otherKey, name: "\(rest.count) more",
+                tokens: tail, share: Double(tail) / Double(total)))
+        return rows
+    }
+
+    /// The label for each key: its last path component, qualified with its parent
+    /// only where two keys in the same set would otherwise read identically.
+    ///
+    /// Attribution is per working directory, not per repository (deferred, see
+    /// DECISIONS.md), so `.../PokeBar/Assets.xcassets` and
+    /// `.../PokeFit/Assets.xcassets` are two real rows on this machine. Two rows
+    /// both reading "Assets.xcassets" is the one failure a bare last component
+    /// can produce, and it is silent: the numbers look like they should have been
+    /// added together.
+    static func displayNames(
+        for keys: [String], home: String = NSHomeDirectory()
+    ) -> [String: String] {
+        var counts: [String: Int] = [:]
+        for key in keys { counts[label(key, home: home), default: 0] += 1 }
+
+        var out: [String: String] = [:]
+        for key in keys {
+            let name = label(key, home: home)
+            guard counts[name, default: 0] > 1 else {
+                out[key] = name
+                continue
+            }
+            let parent = ((key as NSString).deletingLastPathComponent as NSString).lastPathComponent
+            out[key] = parent.isEmpty ? name : "\(parent)/\(name)"
+        }
+        return out
+    }
+
+    private static func label(_ key: String, home: String) -> String {
+        switch key {
+        case otherKey: "Other"
+        case beforeTrackingKey: "Before this update"
+        default: Project.displayName(key, home: home)
+        }
+    }
+}
+
 /// The tier a model belongs to, parsed from its identifier.
 ///
 /// Only used for display grouping and colour. Currency weighting reads the real

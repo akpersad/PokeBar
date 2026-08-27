@@ -8,12 +8,28 @@ import SwiftUI
 struct UsagePopover: View {
     let monitor: UsageMonitor
 
+    /// Whether the per-project section is expanded.
+    ///
+    /// A display preference, so `UserDefaults` and not the ledger: nothing that
+    /// can be re-derived belongs in a persisted file. The same reasoning as the
+    /// Raise pane's eye toggle, and the same reason for existing: the thing on
+    /// screen is a list of directory names, one of which may be a client's, and
+    /// a menu bar app is opened in front of people. **Only display is toggled.**
+    /// Collection never stops, because the ledger credits each turn exactly once
+    /// and cursors do not rewind, so a gap here could never be filled in.
+    ///
+    /// Defaults to shown. The section is the feature; the switch is the escape
+    /// hatch, not the other way round.
+    @AppStorage("PokeBarShowProjectUsage") private var showProjects = true
+
     private var hasUsage: Bool { monitor.allTimeTokens.total > 0 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if hasUsage {
                 todaySection
+                Divider()
+                projectSection
                 Divider()
                 allTimeSection
             } else {
@@ -53,6 +69,51 @@ struct UsagePopover: View {
                 .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    /// Today's tokens by working directory, and the switch that hides it.
+    ///
+    /// Under "Today" and sharing its denominator: every share here is a fraction
+    /// of the same figure the per-model rows divide up, so the two tables are two
+    /// cuts of one day rather than two different questions.
+    ///
+    /// **The header stays when the rows are hidden**, because it carries the only
+    /// control that brings them back. A section that can hide itself completely
+    /// is a section the user cannot find again.
+    private var projectSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 5) {
+                SectionHeader("Today by project")
+                Button { showProjects.toggle() } label: {
+                    Image(systemName: showProjects ? "eye" : "eye.slash")
+                        .font(.system(size: 9))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.tertiary)
+                .help(projectToggleLabel)
+                .accessibilityLabel(projectToggleLabel)
+                Spacer()
+            }
+
+            if showProjects {
+                let rows = ProjectBreakdown.rows(
+                    from: monitor.byProjectToday, dayTotal: monitor.todayTokens.total)
+                if rows.isEmpty {
+                    Text("Nothing yet today.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    VStack(alignment: .leading, spacing: 3) {
+                        ForEach(rows) { ProjectRow(row: $0) }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+        }
+    }
+
+    private var projectToggleLabel: String {
+        showProjects ? "Hide the project breakdown" : "Show the project breakdown"
     }
 
     private var allTimeSection: some View {
@@ -226,6 +287,69 @@ private struct ModelRow: View {
         case .gpt: .cyan
         case .unknown: .gray
         }
+    }
+}
+
+/// One project's share of today.
+///
+/// Laid out against `PopoverMetrics.ModelRow` on purpose rather than against a
+/// budget of its own: the two tables sit one above the other in the same pane,
+/// and columns that nearly line up read worse than columns that do. The name
+/// column cannot be *measured* the way the model one was, because a project name
+/// is whatever a directory is called, so this row scales and then truncates.
+private struct ProjectRow: View {
+    let row: ProjectUsageRow
+
+    private typealias Metrics = PopoverMetrics.ModelRow
+
+    var body: some View {
+        HStack(spacing: Metrics.columnSpacing) {
+            Text(row.name)
+                .font(.callout)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .minimumScaleFactor(0.85)
+                .foregroundStyle(isReserved ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
+                .frame(width: Metrics.nameWidth, alignment: .leading)
+
+            Capsule()
+                .fill(.quaternary)
+                .frame(maxWidth: .infinity)
+                .frame(height: Metrics.barHeight)
+                .overlay(alignment: .leading) {
+                    GeometryReader { proxy in
+                        Capsule()
+                            .fill(isReserved ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.teal))
+                            .frame(width: max(3, proxy.size.width * row.share))
+                    }
+                }
+
+            Text(shareText)
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .frame(width: Metrics.shareWidth, alignment: .trailing)
+
+            Text(UsageFormat.compactTokens(row.tokens))
+                .font(.caption)
+                .monospacedDigit()
+                .frame(width: Metrics.totalWidth, alignment: .trailing)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(row.name), \(shareText) of today's tokens, "
+                + "\(UsageFormat.groupedInt(row.tokens)) tokens")
+    }
+
+    /// The collapsed tail and the pre-tracking remainder are bookkeeping, not
+    /// places anyone worked, so they read a shade quieter than a real project.
+    private var isReserved: Bool {
+        row.key == ProjectBreakdown.otherKey || row.key == ProjectBreakdown.beforeTrackingKey
+    }
+
+    private var shareText: String {
+        let percent = row.share * 100
+        return percent < 1 ? "<1%" : "\(Int(percent.rounded()))%"
     }
 }
 

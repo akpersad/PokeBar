@@ -8,13 +8,14 @@ private func entry(
     source: UsageSource = .claudeCode,
     input: Int = 0, output: Int = 0, cacheWrite: Int = 0, cacheRead: Int = 0,
     day: String = "2026-08-22",
-    date: Date = Date()
+    date: Date = Date(),
+    project: String? = nil
 ) -> UsageEntry {
     UsageEntry(
         id: id, date: date, model: model, source: source,
         tokens: TokenCounts(
             input: input, output: output, cacheWrite: cacheWrite, cacheRead: cacheRead),
-        localDay: day)
+        localDay: day, project: project)
 }
 
 final class UsageLedgerTests: XCTestCase {
@@ -210,5 +211,97 @@ final class UsageLedgerTests: XCTestCase {
         let added = reopened.credit(
             [entry(input: 5, output: 700, cacheRead: 900)], pricing: pricing)
         XCTAssertEqual(added, .zero, "restored in-flight state prevents re-crediting")
+    }
+
+    // MARK: Per-day, per-project
+
+    /// The two day tables are cut from the same `delta`, so they must always
+    /// report the same total for a day. If they can disagree, the Usage pane's
+    /// project shares are a fraction of a number nothing else on screen shows.
+    func testDailyByProjectSplitsTheSameDayTheModelTableDoes() {
+        var ledger = UsageLedger()
+        ledger.credit(
+            [
+                entry(id: "a", input: 100, day: "2026-08-26", project: "/work/PokeBar"),
+                entry(id: "b", output: 40, day: "2026-08-26", project: "/work/hue-scenes"),
+                entry(id: "c", input: 60, day: "2026-08-26", project: "/work/PokeBar"),
+                entry(id: "d", input: 9, day: "2026-08-25", project: "/work/PokeBar"),
+            ], pricing: pricing)
+
+        let projects = ledger.projects(forDay: "2026-08-26")
+        XCTAssertEqual(projects["/work/PokeBar"]?.total, 160)
+        XCTAssertEqual(projects["/work/hue-scenes"]?.total, 40)
+        XCTAssertEqual(
+            projects.values.reduce(0) { $0 + $1.total },
+            ledger.tokens(forDay: "2026-08-26").total,
+            "the project split and the model split are the same day")
+        XCTAssertEqual(ledger.projects(forDay: "2026-08-25")["/work/PokeBar"]?.total, 9)
+        XCTAssertTrue(ledger.projects(forDay: "2026-08-24").isEmpty)
+    }
+
+    /// Invariant 39, one layer down. A streaming rewrite must credit its project
+    /// the *growth*, not the whole turn again: that is the same 2.22x over-count
+    /// dedup exists to prevent, reintroduced in a new table.
+    func testDailyByProjectCreditsGrowthOnly() {
+        var ledger = UsageLedger()
+        let first = entry(id: "turn", input: 1_000, output: 200, project: "/work/PokeBar")
+        let rewrite = entry(id: "turn", input: 1_000, output: 505, project: "/work/PokeBar")
+
+        ledger.credit([first], pricing: pricing)
+        ledger.credit([rewrite], pricing: pricing)
+
+        XCTAssertEqual(ledger.projects(forDay: "2026-08-22")["/work/PokeBar"]?.total, 1_505)
+        XCTAssertEqual(
+            ledger.projects(forDay: "2026-08-22")["/work/PokeBar"]?.total,
+            ledger.tokens(forDay: "2026-08-22").total)
+    }
+
+    /// A source that did not say where the turn ran is attributed to the shared
+    /// unknown key, never dropped: dropping it would leave the project shares
+    /// summing to less than the day with nothing on screen to say why.
+    func testEntriesWithNoProjectLandUnderUnknown() {
+        var ledger = UsageLedger()
+        ledger.credit([entry(id: "a", input: 70)], pricing: pricing)
+        XCTAssertEqual(ledger.projects(forDay: "2026-08-22")[Project.unknown]?.total, 70)
+    }
+
+    /// Invariant 23. A `usage-state.json` written before this key existed has to
+    /// keep decoding, or the next persist writes an empty ledger over a real one
+    /// and the coin balance empties until a cold scan refills it.
+    func testALedgerWrittenBeforeDailyByProjectStillDecodes() throws {
+        let json = """
+            {
+              "daily": {"2026-08-22": {"claude-opus-5": {"input": 5, "output": 1,
+                "cacheWrite": 0, "cacheRead": 0}}},
+              "weightedTokens": 6,
+              "weightedByProject": {"/work/PokeBar": 6},
+              "inFlight": {}
+            }
+            """
+        let ledger = try JSONDecoder().decode(UsageLedger.self, from: Data(json.utf8))
+        XCTAssertEqual(ledger.tokens(forDay: "2026-08-22").total, 6)
+        XCTAssertTrue(
+            ledger.dailyByProject.isEmpty,
+            "forward-only: the table starts empty rather than guessing at history")
+        XCTAssertEqual(ledger.weightedByProject["/work/PokeBar"], 6)
+    }
+
+    /// The new key is optional; the old ones are not. A file that is not a ledger
+    /// must still throw, or a nonsense file decodes as a brand new empty one.
+    func testAFileMissingAnOldKeyStillThrows() {
+        let json = #"{"dailyByProject": {}}"#
+        XCTAssertThrowsError(
+            try JSONDecoder().decode(UsageLedger.self, from: Data(json.utf8)))
+    }
+
+    /// A round trip has to carry the new table, since it is the only copy: unlike
+    /// the rest of this file it cannot be rebuilt by rescanning.
+    func testDailyByProjectSurvivesARoundTrip() throws {
+        var ledger = UsageLedger()
+        ledger.credit([entry(id: "a", input: 12, project: "/work/PokeBar")], pricing: pricing)
+        let decoded = try JSONDecoder().decode(
+            UsageLedger.self, from: JSONEncoder().encode(ledger))
+        XCTAssertEqual(decoded, ledger)
+        XCTAssertEqual(decoded.projects(forDay: "2026-08-22")["/work/PokeBar"]?.total, 12)
     }
 }

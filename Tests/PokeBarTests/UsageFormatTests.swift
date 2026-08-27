@@ -223,6 +223,146 @@ final class UsageFormatTests: XCTestCase {
     /// budget has to leave the bar something to be. Widening the name column
     /// past its share is a silent change: the row still lays out, the bar just
     /// collapses to its 3pt minimum and stops carrying any information.
+
+    // MARK: Project breakdown
+
+    func testProjectBreakdownIsRankedAndSharesAreOfTheDay() {
+        let rows = ProjectBreakdown.rows(
+            from: [
+                "/work/PokeBar": counts(600),
+                "/work/hue-scenes": counts(300),
+                "/work/tiny": counts(100),
+            ],
+            dayTotal: 1_000)
+
+        XCTAssertEqual(rows.map(\.name), ["PokeBar", "hue-scenes", "tiny"])
+        XCTAssertEqual(rows.map(\.tokens), [600, 300, 100])
+        XCTAssertEqual(rows.reduce(0) { $0 + $1.share }, 1.0, accuracy: 1e-9)
+        XCTAssertEqual(rows[0].share, 0.6, accuracy: 1e-9)
+    }
+
+    /// The whole reason `dayTotal` is a parameter. `dailyByProject` is
+    /// forward-only, so on the day it ships the attributed rows are short of the
+    /// day's real total, and shares taken against the rows would each read too
+    /// high while the section quietly claimed to cover the day.
+    func testProjectBreakdownSurfacesWhatPredatesTheTable() {
+        let rows = ProjectBreakdown.rows(
+            from: ["/work/PokeBar": counts(250)], dayTotal: 1_000)
+
+        XCTAssertEqual(rows.count, 2)
+        XCTAssertEqual(rows.first?.key, ProjectBreakdown.beforeTrackingKey)
+        XCTAssertEqual(rows.first?.name, "Before this update")
+        XCTAssertEqual(rows.first?.tokens, 750)
+        XCTAssertEqual(rows.last?.name, "PokeBar")
+        XCTAssertEqual(rows.last?.share ?? 0, 0.25, accuracy: 1e-9)
+        XCTAssertEqual(rows.reduce(0) { $0 + $1.share }, 1.0, accuracy: 1e-9)
+    }
+
+    /// The ordinary case, once a day has been fully tracked: no remainder row at
+    /// all. It must not appear as a permanent zero-token fixture.
+    func testProjectBreakdownAddsNoRemainderWhenTheDayIsFullyAttributed() {
+        let byProject = ["/work/PokeBar": counts(600), "/work/hue": counts(400)]
+        for total in [1_000, nil] as [Int?] {
+            let rows = ProjectBreakdown.rows(from: byProject, dayTotal: total)
+            XCTAssertEqual(rows.count, 2, "dayTotal \(String(describing: total))")
+            XCTAssertFalse(rows.contains { $0.key == ProjectBreakdown.beforeTrackingKey })
+        }
+    }
+
+    /// A day total *below* the attributed sum cannot happen (both tables take the
+    /// same delta), but if it ever did, negative shares would be the visible
+    /// symptom. Clamped instead.
+    func testProjectBreakdownIgnoresADayTotalBelowWhatIsAttributed() {
+        let rows = ProjectBreakdown.rows(from: ["/work/a": counts(500)], dayTotal: 100)
+        XCTAssertEqual(rows.map(\.share), [1.0])
+        XCTAssertFalse(rows.contains { $0.key == ProjectBreakdown.beforeTrackingKey })
+    }
+
+    /// Attribution is per working directory, so two directories really can share
+    /// a last component. Showing both as "Assets.xcassets" is silent: the two
+    /// numbers look like they should have been one.
+    func testProjectBreakdownQualifiesCollidingNames() {
+        let rows = ProjectBreakdown.rows(
+            from: [
+                "/work/PokeBar/Assets.xcassets": counts(300),
+                "/work/PokeFit/Assets.xcassets": counts(200),
+                "/work/PokeBar": counts(100),
+            ],
+            dayTotal: 600)
+
+        XCTAssertEqual(
+            rows.map(\.name), ["PokeBar/Assets.xcassets", "PokeFit/Assets.xcassets", "PokeBar"],
+            "only the colliding pair is qualified")
+    }
+
+    func testProjectBreakdownNamesTheUnknownAndHomeKeys() {
+        let rows = ProjectBreakdown.rows(
+            from: [Project.unknown: counts(30), "/Users/someone": counts(10)],
+            dayTotal: 40, home: "/Users/someone")
+        XCTAssertEqual(rows.map(\.name), ["Unknown", "Home"])
+    }
+
+    func testProjectBreakdownCollapsesTheTail() {
+        var byProject: [String: TokenCounts] = [:]
+        for i in 0..<9 { byProject["/work/p\(i)"] = counts(100 - i) }
+        let rows = ProjectBreakdown.rows(from: byProject, limit: 5)
+
+        XCTAssertEqual(rows.count, 5)
+        XCTAssertEqual(rows.last?.key, ProjectBreakdown.otherKey)
+        XCTAssertEqual(rows.last?.name, "5 more", "the tail says how many it stands for")
+        XCTAssertEqual(rows.last?.tokens, (4..<9).reduce(0) { $0 + (100 - $1) })
+        XCTAssertEqual(rows.reduce(0) { $0 + $1.share }, 1.0, accuracy: 1e-9)
+    }
+
+    func testProjectBreakdownDoesNotCollapseAtTheLimit() {
+        var byProject: [String: TokenCounts] = [:]
+        for i in 0..<5 { byProject["/work/p\(i)"] = counts(100 - i) }
+        let rows = ProjectBreakdown.rows(from: byProject, limit: 5)
+        XCTAssertEqual(rows.count, 5)
+        XCTAssertFalse(rows.contains { $0.key == ProjectBreakdown.otherKey })
+    }
+
+    /// Dictionary order is not stable, and these rows are re-derived on every
+    /// publish. Two publishes of identical data must not reshuffle the pane.
+    func testProjectBreakdownTiesBreakOnKey() {
+        let byProject = ["/work/b": counts(10), "/work/a": counts(10), "/work/c": counts(10)]
+        let first = ProjectBreakdown.rows(from: byProject).map(\.key)
+        XCTAssertEqual(first, ["/work/a", "/work/b", "/work/c"])
+        for _ in 0..<20 {
+            XCTAssertEqual(ProjectBreakdown.rows(from: byProject).map(\.key), first)
+        }
+    }
+
+    func testProjectBreakdownDropsEmptyProjectsAndEmptyInput() {
+        XCTAssertTrue(ProjectBreakdown.rows(from: [:]).isEmpty)
+        XCTAssertTrue(ProjectBreakdown.rows(from: ["/work/a": .zero]).isEmpty)
+        XCTAssertTrue(ProjectBreakdown.rows(from: [:], dayTotal: 0).isEmpty)
+
+        let rows = ProjectBreakdown.rows(from: ["/work/a": counts(5), "/work/b": .zero])
+        XCTAssertEqual(rows.map(\.key), ["/work/a"])
+    }
+
+    /// The reserved keys must be unreachable as real projects, since a row's
+    /// identity is its key and a collision would merge a directory into the
+    /// bookkeeping row.
+    func testReservedProjectKeysCannotBeDirectories() {
+        for key in [ProjectBreakdown.otherKey, ProjectBreakdown.beforeTrackingKey] {
+            XCTAssertTrue(key.hasPrefix("\u{0000}"))
+            XCTAssertNotEqual(key, Project.unknown)
+        }
+        XCTAssertNotEqual(ProjectBreakdown.otherKey, ProjectBreakdown.beforeTrackingKey)
+    }
+
+    /// No em dashes in anything a user reads, including the names this assembles.
+    func testProjectBreakdownCopyAvoidsEmDashes() {
+        var byProject: [String: TokenCounts] = [Project.unknown: counts(1)]
+        for i in 0..<9 { byProject["/work/p\(i)"] = counts(100 - i) }
+        for row in ProjectBreakdown.rows(from: byProject, dayTotal: 5_000) {
+            XCTAssertFalse(row.name.contains("\u{2014}"), row.name)
+            XCTAssertFalse(row.name.contains("\u{2013}"), row.name)
+        }
+    }
+
     func testModelRowColumnsLeaveTheBarAUsableWidth() {
         let row = PopoverMetrics.ModelRow.self
         let fixed = row.nameWidth + row.shareWidth + row.totalWidth + 3 * row.columnSpacing

@@ -35,6 +35,7 @@ layer, and the game. Live plan limits were considered and rejected, with reasons
 - [x] Open at login
 - [x] Your PC on its own tab, and "Show in Dex" from anywhere holding a Pokémon
 - [x] Four egg tiers: Egg, Great, Ultra and Master, carried over from PokeFit
+- [x] Today's tokens by project in the Usage tab, behind a show/hide switch
 
 **v3 is complete and approved on screen, 2026-08-26.**
 

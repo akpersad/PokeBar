@@ -2177,6 +2177,87 @@ copy, so a new generation moves the shop's numbers on its own.
 
 ---
 
+## Today by project, in the Usage tab
+
+Asked for 2026-08-27: a second breakdown beside the per-model one, showing
+today's tokens per project with a percentage, behind a switch that shows and
+hides it.
+
+**It needed a new table, because the data did not exist.** The ledger had
+`daily[day][model]` (raw tokens, per local day) and `weightedByProject[project]`
+(tier-weighted, all time), and neither answers "how much of today went where".
+Weighted totals are the wrong denominator for this pane anyway: the section sits
+under "Today" and its percentages have to be fractions of the *same* figure the
+per-model rows divide up, or two tables of one day disagree about the day.
+`UsageLedger.dailyByProject` is therefore raw tokens, keyed day then working
+directory, credited from the same `delta` in the same loop as `daily`.
+
+Deriving it from `daily` was never possible. A turn carries a model and a project
+independently, and once the pair is summed into a per-model bucket nothing
+recovers it.
+
+**Forward-only, and the gap is shown rather than hidden.** Cursors do not rewind,
+so a ledger written before the new key existed cannot be backfilled, and
+rescanning from zero to try would re-credit every turn older than the 2 day
+`growthWindow` and mint coins for it. That is the same reasoning that made
+per-project attribution forward-only in the first place (above), one layer down.
+What is new is the handling: `ProjectBreakdown.rows` takes the day's real total as
+a parameter and emits a **"Before this update"** row for the difference. On the day
+this ships, the section adds to 100% of the day with the shortfall named; from the
+next day on, that row never appears again. The alternative was a section whose
+percentages each read too high while quietly claiming to cover the day. A corpus
+test asserts the two day tables agree for every day in the live tree.
+
+**That row was first labelled "Not attributed", and the label was wrong.** The
+user read it as a token leak and asked where the tokens were going, which is the
+correct reaction to those words: they say the tokens have no home. They have one.
+Measured on the live ledger the moment the question was asked, on 2026-08-27:
+today's total was 8,787,923 by model against 5,988,341 by project, a gap of
+2,799,582; sampled again a minute later both totals had risen by an identical
+164,382 and **the gap had not moved by a single token**. It is a frozen historical
+constant, not a rate. The cause was visible in the timestamps: the day began at
+midnight and the new binary started at 00:09:41, so 9m41s of turns were credited
+by a build with nowhere to put the project.
+
+The row therefore has exactly one possible cause, and the label should name it. A
+turn that genuinely does not say where it ran is a *different* thing: it goes to
+`Project.unknown` and reads "Unknown". So the copy is about *when*, not about
+attribution. Worth remembering as a copy rule generally: a bookkeeping row on a
+usage screen is read as an accusation unless it says why it exists.
+
+**Names are disambiguated on collision, and only on collision.** Attribution is
+by working directory, so this machine really does have
+`.../PokeBar/Assets.xcassets` beside `.../PokeFit/Assets.xcassets`. Two rows both
+reading "Assets.xcassets" is silent: the numbers look like they should have been
+added together. Colliding names are qualified with their parent
+(`PokeBar/Assets.xcassets`); everything else stays a bare last component, which is
+what it was already. This is a display fix, not a change to what is recorded, and
+the roll-up-to-a-git-root question stays deferred.
+
+**The tail collapses to "N more", not to "Other".** Twenty-plus directories are in
+play and only five rows fit, so the count is the informative part: "Other" tells
+you a tail exists, "15 more" tells you how much of the list you are not seeing.
+The per-model side keeps "Other" because five models is the whole list plus
+rounding.
+
+**The row is laid out against `PopoverMetrics.ModelRow`, deliberately.** The two
+tables sit one above the other in one pane, and columns that nearly line up read
+worse than columns that do. The one thing that could not carry over is the
+measurement: a model name is a parsed identifier with a known worst case
+(`"GPT 5.6 Terra (Copilot)"`, 130.8pt), and a project name is whatever a directory
+is called. So the project row scales to 0.85 and then truncates in the *middle*,
+because the distinguishing part of a qualified name is at both ends.
+
+**The switch is a display preference and defaults to shown.** Same key family and
+same reasoning as the Raise pane's eye toggle: what is on screen is a list of
+directory names, one of which may be a client's, and a menu bar app gets opened in
+front of people. `@AppStorage("PokeBarShowProjectUsage")`, never the ledger, and
+**recording never stops** because a hole here could never be filled in. The
+section header stays visible when the rows are hidden, since it carries the only
+control that brings them back.
+
+---
+
 ## Menu bar UI
 
 **The status item shows coins, not tokens or cost.** Coins are the game currency
