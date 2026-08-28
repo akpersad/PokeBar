@@ -23,15 +23,6 @@ get wrong:
   * A regional form does not have to carry a regional suffix. Hisuian Basculin is
     `basculin-white-striped`, so a suffix regex finds 57 of the 58 regionals.
 
-`types` is the second thing that split bites, and it bites hardest: types live on
-the *pokemon*, not the species, and **57 of the 58 regional forms carry different
-types from their base species**. Reading them off the species the way `captureRate`
-and `genderRate` are read would make Alolan Vulpix Fire, Galarian Farfetch'd
-Normal/Flying, Hisuian Zoroark plain Dark, and all three Paldean Tauros breeds
-identical. So the species query asks each species' *default variety* and the
-varieties query asks each form for its own, and EXPECT_REGIONAL_TYPE_DIVERGENCE
-pins those 57 so that a "simplification" back to the parent fails here.
-
 Evolution edges carry three resolved fields, because 47% of the pool is reachable
 only by evolving something and the game layer has to know *when* each edge fires:
 
@@ -74,22 +65,6 @@ those disagree. `_resolve_edge` picks deliberately: lowest real `min_level` firs
 then an item row, then the lowest row id. That preference is what turns Kubfu into
 a Scroll of Darkness purchase rather than a level-36 substitution, and Eevee into
 eight stones rather than eight guesses.
-
-THE FOURTH TRAP IS NOT IN THE JOIN, IT IS IN THE NUMBERS: `capture_rate` is not
-monotone in rarity. Necrozma, Eternatus and Terapagos are legendary and carry the
-game's maximum rate of **255**, because each is a scripted, effectively guaranteed
-story catch in its most recent appearance. The manifest is right and four sources
-agree, Bulbapedia's infobox included once you read its own trivia; see
-DECISIONS.md, "Three legendaries hold the maximum capture rate". So nothing here
-corrects a rate, and `captureRate` in the output is always the raw number, because
-Dust pays on it.
-
-What this script does is refuse to write a dex whose *set* of such entries has
-moved. The hatch roll weights on the raw rate, which is invisible across 1,083
-entries and dominant once an egg tier narrows the pool: uncapped, those three were
-18.5% each of a guaranteed-legendary Ultra Egg. A new generation adding a fourth
-would inherit that silently, so it fails here instead. See
-EXPECT_WEIGHT_ANOMALIES and the weight-scale report at the end of `build`.
 """
 
 from __future__ import annotations
@@ -158,26 +133,6 @@ SUBSTITUTE_LEVEL = 36
 # takes the item the mainline games added for exactly this in Gen 9.
 LINKING_CORD = ("linking-cord", "Linking Cord")
 
-# Rarity bands, lowest first. Mirrors `Rarity` in Sources/PokeBar/Dex/DexModels.swift.
-# The order is what makes "this band and above" mean anything.
-RARITY_ORDER = ("common", "uncommon", "rare", "epic", "legendary", "mythical")
-
-# The narrowed pools the hatch roll draws from, as (floor, egg tier). Mirrors
-# `EggTier.floor`; the pools nest upward, so one floor expresses each tier. Used
-# only by the weight-scale report below, which is the look nobody took before the
-# anomaly in the docstring shipped: the whole pool's shape was fine, and every
-# problem was in a pool a floor had narrowed.
-TIER_FLOORS = (("common", "Egg"), ("rare", "Great"), ("legendary", "Ultra"),
-               ("mythical", "Master"))
-
-# The hatch roll's ceiling on a legendary or mythical draw weight, mirrored from
-# `HatchRoll.legendaryWeightCap`. **Nothing here applies it to the output.** The
-# manifest carries the raw `capture_rate` and only the raw rate, because the weight
-# decides how often a thing appears and the raw rate is what a duplicate of it pays
-# (DECISIONS.md, invariant 17). It is here so the assertion and the report below
-# are written in the terms the roll actually reads.
-LEGENDARY_WEIGHT_CAP = 45
-
 # --- Expected figures. These are the assertions, not documentation. -----------
 # Measured 2026-08-22. Each one is a property of the source data that this
 # manifest depends on, so drift should stop the generator rather than reach code.
@@ -208,36 +163,6 @@ EXPECT_EVOLUTION_ITEMS = 23  # distinct stones etc. 24 shop lines with the Cord
 EXPECT_GENDER_RATES = {-1: 155, 0: 26, 1: 131, 2: 19, 4: 630, 6: 25, 7: 2, 8: 37}
 EXPECT_FEMALE_FORMS = 102
 EXPECT_OWNABLE_SPRITES = 2368
-# The legendary and mythical entries whose `capture_rate` is above the roll's cap,
-# by name. All three sit at 255 and the data is correct; see the fourth trap in the
-# module docstring. Asserted by name rather than counted, so a generation that adds
-# a fourth fails here at the source rather than being absorbed into a pool where one
-# entry is 18.5% of an Ultra Egg.
-# `HatchRollTests.testNoLegendaryOutweighsAnOrdinaryLegendary` pins the same three
-# on the Swift side. The two are meant to fail together.
-EXPECT_WEIGHT_ANOMALIES = ["eternatus", "necrozma", "terapagos"]
-# The 18 canonical types, asserted as an exact set rather than a count. PokeAPI's
-# type table also carries `unknown` and `shadow`, which are artefacts of Gen 2 and
-# of Colosseum and are not types anything in this pool can have.
-EXPECT_TYPES = ("bug", "dark", "dragon", "electric", "fairy", "fighting", "fire",
-                "flying", "ghost", "grass", "ground", "ice", "normal", "poison",
-                "psychic", "rock", "steel", "water")
-# Entries carrying each type, measured 2026-08-27. A histogram rather than a total,
-# in the same spirit as EXPECT_GENDER_RATES: a query that silently returned slot 1
-# only would still total 1,083 and would show here as every dual type losing its
-# second half.
-EXPECT_TYPE_COUNTS = {"bug": 92, "dark": 80, "dragon": 73, "electric": 75,
-                      "fairy": 67, "fighting": 81, "fire": 86, "flying": 113,
-                      "ghost": 71, "grass": 132, "ground": 80, "ice": 56,
-                      "normal": 137, "poison": 91, "psychic": 111, "rock": 80,
-                      "steel": 73, "water": 157}
-EXPECT_DUAL_TYPE = 572  # of 1,083. The other 511 are single-typed
-# Regional forms whose types differ from their base species, and the one that does
-# not. This is the assertion that proves types are read per pokemon rather than per
-# species: read them off the parent and this figure is 0, not 57. Hisuian Basculin
-# is the sole match, being a Water form of a Water fish.
-EXPECT_REGIONAL_TYPE_DIVERGENCE = 57
-EXPECT_REGIONAL_TYPE_MATCH = ["basculin-white-striped"]
 
 
 def _curl(args: list[str]) -> dict:
@@ -326,24 +251,16 @@ def fetch_species() -> list[dict]:
         f"""{{ pokemonspecies(where: {{id: {{_lte: {MAX_SPECIES}}}}}, order_by: {{id: asc}}) {{
                  id name capture_rate is_legendary is_mythical generation_id gender_rate
                  pokemonspeciesnames(where: {{language_id: {{_eq: 9}}}}) {{ name }}
-                 pokemons(where: {{is_default: {{_eq: true}}}}) {{
-                   pokemontypes(order_by: {{slot: asc}}) {{ type {{ name }} }} }}
                }} }}"""
     )
     return data["pokemonspecies"]
 
 
 def fetch_varieties() -> list[dict]:
-    """Non-default varieties, which is where the regional forms live.
-
-    Types come back on this query rather than being read off the parent species,
-    because a regional form's whole point is often that its types changed. See the
-    docstring: 57 of the 58 keep none of the parent's typing.
-    """
+    """Non-default varieties, which is where the regional forms live."""
     data = graphql(
         """{ pokemon(where: {is_default: {_eq: false}}, order_by: {id: asc}) {
-                 id name pokemon_species_id
-                 pokemontypes(order_by: {slot: asc}) { type { name } } } }"""
+                 id name pokemon_species_id } }"""
     )
     return data["pokemon"]
 
@@ -463,41 +380,6 @@ def rarity_of(capture_rate: int, legendary: bool, mythical: bool) -> str:
     return "epic"
 
 
-def types_of(rows: list[dict], label: str) -> list[str]:
-    """The type slugs one *pokemon* row carries, in slot order.
-
-    `label` is only for the failure message: a type problem is almost always one
-    species, and hunting for which one is the slow part.
-    """
-    names = [r["type"]["name"] for r in rows]
-    if not 1 <= len(names) <= 2:
-        raise SystemExit(f"{label} has {len(names)} types, expected 1 or 2: {names}")
-    unknown = [n for n in names if n not in EXPECT_TYPES]
-    if unknown:
-        raise SystemExit(
-            f"{label} carries {unknown}, which is not one of the 18 canonical types. "
-            "A nineteenth type is a generation-scale event; add it deliberately."
-        )
-    return names
-
-
-def hatch_weight(entry: dict, cap: int | None = LEGENDARY_WEIGHT_CAP) -> int:
-    """The weight one entry carries in a hatch roll. Mirrors `HatchRoll.weight(for:)`.
-
-    Deliberately **not** written to the manifest. The game derives it from
-    `captureRate` and `rarity`, and putting a second copy in the data would let the
-    JSON and the Swift constant disagree about the same roll. It exists here to
-    assert on the distribution the app will draw from and to print it, which is the
-    one thing this script could not do while it only ever looked at the raw rate.
-
-    Pass `cap=None` for the uncapped weight, which is what the report compares against.
-    """
-    raw = max(entry["captureRate"], 1)
-    if cap is not None and entry["rarity"] in ("legendary", "mythical"):
-        return min(raw, cap)
-    return raw
-
-
 def build(repin: bool = False) -> dict:
     commit = github_json(f"{GITHUB}/commits/master")["sha"] if repin else SPRITES_COMMIT
     if repin and commit != SPRITES_COMMIT:
@@ -533,14 +415,6 @@ def build(repin: bool = False) -> dict:
         names = s["pokemonspeciesnames"]
         if not names:
             raise SystemExit(f"species {s['id']} has no English name")
-        # Types come from the species' default variety, because the species itself
-        # has none. Exactly one default exists per species and it is asserted here
-        # rather than indexed blindly, since [0] on an empty list is the kind of
-        # failure that reads as a missing type rather than a changed source.
-        if len(s["pokemons"]) != 1:
-            raise SystemExit(
-                f"species {s['name']} has {len(s['pokemons'])} default varieties, expected 1"
-            )
         pool.append(
             {
                 "id": s["id"],
@@ -553,7 +427,6 @@ def build(repin: bool = False) -> dict:
                 "genderRate": s["gender_rate"],
                 "legendary": s["is_legendary"],
                 "mythical": s["is_mythical"],
-                "types": types_of(s["pokemons"][0]["pokemontypes"], s["name"]),
             }
         )
 
@@ -579,9 +452,6 @@ def build(repin: bool = False) -> dict:
                 "genderRate": parent["gender_rate"],
                 "legendary": parent["is_legendary"],
                 "mythical": parent["is_mythical"],
-                # The form's own types, never the parent's. This is the one field
-                # on this entry that does not inherit, and 57 of 58 differ.
-                "types": types_of(v["pokemontypes"], slug),
             }
         )
 
@@ -749,63 +619,6 @@ def build(repin: bool = False) -> dict:
         if actual != expected:
             raise SystemExit(f"{label}: {actual}, expected {expected}")
 
-    # --- types -----------------------------------------------------------------
-    # Four assertions, because there are four different ways for this to go wrong
-    # quietly: a new type, a shifted count, a lost second slot, and the big one,
-    # types silently coming from the parent species.
-    type_counts = Counter(t for e in pool for t in e["types"])
-    if sorted(type_counts) != sorted(EXPECT_TYPES):
-        raise SystemExit(
-            f"type set drifted.\n  got:      {sorted(type_counts)}\n"
-            f"  expected: {sorted(EXPECT_TYPES)}"
-        )
-    if dict(type_counts) != EXPECT_TYPE_COUNTS:
-        moved = {t: (type_counts[t], EXPECT_TYPE_COUNTS.get(t))
-                 for t in sorted(EXPECT_TYPES) if type_counts[t] != EXPECT_TYPE_COUNTS.get(t)}
-        raise SystemExit(f"entries per type drifted (got, expected): {moved}")
-    dual = sum(1 for e in pool if len(e["types"]) == 2)
-    if dual != EXPECT_DUAL_TYPE:
-        raise SystemExit(f"dual-typed entries: {dual}, expected {EXPECT_DUAL_TYPE}")
-
-    # A regional form's types are its own. Comparing against the base entry in the
-    # pool rather than re-reading the source, so this also catches the form being
-    # handed the parent's list anywhere downstream of the fetch.
-    base_types = {e["speciesID"]: e["types"] for e in pool if e["region"] is None}
-    matches = sorted(e["slug"] for e in pool
-                     if e["region"] is not None and e["types"] == base_types[e["speciesID"]])
-    diverged = len(regional) - len(matches)
-    if diverged != EXPECT_REGIONAL_TYPE_DIVERGENCE or matches != EXPECT_REGIONAL_TYPE_MATCH:
-        raise SystemExit(
-            f"regional forms retyped: {diverged}, expected "
-            f"{EXPECT_REGIONAL_TYPE_DIVERGENCE}\n"
-            f"  forms matching their base species: {matches}\n"
-            f"  expected:                          {EXPECT_REGIONAL_TYPE_MATCH}\n"
-            "0 here means types are being read off the species, which is wrong for "
-            "57 of the 58 forms. See the types paragraph in the module docstring."
-        )
-
-    # --- the top of the weight scale ------------------------------------------
-    # A capture rate that contradicts its rarity is invisible here and dominant
-    # once an egg tier narrows the pool, so the set of them is pinned by name.
-    # See the fourth trap in the module docstring before changing this.
-    anomalies = sorted(
-        e["slug"]
-        for e in pool
-        if e["rarity"] in ("legendary", "mythical")
-        and e["captureRate"] > LEGENDARY_WEIGHT_CAP
-    )
-    if anomalies != EXPECT_WEIGHT_ANOMALIES:
-        raise SystemExit(
-            "the legendary and mythical entries above the roll's weight cap moved.\n"
-            f"  got:      {anomalies}\n"
-            f"  expected: {EXPECT_WEIGHT_ANOMALIES}\n"
-            "The rate is probably correct: PokeAPI's source CSV and PokemonDB agreed "
-            "for all three of the known ones, and Bulbapedia's infobox shows the debut "
-            'generation. Read DECISIONS.md, "Three legendaries hold the maximum '
-            'capture rate", then decide whether HatchRoll.legendaryWeightCap should '
-            "cover the new entry. HatchRollTests names the same set."
-        )
-
     animated = len(pool) - len(static_only)
     print(f"pool                {len(pool)}")
     print(f"  base species      {EXPECT_SPECIES}")
@@ -826,31 +639,6 @@ def build(repin: bool = False) -> dict:
     print(f"  distinct items    {len(evo_items)}")
     print(f"hatchable           {len(pool) - len(gated)} (the rest are evolution-gated)")
     print("rarity              " + str(dict(Counter(e["rarity"] for e in pool))))
-    print(f"types               {len(type_counts)} distinct, {dual} dual-typed, "
-          f"{diverged} of {len(regional)} regional forms retyped")
-    print("  by type           " + ", ".join(
-        f"{t} {n}" for t, n in sorted(type_counts.items(), key=lambda kv: (-kv[1], kv[0]))))
-    print(f"weight cap          {LEGENDARY_WEIGHT_CAP} on legendary and mythical, "
-          f"reaching {', '.join(anomalies)}")
-    hatchable = [e for e in pool if e["id"] not in gated]
-    for floor, tier_name in TIER_FLOORS:
-        tier = [
-            e for e in hatchable
-            if RARITY_ORDER.index(e["rarity"]) >= RARITY_ORDER.index(floor)
-        ]
-
-        def heaviest(cap: int | None) -> tuple[str, str]:
-            total = sum(hatch_weight(e, cap) for e in tier)
-            top = max(tier, key=lambda e: hatch_weight(e, cap))
-            return top["slug"], f"{top['slug']} {100 * hatch_weight(top, cap) / total:.2f}%"
-
-        (top_slug, capped), (raw_slug, uncapped) = heaviest(LEGENDARY_WEIGHT_CAP), heaviest(None)
-        # Only worth printing when the cap changes *who* is heaviest. Comparing the
-        # shares instead would print a rounding difference for the plain Egg, whose
-        # top entry is a Caterpie either way.
-        note = "" if top_slug == raw_slug else f", uncapped {uncapped}"
-        label = f"{tier_name}, {floor}+"
-        print(f"  {label:<17s} {len(tier):4d}  heaviest {capped}{note}")
     print(f"sprites commit      {commit}")
 
     return {

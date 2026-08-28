@@ -30,16 +30,6 @@ raising `MAX_SPECIES` for a new generation or deliberately re-pinning the sprite
 commit. It asserts every figure it depends on before writing, so it fails at your
 desk rather than shipping a dex with holes in it.
 
-**One of those assertions is about the game rather than the data:
-`EXPECT_WEIGHT_ANOMALIES`.** It names the three legendaries carrying
-`capture_rate` 255 (invariant 44), so a generation that adds a fourth stops the
-generator *before* it writes rather than quietly handing one species 18.5% of an
-Ultra Egg. To do that the script mirrors `HatchRoll.legendaryWeightCap` and
-`EggTier.floor`, and it prints the heaviest entry of each narrowed pool on every
-run, which is the look nobody took before the anomaly shipped. **It applies
-nothing**: `captureRate` in the manifest is still the raw rate, because Dust pays
-on that.
-
 `swift run PokeBar` **cannot show the menu bar item.** SwiftUI registers a
 `MenuBarExtra` status item only for a process with a bundle identifier, and a bare
 SwiftPM executable reports `CFBundleIdentifier = NULL`. It fails silently: the
@@ -564,10 +554,7 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     would lift the Great Egg's expected Dust through invariant 42's bound. Its cost
     is the Master Egg break in invariant 41. Three tests guard it and one asserts
     the capped set **by name**, so a manifest regeneration adding a fourth
-    anomalous entry fails rather than absorbing it. **`generate-dex.py` asserts
-    the same set itself**, added later the same day, so the regeneration now fails
-    at the source before the manifest is written; the two are meant to fail
-    together.
+    anomalous entry fails rather than absorbing it.
 
 ---
 
@@ -614,7 +601,7 @@ evolution triggers, the female flag and gender rates. All asserted by
 | Quantity | Value |
 |---|---|
 | Collectible pool | **1,083** = 1,025 species + 58 regional forms |
-| Manifest | 465 KiB, `Sources/PokeBar/Dex/Resources/pokedex.json`. 381 KiB before types |
+| Manifest | 381 KiB, `Sources/PokeBar/Dex/Resources/pokedex.json` |
 | Animated | 1,069 (98.7%). 816 via gen-v, 253 via showdown, 14 static via home |
 | No animated sprite | `990-995, 1006, 1008, 1010, 1017, 1022-1025` |
 | No shiny sprite | 2 entries |
@@ -622,8 +609,6 @@ evolution triggers, the female flag and gender rates. All asserted by
 | With an evolution | 477. 513 edges: 364 level, 69 item, 26 trade, 54 substituted |
 | Hatchable (no incoming edge) | 570. The other 513 are evolution-gated |
 | Rarity bands | rare 493, common 238, uncommon 187, legendary 74, epic 68, mythical 23 |
-| Types | 18, exactly the canonical set. **572 entries dual-typed**, 511 single |
-| Regional forms retyped | **57 of 58.** Only Hisuian Basculin keeps its parent's typing |
 | Sprite animation | 51-129 frames, 60-200 ms delays, so 5-16 fps |
 | Sprites commit | `c10459b9b0129eaca5c5d9b1cac65336debb1d08` (pinned in the generator; `--repin` to move it) |
 
@@ -717,11 +702,6 @@ have to rediscover:
 - **The Ultra Egg's mythical rate roughly doubled to 29.3% as a side effect**, and
   its expected Dust per duplicate went 16.90 to 30.30, overtaking the Master Egg.
   That is measured and recorded, and nobody has played with it yet.
-- **The guard moved upstream the same day.** `generate-dex.py` now asserts the
-  three anomalous slugs itself and prints the heaviest entry of each narrowed pool,
-  so the next generation cannot add a fourth 255 without stopping the generator.
-  No data changed, `--check` still passes against the committed manifest, and the
-  cap is still applied in exactly one place, `HatchRoll.weight(for:)`.
 
 The copy half: `GameFormat.celebrationSubtitle` said "Traded the duplicate for 1
 Dust" and then "It joins your team in slot 6", which reads as one card

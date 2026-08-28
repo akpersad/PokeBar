@@ -442,7 +442,7 @@ delegated them explicitly, so they were decided on measurement.
 
 **The catalog is a build-time manifest, not a runtime fetch.**
 `scripts/generate-dex.py` produces `Sources/PokeBar/Dex/Resources/pokedex.json`,
-465 KiB, checked in (381 KiB before types were added 2026-08-27). Four reasons, in descending weight:
+381 KiB, checked in. Four reasons, in descending weight:
 
 1. **A cold first launch needs no network and nothing third-party to be up.**
    A runtime fetch makes the dex, and therefore the whole game layer, depend on
@@ -665,50 +665,6 @@ copies it into `Contents/Resources`. Miss that step and `Bundle.module` finds
 nothing: the app launches, scans, credits coins, and shows no Pokemon at all. That
 is the same silent shape as the missing-bundle-identifier bug this project already
 paid a debugging round for, so it is pinned by a test rather than trusted.
-
-### Types are read per pokemon, never per species, added 2026-08-27
-
-Added for **PokeFit**, which copies this manifest verbatim and could not build
-"Collected 10 Water Pokemon" without it (`pokefit-ios/docs/TASKS.md` §9.2, the
-blocker found 2026-08-25 and the fix decided the same day). Nothing in PokeBar
-reads the field, and this does **not** reopen battles. The v2 deferral that bound
-types to battles is annotated in place where it was written, in the paragraph
-closing "Open at login: the framework, not a plist", and in `PLAN-v2.md` under
-"Explicitly not in v2".
-
-**The whole difficulty is one line of the data model: types live on the
-`pokemon`, not on the `pokemonspecies`.** `captureRate`, `genderRate`,
-`generation` and both legendary flags are species-level, so a regional form
-inherits them from its parent for free, and doing the same thing to types is
-wrong for **57 of the 58 forms**. It would make Alolan Vulpix Fire instead of Ice,
-Galarian Farfetch'd Normal/Flying instead of Fighting, Hisuian Zoroark plain Dark
-instead of Normal/Ghost, and all three Paldean Tauros breeds identical, when the
-breeds are the reason the display name carries the breed at all.
-
-So the species query asks each species' **default variety** for its types and the
-varieties query asks each form for **its own**. Two extra fields on two requests
-already being made, no new fetch and still no API key: PokeAPI is open, and the
-key that made this look expensive belongs to `pokemontcg.io`, a different service
-used by a sibling project.
-
-**Four assertions, one per way this fails quietly:**
-
-- The **18 canonical types as an exact set**. PokeAPI's table also carries
-  `unknown` and `shadow`, which are a Gen 2 artefact and a Colosseum mechanic.
-- **Entries per type as a histogram**, the same shape as the gender-rate
-  assertion, because a total cannot see a redistribution.
-- **572 dual-typed entries.** A query that silently returned slot 1 only would
-  still produce 1,083 entries with 1,083 valid types, and this is the only figure
-  that notices.
-- **57 of 58 regional forms retyped, with the one match named**
-  (`basculin-white-striped`, a Water form of a Water fish). This is the assertion
-  that proves the per-pokemon join is live: read types off the species and the
-  figure is 0, not 57.
-
-Measured: 1,083 entries, water 157 and normal 137 the most common, ice 56 the
-least. The manifest went 381 to 465 KiB and every other field is byte-identical
-across all 1,083 entries, verified against the previous commit rather than
-asserted.
 
 **Generator HTTP goes through `curl`, not `urllib`.** The python.org framework build
 on this machine has no CA bundle installed, so every `urllib` HTTPS handshake fails
@@ -1825,13 +1781,7 @@ design: the user will find out at their next restart.
 but named as a risk of "losing the plot of a token use project", and would also
 require reopening "stats are out", which is what Mint's rejection hangs off.
 Types in the manifest were only ever proposed as a battle prerequisite and go
-with it. **Superseded 2026-08-27 for the data half only: types are in the
-manifest.** They went in for PokeFit, which copies this manifest verbatim and
-whose type-based achievements were blocked on them (its `docs/TASKS.md` §9.2,
-decided 2026-08-25). Battles are still deferred and "stats are out" is still
-untouched. PokeBar reads nothing from the field: `DexEntry` has no `types`
-property, so `Codable` ignores the key. The generator work is in "Types are read
-per pokemon, never per species" below.
+with it.
 
 ### What "Hatch another" is actually selling, 2026-08-24
 
@@ -2151,10 +2101,7 @@ rebalanced from 3 in Sun/Moon to 255 in Ultra Sun/Moon and again in Sword/Shield
 and that page says so itself two sections down. Controls run at the same time
 (Mewtwo 3/3, Koraidon 3/3, Zacian 10/10, Caterpie 255/255) all agreed, so this was
 generation scoping rather than an error in either source. **The manifest is
-correct and `generate-dex.py` needs no change.** That still holds for the *data*:
-no rate was corrected and the manifest's bytes never moved. The generator did gain
-an *assertion* about this set later the same day, which writes nothing different;
-see "The generator asserts the anomalous set" below.
+correct and `generate-dex.py` needs no change.**
 
 What was wrong was the *consequence*. Weighting on the raw rate made those three
 the heaviest entries in every pool, which is invisible in the 570 entry pool and
@@ -2226,51 +2173,6 @@ So the test pins the **bound**, the same shape as the Great Egg's Dust inversion
 the overpay is asserted to exist, so quietly un-breaking it fails and sends the
 reader here, and it is asserted to stay under **1.8x**, so the next price or pool
 change cannot widen it without failing at the desk.
-
-#### The generator asserts the anomalous set, added 2026-08-27
-
-The cap is a game-layer answer to a data-layer surprise, and the layer that
-*produces* the data had no opinion about it. `scripts/generate-dex.py` asserts
-every figure the manifest depends on, and it had nothing to say about the top of
-the weight scale, so a generation adding a fourth entry at 255 would have met one
-Swift test naming three slugs and nothing else. That test is the right test, but it
-runs after the manifest is written and it is a test of the roll, not of the data.
-
-`EXPECT_WEIGHT_ANOMALIES = ["eternatus", "necrozma", "terapagos"]` now stops the
-generator before it writes, and its failure message says what the last one turned
-out to mean: the rate is probably right, check the source CSV and PokemonDB before
-doubting it, and what needs deciding is whether the cap should cover the new entry.
-Making that assertion possible needed two mirrors from the game layer,
-`HatchRoll.legendaryWeightCap` and `EggTier.floor`, and having them buys the report
-that runs on every regeneration:
-
-```
-weight cap          45 on legendary and mythical, reaching eternatus, necrozma, terapagos
-  Egg, common+       570  heaviest caterpie 0.37%
-  Great, rare+       266  heaviest bruxish 0.94%, uncapped necrozma 2.78%
-  Ultra, legendary+   91  heaviest mew 6.02%, uncapped necrozma 18.51%
-  Master, mythical+   22  heaviest mew 20.55%
-```
-
-**No data changed**, and `--check` passes against the committed manifest unmoved.
-Two things it deliberately does not do:
-
-- **No `hatchWeight` field in the manifest.** The cap would then exist in two
-  places and the JSON could disagree with `HatchRoll.legendaryWeightCap` about the
-  same roll, which is the mistake the pricing tests already had to be rescued from.
-  `hatch_weight()` in the script is a mirror for the assertion and the report and
-  is never written out.
-- **No cap on the exported `captureRate`.** Dust pays on the raw rate per
-  invariant 17, and baking a ceiling into the data is the version of this that
-  would be hardest to undo.
-
-The reason it exists is the generalisable half of the finding: **deriving anything
-from a weight distribution is only safe if you have looked at the top of the weight
-scale in each narrowed pool, not at the shape of the whole one.** Both this project
-and PokeFit checked that `capture_rate` was quantised and lumpy and concluded
-correctly that raw beat banding; neither asked which entries were heaviest once a
-floor removed the commons. The report prints exactly that, so it is now something a
-regeneration shows you rather than something you have to think to ask.
 
 ### Two ladders were declined, and one was impossible
 
