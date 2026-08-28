@@ -23,6 +23,15 @@ get wrong:
   * A regional form does not have to carry a regional suffix. Hisuian Basculin is
     `basculin-white-striped`, so a suffix regex finds 57 of the 58 regionals.
 
+`types` is the second thing that split bites, and it bites hardest: types live on
+the *pokemon*, not the species, and **57 of the 58 regional forms carry different
+types from their base species**. Reading them off the species the way `captureRate`
+and `genderRate` are read would make Alolan Vulpix Fire, Galarian Farfetch'd
+Normal/Flying, Hisuian Zoroark plain Dark, and all three Paldean Tauros breeds
+identical. So the species query asks each species' *default variety* and the
+varieties query asks each form for its own, and EXPECT_REGIONAL_TYPE_DIVERGENCE
+pins those 57 so that a "simplification" back to the parent fails here.
+
 Evolution edges carry three resolved fields, because 47% of the pool is reachable
 only by evolving something and the game layer has to know *when* each edge fires:
 
@@ -207,6 +216,28 @@ EXPECT_OWNABLE_SPRITES = 2368
 # `HatchRollTests.testNoLegendaryOutweighsAnOrdinaryLegendary` pins the same three
 # on the Swift side. The two are meant to fail together.
 EXPECT_WEIGHT_ANOMALIES = ["eternatus", "necrozma", "terapagos"]
+# The 18 canonical types, asserted as an exact set rather than a count. PokeAPI's
+# type table also carries `unknown` and `shadow`, which are artefacts of Gen 2 and
+# of Colosseum and are not types anything in this pool can have.
+EXPECT_TYPES = ("bug", "dark", "dragon", "electric", "fairy", "fighting", "fire",
+                "flying", "ghost", "grass", "ground", "ice", "normal", "poison",
+                "psychic", "rock", "steel", "water")
+# Entries carrying each type, measured 2026-08-27. A histogram rather than a total,
+# in the same spirit as EXPECT_GENDER_RATES: a query that silently returned slot 1
+# only would still total 1,083 and would show here as every dual type losing its
+# second half.
+EXPECT_TYPE_COUNTS = {"bug": 92, "dark": 80, "dragon": 73, "electric": 75,
+                      "fairy": 67, "fighting": 81, "fire": 86, "flying": 113,
+                      "ghost": 71, "grass": 132, "ground": 80, "ice": 56,
+                      "normal": 137, "poison": 91, "psychic": 111, "rock": 80,
+                      "steel": 73, "water": 157}
+EXPECT_DUAL_TYPE = 572  # of 1,083. The other 511 are single-typed
+# Regional forms whose types differ from their base species, and the one that does
+# not. This is the assertion that proves types are read per pokemon rather than per
+# species: read them off the parent and this figure is 0, not 57. Hisuian Basculin
+# is the sole match, being a Water form of a Water fish.
+EXPECT_REGIONAL_TYPE_DIVERGENCE = 57
+EXPECT_REGIONAL_TYPE_MATCH = ["basculin-white-striped"]
 
 
 def _curl(args: list[str]) -> dict:
@@ -295,16 +326,24 @@ def fetch_species() -> list[dict]:
         f"""{{ pokemonspecies(where: {{id: {{_lte: {MAX_SPECIES}}}}}, order_by: {{id: asc}}) {{
                  id name capture_rate is_legendary is_mythical generation_id gender_rate
                  pokemonspeciesnames(where: {{language_id: {{_eq: 9}}}}) {{ name }}
+                 pokemons(where: {{is_default: {{_eq: true}}}}) {{
+                   pokemontypes(order_by: {{slot: asc}}) {{ type {{ name }} }} }}
                }} }}"""
     )
     return data["pokemonspecies"]
 
 
 def fetch_varieties() -> list[dict]:
-    """Non-default varieties, which is where the regional forms live."""
+    """Non-default varieties, which is where the regional forms live.
+
+    Types come back on this query rather than being read off the parent species,
+    because a regional form's whole point is often that its types changed. See the
+    docstring: 57 of the 58 keep none of the parent's typing.
+    """
     data = graphql(
         """{ pokemon(where: {is_default: {_eq: false}}, order_by: {id: asc}) {
-                 id name pokemon_species_id } }"""
+                 id name pokemon_species_id
+                 pokemontypes(order_by: {slot: asc}) { type { name } } } }"""
     )
     return data["pokemon"]
 
@@ -424,6 +463,24 @@ def rarity_of(capture_rate: int, legendary: bool, mythical: bool) -> str:
     return "epic"
 
 
+def types_of(rows: list[dict], label: str) -> list[str]:
+    """The type slugs one *pokemon* row carries, in slot order.
+
+    `label` is only for the failure message: a type problem is almost always one
+    species, and hunting for which one is the slow part.
+    """
+    names = [r["type"]["name"] for r in rows]
+    if not 1 <= len(names) <= 2:
+        raise SystemExit(f"{label} has {len(names)} types, expected 1 or 2: {names}")
+    unknown = [n for n in names if n not in EXPECT_TYPES]
+    if unknown:
+        raise SystemExit(
+            f"{label} carries {unknown}, which is not one of the 18 canonical types. "
+            "A nineteenth type is a generation-scale event; add it deliberately."
+        )
+    return names
+
+
 def hatch_weight(entry: dict, cap: int | None = LEGENDARY_WEIGHT_CAP) -> int:
     """The weight one entry carries in a hatch roll. Mirrors `HatchRoll.weight(for:)`.
 
@@ -476,6 +533,14 @@ def build(repin: bool = False) -> dict:
         names = s["pokemonspeciesnames"]
         if not names:
             raise SystemExit(f"species {s['id']} has no English name")
+        # Types come from the species' default variety, because the species itself
+        # has none. Exactly one default exists per species and it is asserted here
+        # rather than indexed blindly, since [0] on an empty list is the kind of
+        # failure that reads as a missing type rather than a changed source.
+        if len(s["pokemons"]) != 1:
+            raise SystemExit(
+                f"species {s['name']} has {len(s['pokemons'])} default varieties, expected 1"
+            )
         pool.append(
             {
                 "id": s["id"],
@@ -488,6 +553,7 @@ def build(repin: bool = False) -> dict:
                 "genderRate": s["gender_rate"],
                 "legendary": s["is_legendary"],
                 "mythical": s["is_mythical"],
+                "types": types_of(s["pokemons"][0]["pokemontypes"], s["name"]),
             }
         )
 
@@ -513,6 +579,9 @@ def build(repin: bool = False) -> dict:
                 "genderRate": parent["gender_rate"],
                 "legendary": parent["is_legendary"],
                 "mythical": parent["is_mythical"],
+                # The form's own types, never the parent's. This is the one field
+                # on this entry that does not inherit, and 57 of 58 differ.
+                "types": types_of(v["pokemontypes"], slug),
             }
         )
 
@@ -680,6 +749,41 @@ def build(repin: bool = False) -> dict:
         if actual != expected:
             raise SystemExit(f"{label}: {actual}, expected {expected}")
 
+    # --- types -----------------------------------------------------------------
+    # Four assertions, because there are four different ways for this to go wrong
+    # quietly: a new type, a shifted count, a lost second slot, and the big one,
+    # types silently coming from the parent species.
+    type_counts = Counter(t for e in pool for t in e["types"])
+    if sorted(type_counts) != sorted(EXPECT_TYPES):
+        raise SystemExit(
+            f"type set drifted.\n  got:      {sorted(type_counts)}\n"
+            f"  expected: {sorted(EXPECT_TYPES)}"
+        )
+    if dict(type_counts) != EXPECT_TYPE_COUNTS:
+        moved = {t: (type_counts[t], EXPECT_TYPE_COUNTS.get(t))
+                 for t in sorted(EXPECT_TYPES) if type_counts[t] != EXPECT_TYPE_COUNTS.get(t)}
+        raise SystemExit(f"entries per type drifted (got, expected): {moved}")
+    dual = sum(1 for e in pool if len(e["types"]) == 2)
+    if dual != EXPECT_DUAL_TYPE:
+        raise SystemExit(f"dual-typed entries: {dual}, expected {EXPECT_DUAL_TYPE}")
+
+    # A regional form's types are its own. Comparing against the base entry in the
+    # pool rather than re-reading the source, so this also catches the form being
+    # handed the parent's list anywhere downstream of the fetch.
+    base_types = {e["speciesID"]: e["types"] for e in pool if e["region"] is None}
+    matches = sorted(e["slug"] for e in pool
+                     if e["region"] is not None and e["types"] == base_types[e["speciesID"]])
+    diverged = len(regional) - len(matches)
+    if diverged != EXPECT_REGIONAL_TYPE_DIVERGENCE or matches != EXPECT_REGIONAL_TYPE_MATCH:
+        raise SystemExit(
+            f"regional forms retyped: {diverged}, expected "
+            f"{EXPECT_REGIONAL_TYPE_DIVERGENCE}\n"
+            f"  forms matching their base species: {matches}\n"
+            f"  expected:                          {EXPECT_REGIONAL_TYPE_MATCH}\n"
+            "0 here means types are being read off the species, which is wrong for "
+            "57 of the 58 forms. See the types paragraph in the module docstring."
+        )
+
     # --- the top of the weight scale ------------------------------------------
     # A capture rate that contradicts its rarity is invisible here and dominant
     # once an egg tier narrows the pool, so the set of them is pinned by name.
@@ -722,6 +826,10 @@ def build(repin: bool = False) -> dict:
     print(f"  distinct items    {len(evo_items)}")
     print(f"hatchable           {len(pool) - len(gated)} (the rest are evolution-gated)")
     print("rarity              " + str(dict(Counter(e["rarity"] for e in pool))))
+    print(f"types               {len(type_counts)} distinct, {dual} dual-typed, "
+          f"{diverged} of {len(regional)} regional forms retyped")
+    print("  by type           " + ", ".join(
+        f"{t} {n}" for t, n in sorted(type_counts.items(), key=lambda kv: (-kv[1], kv[0]))))
     print(f"weight cap          {LEGENDARY_WEIGHT_CAP} on legendary and mythical, "
           f"reaching {', '.join(anomalies)}")
     hatchable = [e for e in pool if e["id"] not in gated]
