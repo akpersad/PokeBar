@@ -30,6 +30,16 @@ raising `MAX_SPECIES` for a new generation or deliberately re-pinning the sprite
 commit. It asserts every figure it depends on before writing, so it fails at your
 desk rather than shipping a dex with holes in it.
 
+**One of those assertions is about the game rather than the data:
+`EXPECT_WEIGHT_ANOMALIES`.** It names the three legendaries carrying
+`capture_rate` 255 (invariant 44), so a generation that adds a fourth stops the
+generator *before* it writes rather than quietly handing one species 18.5% of an
+Ultra Egg. To do that the script mirrors `HatchRoll.legendaryWeightCap` and
+`EggTier.floor`, and it prints the heaviest entry of each narrowed pool on every
+run, which is the look nobody took before the anomaly shipped. **It applies
+nothing**: `captureRate` in the manifest is still the raw rate, because Dust pays
+on that.
+
 `swift run PokeBar` **cannot show the menu bar item.** SwiftUI registers a
 `MenuBarExtra` status item only for a process with a bundle identifier, and a bare
 SwiftPM executable reports `CFBundleIdentifier = NULL`. It fails silently: the
@@ -554,7 +564,10 @@ Each one is load-bearing and each was measured. Breaking any is silent.
     would lift the Great Egg's expected Dust through invariant 42's bound. Its cost
     is the Master Egg break in invariant 41. Three tests guard it and one asserts
     the capped set **by name**, so a manifest regeneration adding a fourth
-    anomalous entry fails rather than absorbing it.
+    anomalous entry fails rather than absorbing it. **`generate-dex.py` asserts
+    the same set itself**, added later the same day, so the regeneration now fails
+    at the source before the manifest is written; the two are meant to fail
+    together.
 
 ---
 
@@ -702,6 +715,11 @@ have to rediscover:
 - **The Ultra Egg's mythical rate roughly doubled to 29.3% as a side effect**, and
   its expected Dust per duplicate went 16.90 to 30.30, overtaking the Master Egg.
   That is measured and recorded, and nobody has played with it yet.
+- **The guard moved upstream the same day.** `generate-dex.py` now asserts the
+  three anomalous slugs itself and prints the heaviest entry of each narrowed pool,
+  so the next generation cannot add a fourth 255 without stopping the generator.
+  No data changed, `--check` still passes against the committed manifest, and the
+  cap is still applied in exactly one place, `HatchRoll.weight(for:)`.
 
 The copy half: `GameFormat.celebrationSubtitle` said "Traded the duplicate for 1
 Dust" and then "It joins your team in slot 6", which reads as one card

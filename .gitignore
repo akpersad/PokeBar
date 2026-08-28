@@ -10,3 +10,7 @@ Packages/
 # Built app bundle and local install artifacts
 /dist/
 *.app/
+
+# Python bytecode from generate-dex.py runs
+__pycache__/
+*.pyc
