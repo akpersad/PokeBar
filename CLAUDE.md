@@ -621,7 +621,7 @@ Game layer, decided or derived:
 | Projects seen | 20+ working directories across the three sources, all attributed |
 | Team shares | lead 1.0, party 0.8 each. Full team **5.0x**, so 0.93 days a climb |
 | With Exp Share | every slot 1.0. Full team **6.0x** |
-| Egg / Rare Candy / stone / cord / charm | 200 / 250 / 400 / 400 / 30,000 coins |
+| Egg / Rare Candy / stone / cord / charm | 200 / 250 / 100 / 100 / 30,000 coins |
 | Egg ladder | Egg 200, Great 600, Ultra 3,500, Master 20,000 coins |
 | Egg ladder in days at ~1,080 coins/day | 0.19 / 0.56 / 3.24 / 18.5 |
 | Egg tier pools | 570 / 266 / 91 / 22, floored at common / rare / legendary / mythical |

@@ -471,9 +471,17 @@ enum Prices {
     static let rareCandy = 250
     static let rareCandyXP: Double = 10_000
     /// 23 distinct stones, gating 69 edges.
-    static let evolutionStone = 400
-    /// Gates the 26 trade edges.
-    static let linkingCord = 400
+    ///
+    /// **100, down from 400 on 2026-08-28.** A stone is consumed by the evolution
+    /// it unlocks, so the price is per *edge*, not per item: at 400 the 95 item
+    /// and trade edges came to 38,000 coins, ~35 days of accrual, which put
+    /// gating taste above the Shiny Charm. 100 makes that bill 9,500, ~8.8 days.
+    /// Safe to move on its own, unlike an egg price: an item buys no draw and
+    /// mints no Dust, so it sits on no ladder. See DECISIONS.md.
+    static let evolutionStone = 100
+    /// Gates the 26 trade edges. Same price and the same reasoning as a stone,
+    /// named separately because it gates a different edge kind.
+    static let linkingCord = 100
     /// ~28 days of accrual. Passive and permanent, so it should be a genuine
     /// commitment rather than an early purchase.
     static let shinyCharm = 30_000
@@ -490,7 +498,7 @@ enum Prices {
     /// Coins to hatch another of a base-form species already in the collection.
     ///
     /// **Flat, and deliberately not scaled by band**, unlike everything Dust buys.
-    /// Nothing else priced in coins scales (egg 300, candy 250, stone 400), and
+    /// Nothing else priced in coins scales (egg 200, candy 250, stone 100), and
     /// the flat figure creates the useful shape: Dust is the cheap path for a
     /// common and coins are the escape hatch for a legendary, so the two
     /// currencies curve differently and the choice is real.

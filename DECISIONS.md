@@ -949,8 +949,8 @@ is actually playable.
 |---|---|---|
 | Egg | **300 coins** | ~6.7 h of usage. Cheap on purpose: eggs must never be the bottleneck, since raising time already is. Leaves ~580 coins/day for everything else at level-36 swapping |
 | Rare Candy | **250 coins** for 10,000 XP | The most important sink, because it buys the scarce resource. 1 coin of accrual equals 200 XP, so 10,000 XP is "worth" 50 coins; the 5x markup is upstream's, and makes candy a luxury. Naturally strong early (+4.1 levels at L10) and weak late (+0.6 at L90), like the games |
-| Evolution stones | **400 coins** | 23 items, gating 69 edges |
-| Linking Cord | **400 coins** | Gates 26 edges |
+| Evolution stones | **400 coins** | Superseded. 23 items, gating 69 edges. Cut to 100 on 2026-08-28; see "Evolution items are 100 coins" below |
+| Linking Cord | **400 coins** | Superseded. Gates 26 edges. Cut to 100 at the same time |
 | Shiny Charm | **30,000 coins** | Upstream's price, ~28 days. Passive, permanent, so it should be a genuine commitment |
 | Targeted pick | **Dust, priced on the band** | Superseded. Priced in coins here at 200 x (255 / captureRate); the currency and the scale both changed when the user settled duplicates, and the table that shipped is in "Settled 2026-08-23" below |
 | Targeted re-roll | **A tenth of the pick** | Added when the loop was built. Same section |
@@ -2376,6 +2376,44 @@ front of people. `@AppStorage("PokeBarShowProjectUsage")`, never the ledger, and
 **recording never stops** because a hole here could never be filled in. The
 section header stays visible when the rows are hidden, since it carries the only
 control that brings them back.
+
+---
+
+## Evolution items are 100 coins, set 2026-08-28
+
+`Prices.evolutionStone` and `Prices.linkingCord` went 400 -> 100, at the user's
+direction: items read as too expensive in play. Nothing else moved. Rare Candy
+stays at 250, the Shiny Charm at 30,000, the Exp Share at 10,000 and the egg
+ladder at 200 / 600 / 3,500 / 20,000, all of which were considered in the same
+breath and declined.
+
+**The figure that makes the old price wrong is 95, not 400.** A stone is
+*consumed* by the evolution it unlocks (`Trainer.evolve` decrements the
+inventory), so 400 was never the price of an item, it was the price of one edge,
+paid again for the next Vaporeon. The item edges are 69 stone plus 26 trade, so
+the completionist bill was 38,000 coins, ~35 days of accrual at this machine's
+~1,080 coins/day, against the Shiny Charm's 30,000. An item that gates *taste*
+outpricing the game's flagship permanent is the wrong ordering, and it is the
+same reasoning the Everstone section already records: item edges are the branch
+the player is meant to choose, and a per-use tax on choosing is a tax on the only
+part of evolution they steer. At 100 the bill is 9,500, ~8.8 days, which sits
+below one Exp Share and reads as a running cost rather than a wall.
+
+**Why this price is safe to move alone, unlike an egg price.** The three egg
+prices constrain each other (invariants 41 and 42: the pools nest, so every tier
+competes with spamming the one below, and the Great Egg sets both ceilings above
+it). An item is not on that ladder. It buys no draw, mints no Dust, and appears in
+no expected-value comparison, so nothing rebalances and no test moves. The two
+constants are named separately and stay equal only by coincidence of value: a
+stone and a cord gate different edge kinds, and `Trainer.ShopItem.priceInCoins`
+already branches on the slug.
+
+**What it costs, stated so nobody has to rediscover it.** Coins are already not
+the bottleneck (raising time is), and this removes one of the few places they bit.
+The four dead cheap purchases were never the interesting decision; the interesting
+one is *which* branch a Nincada or an Eevee takes, and that is unpriced either
+way. If items later feel free to the point of pointless, the fix is upward from
+100 and it is a one-line change with no ladder attached.
 
 ---
 
