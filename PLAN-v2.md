@@ -454,6 +454,9 @@ Deferred by the user in this session, with reasons:
   project. Would also require reopening "stats are out", which is what Mint's
   rejection hangs off.
 - **Types in the manifest.** Was only proposed as a battle prerequisite.
+  **Superseded 2026-08-27, data only: types are now in the manifest**, added for
+  PokeFit's type-based achievements. Battles stay deferred and nothing in this
+  project reads the field. See DECISIONS.md.
 - Still rejected, not deferred, and not to be reopened: live plan limits and any
   Keychain access, Mint, cost-weighted currency, the Dust prices (deferred on
   purpose until the wall is hit), and the menu bar sprite sizing.

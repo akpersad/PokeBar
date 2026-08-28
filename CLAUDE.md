@@ -614,7 +614,7 @@ evolution triggers, the female flag and gender rates. All asserted by
 | Quantity | Value |
 |---|---|
 | Collectible pool | **1,083** = 1,025 species + 58 regional forms |
-| Manifest | 381 KiB, `Sources/PokeBar/Dex/Resources/pokedex.json` |
+| Manifest | 465 KiB, `Sources/PokeBar/Dex/Resources/pokedex.json`. 381 KiB before types |
 | Animated | 1,069 (98.7%). 816 via gen-v, 253 via showdown, 14 static via home |
 | No animated sprite | `990-995, 1006, 1008, 1010, 1017, 1022-1025` |
 | No shiny sprite | 2 entries |
@@ -622,6 +622,8 @@ evolution triggers, the female flag and gender rates. All asserted by
 | With an evolution | 477. 513 edges: 364 level, 69 item, 26 trade, 54 substituted |
 | Hatchable (no incoming edge) | 570. The other 513 are evolution-gated |
 | Rarity bands | rare 493, common 238, uncommon 187, legendary 74, epic 68, mythical 23 |
+| Types | 18, exactly the canonical set. **572 entries dual-typed**, 511 single |
+| Regional forms retyped | **57 of 58.** Only Hisuian Basculin keeps its parent's typing |
 | Sprite animation | 51-129 frames, 60-200 ms delays, so 5-16 fps |
 | Sprites commit | `c10459b9b0129eaca5c5d9b1cac65336debb1d08` (pinned in the generator; `--repin` to move it) |
 
