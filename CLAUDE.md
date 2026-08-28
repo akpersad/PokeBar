@@ -645,7 +645,7 @@ writing, which a fixture cannot reproduce.
 
 ## State
 
-**Phases 1 through 4: complete.** 404 tests, 0 failures. 9 of those are the corpus
+**Phases 1 through 4: complete.** 407 tests, 0 failures. 9 of those are the corpus
 parity tests, skipped unless `POKEBAR_CORPUS=1`, which runs them against the live
 tree in a second filtered pass: also 0 failures. Both measured 2026-08-27, after
 the Usage tab's project breakdown. The ninth corpus test is that one's guard: it
@@ -682,14 +682,52 @@ grew. **Nothing about this is outstanding.** The pane was signed off rendering
 PokeBar 45% / 7.11M, pokefit-ios 37% / 5.79M, Before this update 18% / 2.80M, and
 the popover needed no scrolling at five tabs plus three project rows.
 
+**Shipped 2026-08-27, after the Usage tab: the legendary hatch weight cap, and one
+line of copy.** Both came out of a single screenshot of a duplicate Terapagos.
+Invariant 44 is the substantive half and the full reasoning is in DECISIONS.md
+under "Three legendaries hold the maximum capture rate"; the short version is that
+Necrozma, Eternatus and Terapagos carry `capture_rate` 255, so weighting on the raw
+rate made them the heaviest draws in every narrowed pool and **55.5% of a 3,500
+coin guaranteed-legendary Ultra Egg was one of three species**. `capture_rate` 255
+is correct in the manifest and was verified against four sources before anything
+changed, so there is nothing to regenerate. Three things a cold reader should not
+have to rediscover:
+
+- **The cost was accepted, not avoided.** Any cap breaks invariant 41's mythical
+  chain, and the user chose the cap over moving a price with both exits costed and
+  declined. The Master Egg now overpays by 1.67x and its test pins that bound. Do
+  not "fix" it.
+- **A cap of 30 was asked for first and withdrawn** once it was shown to break
+  invariant 42 as well. The cap is 45 for that reason.
+- **The Ultra Egg's mythical rate roughly doubled to 29.3% as a side effect**, and
+  its expected Dust per duplicate went 16.90 to 30.30, overtaking the Master Egg.
+  That is measured and recorded, and nobody has played with it yet.
+
+The copy half: `GameFormat.celebrationSubtitle` said "Traded the duplicate for 1
+Dust" and then "It joins your team in slot 6", which reads as one card
+contradicting itself. The duplicate is the **dex slot**, never the Pokemon, so it
+now reads "Already in your dex, so it paid 1 Dust." A test forbids the word
+"Traded" coming back.
+
 **Next action, in one sentence: nothing is scheduled, and the deferred list below
 is not a queue.** v1, v2 and v3 are all complete and all approved on screen, as is
-the Usage tab's project breakdown added after them on 2026-08-27. The two things
-outstanding are the user's alone: whether "Open at login" survives their next
-reboot, and one reworded Dex caption nobody has been asked about (below).
-Everything else on the deferred list is deferred *by the user* and several items
-are explicitly marked do-not-raise, so a session that opens this file should ask
-what is wanted rather than start on the list.
+the Usage tab's project breakdown and the weight cap added after them on
+2026-08-27. Four things are outstanding and all four are the user's alone: whether
+"Open at login" survives their next reboot; one reworded Dex caption nobody has
+been asked about (below); the new duplicate-hatch copy, which needs a duplicate to
+appear before it can be seen on screen; and whether the Ultra Egg still feels right
+at its new mythical rate. Everything else on the deferred list is deferred *by the
+user* and several items are explicitly marked do-not-raise, so a session that opens
+this file should ask what is wanted rather than start on the list.
+
+**A note for PokeFit was written this session and is uncommitted in that repo.**
+`pokefit-ios/docs/HATCH-WEIGHT-ANOMALY.md`, plus a pointer row in that project's
+`CLAUDE.md` §1. It carries this finding, the four-source verification, and
+PokeFit's own exposure: its `docs/EGG-POOLS.md` pins `q = 0.1589`, which the cap
+moves to 0.2928, and its ladder then fails the same constraint at 1.73x with **no
+valid Ultra price available**, so dropping its Master Egg is its only clean exit.
+Left uncommitted on purpose: the standing push permission in this file is scoped to
+this project.
 
 **v3 landed and was signed off on screen 2026-08-26**, in four parts. Three are corrections the user made after
 living with v2 on screen, and one is carried in from PokeFit:

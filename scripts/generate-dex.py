@@ -65,6 +65,22 @@ those disagree. `_resolve_edge` picks deliberately: lowest real `min_level` firs
 then an item row, then the lowest row id. That preference is what turns Kubfu into
 a Scroll of Darkness purchase rather than a level-36 substitution, and Eevee into
 eight stones rather than eight guesses.
+
+THE FOURTH TRAP IS NOT IN THE JOIN, IT IS IN THE NUMBERS: `capture_rate` is not
+monotone in rarity. Necrozma, Eternatus and Terapagos are legendary and carry the
+game's maximum rate of **255**, because each is a scripted, effectively guaranteed
+story catch in its most recent appearance. The manifest is right and four sources
+agree, Bulbapedia's infobox included once you read its own trivia; see
+DECISIONS.md, "Three legendaries hold the maximum capture rate". So nothing here
+corrects a rate, and `captureRate` in the output is always the raw number, because
+Dust pays on it.
+
+What this script does is refuse to write a dex whose *set* of such entries has
+moved. The hatch roll weights on the raw rate, which is invisible across 1,083
+entries and dominant once an egg tier narrows the pool: uncapped, those three were
+18.5% each of a guaranteed-legendary Ultra Egg. A new generation adding a fourth
+would inherit that silently, so it fails here instead. See
+EXPECT_WEIGHT_ANOMALIES and the weight-scale report at the end of `build`.
 """
 
 from __future__ import annotations
@@ -133,6 +149,26 @@ SUBSTITUTE_LEVEL = 36
 # takes the item the mainline games added for exactly this in Gen 9.
 LINKING_CORD = ("linking-cord", "Linking Cord")
 
+# Rarity bands, lowest first. Mirrors `Rarity` in Sources/PokeBar/Dex/DexModels.swift.
+# The order is what makes "this band and above" mean anything.
+RARITY_ORDER = ("common", "uncommon", "rare", "epic", "legendary", "mythical")
+
+# The narrowed pools the hatch roll draws from, as (floor, egg tier). Mirrors
+# `EggTier.floor`; the pools nest upward, so one floor expresses each tier. Used
+# only by the weight-scale report below, which is the look nobody took before the
+# anomaly in the docstring shipped: the whole pool's shape was fine, and every
+# problem was in a pool a floor had narrowed.
+TIER_FLOORS = (("common", "Egg"), ("rare", "Great"), ("legendary", "Ultra"),
+               ("mythical", "Master"))
+
+# The hatch roll's ceiling on a legendary or mythical draw weight, mirrored from
+# `HatchRoll.legendaryWeightCap`. **Nothing here applies it to the output.** The
+# manifest carries the raw `capture_rate` and only the raw rate, because the weight
+# decides how often a thing appears and the raw rate is what a duplicate of it pays
+# (DECISIONS.md, invariant 17). It is here so the assertion and the report below
+# are written in the terms the roll actually reads.
+LEGENDARY_WEIGHT_CAP = 45
+
 # --- Expected figures. These are the assertions, not documentation. -----------
 # Measured 2026-08-22. Each one is a property of the source data that this
 # manifest depends on, so drift should stop the generator rather than reach code.
@@ -163,6 +199,14 @@ EXPECT_EVOLUTION_ITEMS = 23  # distinct stones etc. 24 shop lines with the Cord
 EXPECT_GENDER_RATES = {-1: 155, 0: 26, 1: 131, 2: 19, 4: 630, 6: 25, 7: 2, 8: 37}
 EXPECT_FEMALE_FORMS = 102
 EXPECT_OWNABLE_SPRITES = 2368
+# The legendary and mythical entries whose `capture_rate` is above the roll's cap,
+# by name. All three sit at 255 and the data is correct; see the fourth trap in the
+# module docstring. Asserted by name rather than counted, so a generation that adds
+# a fourth fails here at the source rather than being absorbed into a pool where one
+# entry is 18.5% of an Ultra Egg.
+# `HatchRollTests.testNoLegendaryOutweighsAnOrdinaryLegendary` pins the same three
+# on the Swift side. The two are meant to fail together.
+EXPECT_WEIGHT_ANOMALIES = ["eternatus", "necrozma", "terapagos"]
 
 
 def _curl(args: list[str]) -> dict:
@@ -378,6 +422,23 @@ def rarity_of(capture_rate: int, legendary: bool, mythical: bool) -> str:
     if capture_rate >= 45:
         return "rare"
     return "epic"
+
+
+def hatch_weight(entry: dict, cap: int | None = LEGENDARY_WEIGHT_CAP) -> int:
+    """The weight one entry carries in a hatch roll. Mirrors `HatchRoll.weight(for:)`.
+
+    Deliberately **not** written to the manifest. The game derives it from
+    `captureRate` and `rarity`, and putting a second copy in the data would let the
+    JSON and the Swift constant disagree about the same roll. It exists here to
+    assert on the distribution the app will draw from and to print it, which is the
+    one thing this script could not do while it only ever looked at the raw rate.
+
+    Pass `cap=None` for the uncapped weight, which is what the report compares against.
+    """
+    raw = max(entry["captureRate"], 1)
+    if cap is not None and entry["rarity"] in ("legendary", "mythical"):
+        return min(raw, cap)
+    return raw
 
 
 def build(repin: bool = False) -> dict:
@@ -619,6 +680,28 @@ def build(repin: bool = False) -> dict:
         if actual != expected:
             raise SystemExit(f"{label}: {actual}, expected {expected}")
 
+    # --- the top of the weight scale ------------------------------------------
+    # A capture rate that contradicts its rarity is invisible here and dominant
+    # once an egg tier narrows the pool, so the set of them is pinned by name.
+    # See the fourth trap in the module docstring before changing this.
+    anomalies = sorted(
+        e["slug"]
+        for e in pool
+        if e["rarity"] in ("legendary", "mythical")
+        and e["captureRate"] > LEGENDARY_WEIGHT_CAP
+    )
+    if anomalies != EXPECT_WEIGHT_ANOMALIES:
+        raise SystemExit(
+            "the legendary and mythical entries above the roll's weight cap moved.\n"
+            f"  got:      {anomalies}\n"
+            f"  expected: {EXPECT_WEIGHT_ANOMALIES}\n"
+            "The rate is probably correct: PokeAPI's source CSV and PokemonDB agreed "
+            "for all three of the known ones, and Bulbapedia's infobox shows the debut "
+            'generation. Read DECISIONS.md, "Three legendaries hold the maximum '
+            'capture rate", then decide whether HatchRoll.legendaryWeightCap should '
+            "cover the new entry. HatchRollTests names the same set."
+        )
+
     animated = len(pool) - len(static_only)
     print(f"pool                {len(pool)}")
     print(f"  base species      {EXPECT_SPECIES}")
@@ -639,6 +722,27 @@ def build(repin: bool = False) -> dict:
     print(f"  distinct items    {len(evo_items)}")
     print(f"hatchable           {len(pool) - len(gated)} (the rest are evolution-gated)")
     print("rarity              " + str(dict(Counter(e["rarity"] for e in pool))))
+    print(f"weight cap          {LEGENDARY_WEIGHT_CAP} on legendary and mythical, "
+          f"reaching {', '.join(anomalies)}")
+    hatchable = [e for e in pool if e["id"] not in gated]
+    for floor, tier_name in TIER_FLOORS:
+        tier = [
+            e for e in hatchable
+            if RARITY_ORDER.index(e["rarity"]) >= RARITY_ORDER.index(floor)
+        ]
+
+        def heaviest(cap: int | None) -> tuple[str, str]:
+            total = sum(hatch_weight(e, cap) for e in tier)
+            top = max(tier, key=lambda e: hatch_weight(e, cap))
+            return top["slug"], f"{top['slug']} {100 * hatch_weight(top, cap) / total:.2f}%"
+
+        (top_slug, capped), (raw_slug, uncapped) = heaviest(LEGENDARY_WEIGHT_CAP), heaviest(None)
+        # Only worth printing when the cap changes *who* is heaviest. Comparing the
+        # shares instead would print a rounding difference for the plain Egg, whose
+        # top entry is a Caterpie either way.
+        note = "" if top_slug == raw_slug else f", uncapped {uncapped}"
+        label = f"{tier_name}, {floor}+"
+        print(f"  {label:<17s} {len(tier):4d}  heaviest {capped}{note}")
     print(f"sprites commit      {commit}")
 
     return {
