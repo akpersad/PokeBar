@@ -709,6 +709,19 @@ contradicting itself. The duplicate is the **dex slot**, never the Pokemon, so i
 now reads "Already in your dex, so it paid 1 Dust." A test forbids the word
 "Traded" coming back.
 
+**Shipped and signed off on screen 2026-08-28: evolution items are 100 coins.**
+`Prices.evolutionStone` and `Prices.linkingCord` went 400 -> 100 at the user's
+direction, and nothing else moved: Rare Candy 250, Shiny Charm 30,000, Exp Share
+10,000 and the egg ladder 200 / 600 / 3,500 / 20,000 were all considered in the
+same breath and declined. The reason the old price was wrong is that **a stone is
+consumed by the evolution it unlocks**, so 400 was the price of an *edge*, not of
+an item: across the 69 stone and 26 trade edges the completionist bill was 38,000
+coins, ~35 days of accrual here, which put gating taste above the game's flagship
+permanent. It is 9,500 now, ~8.8 days. **Safe to move alone, unlike an egg
+price**: an item buys no draw and mints no Dust, so it sits on no ladder,
+invariants 41 and 42 are untouched and no test moved. DECISIONS.md carries the
+arithmetic under "Evolution items are 100 coins".
+
 **Next action, in one sentence: nothing is scheduled, and the deferred list below
 is not a queue.** v1, v2 and v3 are all complete and all approved on screen, as is
 the Usage tab's project breakdown and the weight cap added after them on

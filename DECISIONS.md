@@ -2408,6 +2408,9 @@ constants are named separately and stay equal only by coincidence of value: a
 stone and a cord gate different edge kinds, and `Trainer.ShopItem.priceInCoins`
 already branches on the slug.
 
+**Approved on screen 2026-08-28**, in the Shop pane, which is the only way
+rendered pixels get verified here. Treat the price as settled.
+
 **What it costs, stated so nobody has to rediscover it.** Coins are already not
 the bottleneck (raising time is), and this removes one of the few places they bit.
 The four dead cheap purchases were never the interesting decision; the interesting
